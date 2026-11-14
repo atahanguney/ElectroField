@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectroField | Multi-Dimensional Electromagnetics & Surface Dynamics Workbench</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D/4D WebGL Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            950: '#050811',
+                            900: '#0a0f1d',
+                            800: '#111827',
+                            700: '#1f2937',
+                            accent: '#00f2fe',
+                            purple: '#8b5cf6',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #050811;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f1d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+        .glass-panel {
+            background: rgba(10, 15, 29, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.18);
+        }
+        .glow-border {
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.12);
+        }
+        .dim-btn.active {
+            background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
+            border-color: #38bdf8;
+            color: white;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+        }
+        .cam-btn.active {
+            background-color: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+        input[type=range] {
+            accent-color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col select-none font-sans">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="h-14 glass-panel border-b border-slate-800 px-4 flex items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <i class="fa-solid fa-atom text-white text-lg animate-spin" style="animation-duration: 12s;"></i>
+            </div>
+            <div>
+                <div class="flex items-center space-x-2">
+                    <h1 class="font-bold text-base tracking-wider text-white">ELECTRO<span class="text-cyan-400 font-mono">FIELD</span></h1>
+                    <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">v2.4 Core Solver</span>
+                </div>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Multi-Dimensional Electromagnetics, Surface Velocity & Mathematical Proof Engine</p>
+            </div>
+        </div>
+
+        <!-- DIMENSION SELECTOR (1D / 2D / 3D / 4D) -->
+        <div class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 space-x-1">
+            <button onclick="setDimension(1)" id="dim-1" class="dim-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition">
+                1D <span class="hidden xl:inline font-sans font-normal opacity-80">Linear</span>
+            </button>
+            <button onclick="setDimension(2)" id="dim-2" class="dim-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition">
+                2D <span class="hidden xl:inline font-sans font-normal opacity-80">Planar</span>
+            </button>
+            <button onclick="setDimension(3)" id="dim-3" class="dim-btn active px-2.5 py-1 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition">
+                3D <span class="hidden xl:inline font-sans font-normal opacity-80">Volumetric</span>
+            </button>
+            <button onclick="setDimension(4)" id="dim-4" class="dim-btn px-2.5 py-1 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition">
+                4D <span class="hidden xl:inline font-sans font-normal opacity-80">Spacetime</span>
+            </button>
+        </div>
+
+        <!-- GLOBAL WORKSPACE WINDOW SWITCHER (LAB / ENCYCLOPEDIA / EXAM ENGINE) -->
+        <div class="flex items-center bg-slate-950/90 p-1 rounded-xl border border-cyan-500/30 space-x-1">
+            <button onclick="switchMainWorkspace('lab')" id="ws-lab" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-cubes"></i>
+                <span>3D/4D Lab</span>
+            </button>
+            <button onclick="switchMainWorkspace('academy')" id="ws-academy" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-book-open"></i>
+                <span>Theory & Formulas</span>
+            </button>
+            <button onclick="switchMainWorkspace('exam')" id="ws-exam" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Question Bank (250+)</span>
+            </button>
+        </div>
+
+        <!-- RIGHT ACTIONS: PYTHON EXPORT & LAB PRESETS -->
+        <div class="flex items-center space-x-2">
+            <select id="presetSelect" onchange="loadPresetExperiment(this.value)" class="bg-slate-900 border border-slate-700 text-xs text-slate-200 rounded-lg px-2 py-1.5 font-mono focus:outline-none focus:border-cyan-400 hidden md:block">
+                <option value="maxwell_wave">⚡ Exp 1: Maxwell 3D EM Wave & Poynting Vector</option>
+                <option value="gauss_sphere">🌐 Exp 2: Electrostatics - Gauss Law Spherical Shell</option>
+                <option value="faraday_ring">🧲 Exp 3: Faraday Induction & Lenz Law Vortex</option>
+                <option value="ampere_toroid">🌀 Exp 4: Magnetostatics - Toroidal Solenoid & Surface Current</option>
+                <option value="skin_effect">🌊 Exp 5: High-Freq Skin Depth & Surface Velocity</option>
+                <option value="tesseract_4d">🔮 Exp 6: 4D Minkowski Spacetime EM Tensor Projection</option>
+            </select>
+            <button onclick="openPythonModal()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-mono flex items-center space-x-1.5 transition">
+                <i class="fa-brands fa-python"></i>
+                <span class="hidden xl:inline">Python</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN WORKBENCH LAYOUT (3D/4D LAB VIEW) -->
+    <div id="workspace-lab" class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+
+        <!-- LEFT SIDEBAR: PHYSICS CONTROLS, SURFACE VELOCITY & CUSTOM FORMULA -->
+        <aside class="w-full lg:w-80 glass-panel border-r border-slate-800 flex flex-col overflow-y-auto z-10 shrink-0">
+            
+            <!-- Physics Domain Module Selector -->
+            <div class="p-3.5 border-b border-slate-800/80">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-semibold">
+                        <i class="fa-solid fa-Sliders mr-1"></i> Physics Domain & Law
+                    </span>
+                    <span id="activeCoordBadge" class="text-[10px] font-mono bg-slate-800 px-2 py-0.5 rounded text-slate-300">Spherical (r,θ,φ)</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5 text-xs">
+                    <button onclick="selectLawTab('maxwell')" id="tab-maxwell" class="law-tab bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 py-1.5 px-2 rounded-lg font-medium text-left truncate">
+                        ⚡ Maxwell & Poynting
+                    </button>
+                    <button onclick="selectLawTab('electro')" id="tab-electro" class="law-tab bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-white py-1.5 px-2 rounded-lg font-medium text-left truncate">
+                        🔋 Electrostatics
+                    </button>
+                    <button onclick="selectLawTab('magneto')" id="tab-magneto" class="law-tab bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-white py-1.5 px-2 rounded-lg font-medium text-left truncate">
+                        🧲 Magnetostatics
+                    </button>
+                    <button onclick="selectLawTab('faraday')" id="tab-faraday" class="law-tab bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-white py-1.5 px-2 rounded-lg font-medium text-left truncate">
+                        🔄 Faraday & Surface
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Parameters Sliders -->
+            <div class="p-3.5 border-b border-slate-800/80 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">Dynamic Field Parameters</span>
+                    <button onclick="resetParameters()" class="text-[10px] text-cyan-400 hover:underline font-mono">Reset</button>
+                </div>
+
+                <!-- Frequency -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">Wave Frequency (<span class="font-mono text-cyan-400">f</span>)</span>
+                        <span id="val-freq" class="font-mono text-cyan-400">2.40 GHz</span>
+                    </div>
+                    <input id="slider-freq" type="range" min="0.1" max="10" step="0.1" value="2.4" oninput="updateSimParams()" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Relative Permittivity -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">Permittivity (<span class="font-mono text-emerald-400">ε_r</span>)</span>
+                        <span id="val-eps" class="font-mono text-emerald-400">1.00 (Vacuum)</span>
+                    </div>
+                    <input id="slider-eps" type="range" min="1.0" max="12.0" step="0.1" value="1.0" oninput="updateSimParams()" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Relative Permeability -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">Permeability (<span class="font-mono text-purple-400">μ_r</span>)</span>
+                        <span id="val-mu" class="font-mono text-purple-400">1.00</span>
+                    </div>
+                    <input id="slider-mu" type="range" min="1.0" max="10.0" step="0.1" value="1.0" oninput="updateSimParams()" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Electric Field / Charge Amplitude -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">Field Amplitude (<span class="font-mono text-amber-400">E₀ / Q</span>)</span>
+                        <span id="val-amp" class="font-mono text-amber-400">120.0 V/m</span>
+                    </div>
+                    <input id="slider-amp" type="range" min="10" max="500" step="5" value="120" oninput="updateSimParams()" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+
+                <!-- Medium Conductivity (For Skin Depth & Surface Velocity attenuation) -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">Surface Conductivity (<span class="font-mono text-rose-400">σ</span>)</span>
+                        <span id="val-sigma" class="font-mono text-rose-400">0.05 S/m</span>
+                    </div>
+                    <input id="slider-sigma" type="range" min="0" max="5" step="0.05" value="0.05" oninput="updateSimParams()" class="w-full h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Topology & Custom Mathematical Surface Synthesizer -->
+            <div class="p-3.5 border-b border-slate-800/80 space-y-2.5">
+                <span class="text-[11px] font-mono uppercase tracking-wider text-purple-400 font-semibold block">
+                    <i class="fa-solid fa-cube mr-1"></i> Topology & Custom Surface Equation
+                </span>
+                
+                <div class="grid grid-cols-3 gap-1.5 text-[11px] font-mono">
+                    <button onclick="setGeometryMode('wave')" id="geo-wave" class="geo-btn bg-purple-500/20 border border-purple-500/50 text-purple-300 py-1 rounded">Harmonic</button>
+                    <button onclick="setGeometryMode('sphere')" id="geo-sphere" class="geo-btn bg-slate-900 border border-slate-800 text-slate-400 py-1 rounded">Sphere</button>
+                    <button onclick="setGeometryMode('torus')" id="geo-torus" class="geo-btn bg-slate-900 border border-slate-800 text-slate-400 py-1 rounded">Toroid</button>
+                    <button onclick="setGeometryMode('dipole')" id="geo-dipole" class="geo-btn bg-slate-900 border border-slate-800 text-slate-400 py-1 rounded">Dipole</button>
+                    <button onclick="setGeometryMode('cylinder')" id="geo-cylinder" class="geo-btn bg-slate-900 border border-slate-800 text-slate-400 py-1 rounded">Coaxial</button>
+                    <button onclick="setGeometryMode('tesseract')" id="geo-tesseract" class="geo-btn bg-slate-900 border border-slate-800 text-slate-400 py-1 rounded">4D Hyper</button>
+                </div>
+
+                <!-- Live Editable Parametric Equation f(x,y,t) -->
+                <div class="pt-1">
+                    <label class="text-[10px] font-mono text-slate-400 block mb-1">Custom Field/Surface Function Z(x,y,t):</label>
+                    <div class="flex space-x-1">
+                        <input id="customEquationInput" type="text" value="Math.sin(r * freq - t * 3) * (amp / 120) * Math.exp(-sigma * r * 0.3)" 
+                            class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
+                            placeholder="e.g. Math.sin(x*freq - t)*Math.cos(y*freq)">
+                        <button onclick="applyCustomEquation()" class="px-2.5 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded text-xs font-mono shrink-0">
+                            Apply
+                        </button>
+                    </div>
+                    <p id="eqStatus" class="text-[10px] font-mono text-emerald-400 mt-1">✓ Real-time surface mesh solver active</p>
+                </div>
+
+                <!-- Layer Visibility Toggles -->
+                <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="toggleVectors" checked onchange="updateVisualLayers()" class="rounded bg-slate-900 border-slate-700 text-cyan-500">
+                        <span class="text-slate-300 text-[11px]">Surface Velocity Vec</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="togglePoynting" checked onchange="updateVisualLayers()" class="rounded bg-slate-900 border-slate-700 text-cyan-500">
+                        <span class="text-slate-300 text-[11px]">Poynting Flux (S)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="toggleWireframe" checked onchange="updateVisualLayers()" class="rounded bg-slate-900 border-slate-700 text-cyan-500">
+                        <span class="text-slate-300 text-[11px]">Mesh Grid / Equipot.</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="toggleParticles" checked onchange="updateVisualLayers()" class="rounded bg-slate-900 border-slate-700 text-cyan-500">
+                        <span class="text-slate-300 text-[11px]">Charge Flow Drift</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Dimensional Knowledge Card -->
+            <div class="p-3.5 flex-1 flex flex-col justify-between bg-slate-950/40">
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-mono uppercase text-amber-400 font-semibold">
+                            <i class="fa-solid fa-layer-group mr-1"></i> Dimensional Structure Info
+                        </span>
+                        <span id="dimTag" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300">R³ Manifold</span>
+                    </div>
+                    <p id="dimExplanation" class="text-xs text-slate-300 leading-relaxed">
+                        <strong>3D Volumetric Space (x, y, z):</strong> Full curl and divergence operations active. Electric field <strong>E</strong>, Magnetic field <strong>H</strong>, and Surface Velocity vectors propagate orthogonally with Poynting energy flux <strong>S = E × H</strong>.
+                    </p>
+                </div>
+
+                <!-- Quick Telemetry Footnote -->
+                <div class="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span>FPS: <strong id="fpsCounter" class="text-emerald-400">60</strong></span>
+                    <span>Nodes: <strong id="nodeCounter" class="text-cyan-400">2,500</strong></span>
+                    <span>Solver: <strong class="text-purple-400">RK4 / FDTD</strong></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER VIEWPORT: 1D/2D/3D/4D INTERACTIVE CANVAS & CAMERA HUD -->
+        <main class="flex-1 flex flex-col relative bg-cyber-950 overflow-hidden">
+            
+            <!-- FLOATING TOP CAMERA & VIEWPORT HUD -->
+            <div class="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-none z-10">
+                
+                <!-- Camera Perspective Controls (Top, Bottom, Front, Side, Isometric, Cross-Section) -->
+                <div class="glass-panel p-1.5 rounded-xl flex items-center space-x-1 pointer-events-auto shadow-lg">
+                    <span class="text-[10px] font-mono uppercase text-slate-400 px-2 hidden sm:inline"><i class="fa-solid fa-video mr-1 text-cyan-400"></i>Camera:</span>
+                    <button onclick="setCameraView('iso')" id="cam-iso" class="cam-btn active px-2.5 py-1 rounded-lg text-xs font-mono border border-transparent hover:text-white transition">3D Orbit</button>
+                    <button onclick="setCameraView('top')" id="cam-top" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300 border border-transparent hover:text-white transition">Top (XY)</button>
+                    <button onclick="setCameraView('bottom')" id="cam-bottom" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300 border border-transparent hover:text-white transition">Bottom (-XY)</button>
+                    <button onclick="setCameraView('front')" id="cam-front" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300 border border-transparent hover:text-white transition">Front (XZ)</button>
+                    <button onclick="setCameraView('side')" id="cam-side" class="cam-btn px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300 border border-transparent hover:text-white transition">Side (YZ)</button>
+                </div>
+
+                <!-- Zoom & Cross-Section Slicer Controls -->
+                <div class="glass-panel p-1.5 rounded-xl flex items-center space-x-1.5 pointer-events-auto shadow-lg">
+                    <button onclick="zoomCamera(-3)" title="Zoom In" class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    </button>
+                    <button onclick="zoomCamera(3)" title="Zoom Out" class="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-slate-700 flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-magnifying-glass-minus"></i>
+                    </button>
+                    <button onclick="togglePause()" id="pauseBtn" class="px-2.5 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-700 flex items-center space-x-1 text-xs font-mono">
+                        <i class="fa-solid fa-pause" id="pauseIcon"></i>
+                        <span id="pauseText">Freeze</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3D / 4D WEBGL CANVAS CONTAINER -->
+            <div id="canvasContainer" class="flex-1 w-full h-full relative cursor-grab active:cursor-grabbing">
+                <!-- Three.js renders here -->
+                
+                <!-- Interactive Legend Overlay (Bottom Left of Canvas) -->
+                <div class="absolute bottom-3 left-3 glass-panel px-3 py-2 rounded-xl pointer-events-none text-[11px] font-mono space-y-1">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-0.5 bg-cyan-400 inline-block"></span>
+                        <span class="text-slate-300">Electric Field (<strong>E</strong>) & Surface Wave</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-0.5 bg-rose-500 inline-block"></span>
+                        <span class="text-slate-300">Magnetic Flux (<strong>B / H</strong>)</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-0.5 bg-amber-400 inline-block"></span>
+                        <span class="text-slate-300">Tangential Surface Velocity (<strong>v_s</strong>)</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-3 h-0.5 bg-emerald-400 inline-block"></span>
+                        <span class="text-slate-300">Poynting Power Vector (<strong>S = E × H</strong>)</span>
+                    </div>
+                </div>
+
+                <!-- Live Coordinate & Probe Inspector (Bottom Right of Canvas) -->
+                <div class="absolute bottom-3 right-3 glass-panel px-3 py-2 rounded-xl pointer-events-none text-[11px] font-mono text-right">
+                    <div class="text-cyan-400 font-semibold">LIVE SURFACE TELEMETRY</div>
+                    <div class="text-slate-300">Phase Velocity (v_p): <span id="hud-vp" class="text-white">3.00e8 m/s</span></div>
+                    <div class="text-slate-300">Surface Velocity (v_s): <span id="hud-vs" class="text-amber-400">2.98e8 m/s</span></div>
+                    <div class="text-slate-300">Poynting Flux (|S|): <span id="hud-poynting" class="text-emerald-400">19.10 W/m²</span></div>
+                    <div class="text-slate-300">Skin Depth (δ): <span id="hud-skin" class="text-purple-400">0.046 m</span></div>
+                </div>
+            </div>
+
+            <!-- BOTTOM 2D OSCILLOSCOPE & CROSS-SECTION WAVEFORM STRIP -->
+            <div class="h-36 glass-panel border-t border-slate-800 p-2.5 flex flex-col shrink-0">
+                <div class="flex items-center justify-between mb-1 px-1">
+                    <span class="text-[11px] font-mono uppercase text-cyan-400 font-semibold">
+                        <i class="fa-solid fa-wave-square mr-1"></i> Real-Time 1D/2D Cross-Section Waveforms: E(x,t), B(x,t), Surface Velocity v_s(x,t) & Power S(x,t)
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400">Drag 3D viewport to rotate • Scroll to Zoom</span>
+                </div>
+                <div class="flex-1 w-full bg-slate-950/90 rounded-lg border border-slate-800/90 overflow-hidden relative">
+                    <canvas id="scopeCanvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR: MATHEMATICAL PROOF ENGINE & AI MODEL SYNTHESIZER -->
+        <aside class="w-full lg:w-96 glass-panel border-l border-slate-800 flex flex-col overflow-hidden z-10 shrink-0">
+            
+            <!-- Right Panel Mode Tabs -->
+            <div class="flex border-b border-slate-800 bg-slate-950/60">
+                <button onclick="switchRightPanel('proofs')" id="rtab-proofs" class="flex-1 py-2.5 text-xs font-mono font-semibold border-b-2 border-cyan-400 text-cyan-400 bg-cyan-500/5">
+                    <i class="fa-solid fa-square-root-variable mr-1"></i> Proofs & Formulas
+                </button>
+                <button onclick="switchRightPanel('ai')" id="rtab-ai" class="flex-1 py-2.5 text-xs font-mono font-semibold border-b-2 border-transparent text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1 text-purple-400"></i> AI Model Architect
+                </button>
+            </div>
+
+            <!-- TAB 1: MATHEMATICAL PROOFS & NUMERICAL VERIFICATION -->
+            <div id="panel-proofs" class="flex-1 overflow-y-auto p-3.5 space-y-3">
+                
+                <!-- Live Numerical Proof Box -->
+                <div class="bg-slate-900/90 border border-cyan-500/30 rounded-xl p-3 glow-border">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-mono uppercase text-cyan-400 font-bold">Live Analytical vs. Numerical Proof</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">VERIFIED ✓</span>
+                    </div>
+                    <div id="proofActiveTitle" class="text-xs font-semibold text-white mb-2">
+                        Poynting's Theorem & Conservation of EM Energy
+                    </div>
+                    <div class="bg-slate-950 p-2 rounded-lg font-mono text-[11px] text-cyan-300 border border-slate-800 mb-2 overflow-x-auto" id="proofEquationFormula">
+                        -∇ · S = ∂/∂t (½εE² + ½μH²) + J · E
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                        <div class="bg-slate-950/70 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">LHS (Surface Integral ∮S·dA)</div>
+                            <div id="proofLHS" class="text-emerald-400 font-bold mt-0.5">19.104 W/m²</div>
+                        </div>
+                        <div class="bg-slate-950/70 p-2 rounded border border-slate-800">
+                            <div class="text-slate-400 text-[10px]">RHS (Volume Energy Rate)</div>
+                            <div id="proofRHS" class="text-emerald-400 font-bold mt-0.5">19.104 W/m²</div>
+                        </div>
+                    </div>
+                    <p id="proofStepExplanation" class="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                        By integrating the cross product <strong>S = E × H</strong> over the closed boundary manifold, the energy flux leaving the surface equals the time rate of decrease of stored electrostatic (w_e) and magnetostatic (w_m) energy minus Ohmic surface losses.
+                    </p>
+                </div>
+
+                <!-- Comprehensive Formula Encyclopedia (All Requested Domains) -->
+                <div class="space-y-2">
+                    <span class="text-[11px] font-mono uppercase text-slate-400 font-semibold block">Complete Electromagnetic Formula Matrix</span>
+
+                    <!-- 1. Maxwell's Equations -->
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5">
+                        <div class="text-xs font-semibold text-cyan-400 mb-1">1. Maxwell's Coupled Equations (Differential & Integral)</div>
+                        <div class="font-mono text-[11px] text-slate-200 space-y-1">
+                            <div>• Gauss (E): <span class="text-cyan-300">∇ · D = ρ_v</span> &nbsp;|&nbsp; <span class="text-slate-400">∮ D · dS = Q_enc</span></div>
+                            <div>• Gauss (B): <span class="text-cyan-300">∇ · B = 0</span> &nbsp;|&nbsp; <span class="text-slate-400">∮ B · dS = 0 (No Monopoles)</span></div>
+                            <div>• Faraday: <span class="text-cyan-300">∇ × E = -∂B/∂t</span> &nbsp;|&nbsp; <span class="text-slate-400">∮ E · dl = -dΦ_B/dt</span></div>
+                            <div>• Ampère-Maxwell: <span class="text-cyan-300">∇ × H = J + ∂D/∂t</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Surface Velocity, Phase Velocity & Skin Effect -->
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5">
+                        <div class="text-xs font-semibold text-amber-400 mb-1">2. Surface Velocity, Phase Velocity & Skin Depth</div>
+                        <div class="font-mono text-[11px] text-slate-200 space-y-1">
+                            <div>• Phase Velocity: <span class="text-amber-300">v_p = ω / β = c / √(ε_r μ_r)</span> = <span id="f-vp" class="text-white">3.00e8 m/s</span></div>
+                            <div>• Surface Velocity: <span class="text-amber-300">v_s = (∂Φ/∂t) / |∇_s Φ|</span> = <span id="f-vs" class="text-white">2.98e8 m/s</span></div>
+                            <div>• Skin Depth (δ): <span class="text-amber-300">δ = 1 / √(π f μ σ)</span> = <span id="f-delta" class="text-white">0.046 m</span></div>
+                            <div>• Intrinsic Impedance: <span class="text-amber-300">η = √(μ / ε)</span> = <span id="f-eta" class="text-white">376.7 Ω</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Electrostatics Formulas -->
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5">
+                        <div class="text-xs font-semibold text-emerald-400 mb-1">3. Electrostatics & Boundary Conditions</div>
+                        <div class="font-mono text-[11px] text-slate-200 space-y-1">
+                            <div>• Coulomb Field: <span class="text-emerald-300">E = Q / (4πε r²) r̂</span></div>
+                            <div>• Scalar Potential: <span class="text-emerald-300">V = -∫ E · dl</span> &nbsp;(<span class="text-slate-400">∇²V = -ρ_v/ε</span>)</div>
+                            <div>• Tangential Boundary: <span class="text-emerald-300">E_t1 = E_t2</span> &nbsp;|&nbsp; Normal: <span class="text-emerald-300">D_n1 - D_n2 = ρ_s</span></div>
+                            <div>• Electrostatic Energy Density: <span class="text-emerald-300">w_e = ½ ε |E|²</span> = <span id="f-we" class="text-white">6.37e-8 J/m³</span></div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Magnetostatics & Power Formulas -->
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-lg p-2.5">
+                        <div class="text-xs font-semibold text-purple-400 mb-1">4. Magnetostatics, Lorentz Force & Power</div>
+                        <div class="font-mono text-[11px] text-slate-200 space-y-1">
+                            <div>• Biot-Savart Law: <span class="text-purple-300">dB = (μ I dl × r̂) / (4π r²)</span></div>
+                            <div>• Vector Potential: <span class="text-purple-300">B = ∇ × A</span> &nbsp;|&nbsp; Lorentz: <span class="text-purple-300">F = q(E + v × B)</span></div>
+                            <div>• Surface Current Boundary: <span class="text-purple-300">n̂ × (H₁ - H₂) = J_s</span></div>
+                            <div>• Magnetic Energy Density: <span class="text-purple-300">w_m = ½ μ |H|²</span> = <span id="f-wm" class="text-white">6.37e-8 J/m³</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: AI GENERATIVE PHYSICS & MODEL ARCHITECT -->
+            <div id="panel-ai" class="flex-1 hidden flex-col overflow-hidden p-3.5">
+                <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-3 mb-3">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold text-purple-300"><i class="fa-solid fa-robot mr-1.5"></i>AI Generative Model Synthesizer</span>
+                        <span class="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded">Free LLM Active</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-relaxed">
+                        Describe <strong>any specific physical model, custom geometry, wave frequency, or dimensional experiment</strong> in English. The AI will synthesize the 3D/4D surface equation, configure all field parameters, and explain the mathematical proof!
+                    </p>
+                    <!-- Quick AI Prompt Chips -->
+                    <div class="flex flex-wrap gap-1.5 mt-2">
+                        <button onclick="runAIPrompt('Generate a 3D toroidal magnetic confinement field at 5.8 GHz with high surface velocity')" class="text-[10px] font-mono bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 px-2 py-1 rounded">
+                            + 5.8GHz Toroid Plasma
+                        </button>
+                        <button onclick="runAIPrompt('Build a 2D standing wave resonator with high permittivity ε_r = 9.0 and show nodes')" class="text-[10px] font-mono bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-slate-700 px-2 py-1 rounded">
+                            + 2D Standing Wave Cavity
+                        </button>
+                        <button onclick="runAIPrompt('Synthesize a 4D spacetime relativistic dipole ripple with skin depth attenuation')" class="text-[10px] font-mono bg-slate-900 hover:bg-slate-800 text-purple-300 border border-slate-700 px-2 py-1 rounded">
+                            + 4D Relativistic Dipole
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat / Synthesis Log -->
+                <div id="aiChatHistory" class="flex-1 overflow-y-auto space-y-2.5 pr-1 font-sans text-xs mb-3">
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-slate-300">
+                        <div class="text-[10px] font-mono text-cyan-400 mb-1">ELECTROFIELD AI ARCHITECT</div>
+                        Ready. Tell me what electromagnetic structure, dimensional manifold (1D-4D), or surface velocity experiment you want me to build and plot on the canvas!
+                    </div>
+                </div>
+
+                <!-- AI Input Box -->
+                <div class="flex space-x-1.5 shrink-0">
+                    <input id="aiUserInput" type="text" placeholder="e.g. Create a spherical Gauss surface at 4.5 GHz..." 
+                        onkeydown="if(event.key==='Enter') sendAIMessage()"
+                        class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400">
+                    <button onclick="sendAIMessage()" id="aiSendBtn" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white text-xs font-mono font-semibold shrink-0 shadow-lg">
+                        Synthesize
+                    </button>
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    <!-- =========================================================================
+         WINDOW 2: COMPREHENSIVE THEORY, INTUITION & FORMULA ENCYCLOPEDIA
+         Explains every law, symbol, proof, "Why & How" in crystal-clear English
+         ========================================================================= -->
+    <div id="workspace-academy" class="flex-1 hidden flex-col lg:flex-row overflow-hidden bg-cyber-950">
+        
+        <!-- Left Chapter Navigation -->
+        <aside class="w-full lg:w-72 glass-panel border-r border-slate-800 p-4 flex flex-col space-y-2 overflow-y-auto shrink-0">
+            <div class="text-xs font-mono uppercase text-cyan-400 font-bold tracking-wider mb-1">
+                <i class="fa-solid fa-book-journal-whills mr-1.5"></i>Mastery Curriculum
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed mb-2">
+                Select any module below to learn the intuitive concepts, why the physics works that way, symbol-by-symbol breakdowns, and mathematical proofs.
+            </p>
+            <button onclick="renderTheoryChapter('maxwell')" id="chap-maxwell" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold transition">
+                1. Maxwell's Equations & Unified EM Theory
+            </button>
+            <button onclick="renderTheoryChapter('electro')" id="chap-electro" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition">
+                2. Electrostatics: Charges, Coulomb & Gauss
+            </button>
+            <button onclick="renderTheoryChapter('magneto')" id="chap-magneto" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition">
+                3. Magnetostatics: Biot-Savart & Ampère
+            </button>
+            <button onclick="renderTheoryChapter('faraday')" id="chap-faraday" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition">
+                4. Faraday Induction, Lenz Law & Eddy Currents
+            </button>
+            <button onclick="renderTheoryChapter('velocity')" id="chap-velocity" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition">
+                5. Surface Velocity, Phase/Group Velocity & Skin Effect
+            </button>
+            <button onclick="renderTheoryChapter('power')" id="chap-power" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition">
+                6. Poynting Vector, Energy Density & EM Power
+            </button>
+            <button onclick="renderTheoryChapter('dimensions')" id="chap-dimensions" class="theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition">
+                7. Dimensional Physics (1D → 2D → 3D → 4D Tensor)
+            </button>
+
+            <div class="mt-auto pt-4 border-t border-slate-800">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                    <div class="text-[11px] font-mono text-emerald-400 font-semibold mb-1">💡 Interactive Bridge</div>
+                    <p class="text-[11px] text-slate-400 mb-2">Want to see these equations come alive in 3D or test yourself?</p>
+                    <div class="flex space-x-1.5">
+                        <button onclick="switchMainWorkspace('lab')" class="flex-1 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-lg text-[11px] font-mono">Open 3D Lab</button>
+                        <button onclick="switchMainWorkspace('exam')" class="flex-1 py-1.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-lg text-[11px] font-mono">Take Quiz</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Theory Reader Content -->
+        <main class="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6" id="theoryContentContainer">
+            <!-- Dynamically populated by renderTheoryChapter() -->
+        </main>
+    </div>
+
+    <!-- =========================================================================
+         WINDOW 3: DYNAMIC ASSESSMENT & 250+ QUESTION BANK ENGINE
+         Supports 15-Question Topic Sets (Resettable from 50-Q pool per topic)
+         OR 120-Question All-Topics Comprehensive Marathon with Instant Explanations
+         ========================================================================= -->
+    <div id="workspace-exam" class="flex-1 hidden flex-col lg:flex-row overflow-hidden bg-cyber-950">
+        
+        <!-- Left Quiz Configuration & Telemetry Sidebar -->
+        <aside class="w-full lg:w-80 glass-panel border-r border-slate-800 p-4 flex flex-col justify-between overflow-y-auto shrink-0">
+            <div class="space-y-4">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-mono uppercase text-purple-400 font-bold">
+                            <i class="fa-solid fa-brain mr-1.5"></i>Assessment Engine
+                        </span>
+                        <span class="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">250+ Pool</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                        Each topic contains a deep pool of <strong>50 unique questions</strong>. Resetting a single topic draws a fresh randomized set of <strong>15 questions</strong>. Selecting <strong>All Topics</strong> unlocks the <strong>120-question comprehensive marathon</strong>.
+                    </p>
+                </div>
+
+                <!-- Topic & Mode Selector -->
+                <div class="space-y-2">
+                    <label class="text-[11px] font-mono uppercase text-slate-300 font-semibold block">1. Select Assessment Scope:</label>
+                    <select id="examTopicSelect" onchange="configureExamSession()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400">
+                        <option value="maxwell">⚡ Topic 1: Maxwell & Faraday (15 / 50 Pool)</option>
+                        <option value="electro">🔋 Topic 2: Electrostatics & Gauss (15 / 50 Pool)</option>
+                        <option value="magneto">🧲 Topic 3: Magnetostatics & Ampère (15 / 50 Pool)</option>
+                        <option value="velocity">🌊 Topic 4: Surface Velocity, Power & Skin Depth (15 / 50 Pool)</option>
+                        <option value="dimensions">🔮 Topic 5: 1D-4D Manifolds & Coordinates (15 / 50 Pool)</option>
+                        <option value="all_120">🏆 ALL TOPICS: Comprehensive 120-Question Marathon</option>
+                    </select>
+                </div>
+
+                <!-- Solve All / Instant Solution Toggle Rule -->
+                <div class="bg-slate-900/90 border border-cyan-500/30 rounded-xl p-3 space-y-2">
+                    <label class="flex items-start space-x-2.5 cursor-pointer">
+                        <input type="checkbox" id="solveAllInstantMode" checked onchange="toggleInstantFeedbackMode()" class="mt-0.5 rounded bg-slate-950 border-slate-700 text-cyan-500">
+                        <div>
+                            <span class="text-xs font-semibold text-cyan-300 block">Solve All & Instant Step-by-Step Proof Mode</span>
+                            <span class="text-[11px] text-slate-400 leading-tight block mt-0.5">
+                                When checked, selecting an answer immediately verifies if it is <strong>Correct / Incorrect</strong> and reveals the complete mathematical derivation & explanation.
+                            </span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Generate New Randomized Set / Reset Button -->
+                <button onclick="generateNewExamSet()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-mono text-xs font-bold shadow-lg flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-rotate"></i>
+                    <span id="resetExamBtnText">Reset / Draw 15 New Questions</span>
+                </button>
+
+                <!-- Live Score & Progress Card -->
+                <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <span class="text-slate-400">Active Set Size:</span>
+                        <span id="examTotalCount" class="text-white font-bold">15 Questions</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <span class="text-slate-400">Answered:</span>
+                        <span id="examAnsweredCount" class="text-cyan-400 font-bold">0 / 15</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <span class="text-slate-400">Correct Answers:</span>
+                        <span id="examCorrectCount" class="text-emerald-400 font-bold">0</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-mono">
+                        <span class="text-slate-400">Accuracy Rate:</span>
+                        <span id="examAccuracy" class="text-amber-400 font-bold">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mt-1">
+                        <div id="examProgressBar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit / Grade All Button (for non-instant mode) -->
+            <div class="pt-4 border-t border-slate-800">
+                <button onclick="revealAllExplanations()" class="w-full py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-mono text-xs font-semibold transition">
+                    <i class="fa-solid fa-check-double mr-1"></i> Grade & Reveal All Solutions
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Questions Scroll Feed -->
+        <main class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4" id="examQuestionsContainer">
+            <!-- Dynamically populated by generateNewExamSet() -->
+        </main>
+    </div>
+
+    <!-- PYTHON CODE EXPORT MODAL (FOR GITHUB REPOSITORY) -->
+    <div id="pythonModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel border border-cyan-500/40 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-brands fa-python text-emerald-400 text-lg"></i>
+                    <h3 class="font-bold text-sm text-white font-mono">ElectroField.py — Standalone Python NumPy/Matplotlib 3D Engine</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="copyPythonCode()" id="copyPyBtn" class="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-xs font-mono hover:bg-cyan-500/30">
+                        <i class="fa-regular fa-copy mr-1"></i>Copy Python Code
+                    </button>
+                    <button onclick="closePythonModal()" class="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 bg-slate-950 font-mono text-xs text-emerald-300">
+                <pre id="pythonCodeBlock" class="whitespace-pre-wrap select-all"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE SIMULATION & AI ENGINE JAVASCRIPT -->
+    <script>
+        /*************************************************************************
+         * 1. GLOBAL SIMULATION STATE & PHYSICAL CONSTANTS
+         *************************************************************************/
+        const C0 = 2.99792458e8; // Speed of light in vacuum (m/s)
+        const EPS0 = 8.854187817e-12; // Vacuum permittivity (F/m)
+        const MU0 = 4 * Math.PI * 1e-7; // Vacuum permeability (H/m)
+
+        const simState = {
+            dimension: 3,           // 1, 2, 3, or 4
+            geometry: 'wave',       // 'wave', 'sphere', 'torus', 'dipole', 'cylinder', 'tesseract'
+            lawTab: 'maxwell',      // 'maxwell', 'electro', 'magneto', 'faraday'
+            freq: 2.4,              // GHz
+            epsR: 1.0,              // Relative permittivity
+            muR: 1.0,               // Relative permeability
+            amp: 120.0,             // V/m
+            sigma: 0.05,            // Conductivity S/m
+            customEq: "Math.sin(r * freq - t * 3) * (amp / 120) * Math.exp(-sigma * r * 0.3)",
+            showVectors: true,
+            showPoynting: true,
+            showWireframe: true,
+            showParticles: true,
+            paused: false,
+            time: 0
+        };
+
+        let compiledCustomFn = null;
+        function compileEquation(eqStr) {
+            try {
+                compiledCustomFn = new Function('x', 'y', 'r', 't', 'freq', 'amp', 'sigma', 'epsR', 'muR', `return ${eqStr};`);
+                document.getElementById('eqStatus').textContent = "✓ Real-time surface mesh solver active";
+                document.getElementById('eqStatus').className = "text-[10px] font-mono text-emerald-400 mt-1";
+                return true;
+            } catch (err) {
+                document.getElementById('eqStatus').textContent = "⚠ Syntax Error in formula: using fallback harmonic";
+                document.getElementById('eqStatus').className = "text-[10px] font-mono text-rose-400 mt-1";
+                return false;
+            }
+        }
+        compileEquation(simState.customEq);
+
+        /*************************************************************************
+         * 2. THREE.JS 3D/4D WEBGL ENGINE SETUP
+         *************************************************************************/
+        const container = document.getElementById('canvasContainer');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050811);
+        scene.fog = new THREE.FogExp2(0x050811, 0.025);
+
+        const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+        scene.add(ambientLight);
+        const dirLight1 = new THREE.DirectionalLight(0x00f2fe, 0.9);
+        dirLight1.position.set(15, 25, 15);
+        scene.add(dirLight1);
+        const dirLight2 = new THREE.DirectionalLight(0xf43f5e, 0.6);
+        dirLight2.position.set(-15, -20, -10);
+        scene.add(dirLight2);
+
+        // Reference Coordinate Grid & Axes
+        const gridHelper = new THREE.GridHelper(20, 20, 0x1e293b, 0x0f172a);
+        gridHelper.position.y = -3.5;
+        scene.add(gridHelper);
+
+        const axesHelper = new THREE.AxesHelper(6);
+        scene.add(axesHelper);
+
+        // Custom Orbit & Camera State (Supports Top, Bottom, Side, Front, Isometric & Mouse Drag)
+        const camControl = {
+            theta: Math.PI / 4,
+            phi: Math.PI / 3,
+            radius: 17,
+            targetTheta: Math.PI / 4,
+            targetPhi: Math.PI / 3,
+            targetRadius: 17,
+            isDragging: false,
+            prevX: 0,
+            prevY: 0
+        };
+
+        container.addEventListener('mousedown', (e) => {
+            camControl.isDragging = true;
+            camControl.prevX = e.clientX;
+            camControl.prevY = e.clientY;
+        });
+        window.addEventListener('mouseup', () => camControl.isDragging = false);
+        window.addEventListener('mousemove', (e) => {
+            if (!camControl.isDragging) return;
+            const dx = e.clientX - camControl.prevX;
+            const dy = e.clientY - camControl.prevY;
+            camControl.prevX = e.clientX;
+            camControl.prevY = e.clientY;
+            camControl.targetTheta -= dx * 0.008;
+            camControl.targetPhi = Math.max(0.05, Math.min(Math.PI - 0.05, camControl.targetPhi - dy * 0.008));
+        });
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            camControl.targetRadius = Math.max(5, Math.min(40, camControl.targetRadius + e.deltaY * 0.01));
+        }, { passive: false });
+
+        // Touch support for mobile
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                camControl.isDragging = true;
+                camControl.prevX = e.touches[0].clientX;
+                camControl.prevY = e.touches[0].clientY;
+            }
+        });
+        window.addEventListener('touchend', () => camControl.isDragging = false);
+        window.addEventListener('touchmove', (e) => {
+            if (!camControl.isDragging || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - camControl.prevX;
+            const dy = e.touches[0].clientY - camControl.prevY;
+            camControl.prevX = e.touches[0].clientX;
+            camControl.prevY = e.touches[0].clientY;
+            camControl.targetTheta -= dx * 0.008;
+            camControl.targetPhi = Math.max(0.05, Math.min(Math.PI - 0.05, camControl.targetPhi - dy * 0.008));
+        });
+
+        function setCameraView(mode) {
+            document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`cam-${mode}`);
+            if (btn) btn.classList.add('active');
+
+            if (mode === 'iso') {
+                camControl.targetTheta = Math.PI / 4;
+                camControl.targetPhi = Math.PI / 3;
+            } else if (mode === 'top') {
+                camControl.targetTheta = 0;
+                camControl.targetPhi = 0.02; // Looking straight down +Y (Top View)
+            } else if (mode === 'bottom') {
+                camControl.targetTheta = 0;
+                camControl.targetPhi = Math.PI - 0.02; // Looking straight up -Y (Bottom View)
+            } else if (mode === 'front') {
+                camControl.targetTheta = 0;
+                camControl.targetPhi = Math.PI / 2;
+            } else if (mode === 'side') {
+                camControl.targetTheta = Math.PI / 2;
+                camControl.targetPhi = Math.PI / 2;
+            }
+        }
+
+        function zoomCamera(delta) {
+            camControl.targetRadius = Math.max(5, Math.min(40, camControl.targetRadius + delta));
+        }
+
+        /*************************************************************************
+         * 3. DYNAMIC MULTIDIMENSIONAL SURFACE MESH, VECTORS & 4D TESSERACT
+         *************************************************************************/
+        const GRID_SEGMENTS = 48;
+        const planeGeo = new THREE.PlaneGeometry(14, 14, GRID_SEGMENTS, GRID_SEGMENTS);
+        planeGeo.rotateX(-Math.PI / 2);
+
+        // Add vertex colors for dynamic field intensity heatmap
+        const vertexCount = planeGeo.attributes.position.count;
+        const colors = new Float32Array(vertexCount * 3);
+        planeGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const surfaceMat = new THREE.MeshPhongMaterial({
+            vertexColors: true,
+            side: THREE.DoubleSide,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.88,
+            shininess: 80
+        });
+        const surfaceMesh = new THREE.Mesh(planeGeo, surfaceMat);
+        scene.add(surfaceMesh);
+
+        // Vector Field Quiver Group (Tangential Surface Velocity & Magnetic Flux Arrows)
+        const vectorGroup = new THREE.Group();
+        scene.add(vectorGroup);
+        const arrows = [];
+        const poyntingArrows = [];
+
+        const ARROW_GRID = 8;
+        for (let i = 0; i < ARROW_GRID; i++) {
+            for (let j = 0; j < ARROW_GRID; j++) {
+                const dir = new THREE.Vector3(0, 1, 0);
+                const origin = new THREE.Vector3(0, 0, 0);
+                // Surface Velocity Vector (Amber)
+                const arrow = new THREE.ArrowHelper(dir, origin, 1.1, 0xf59e0b, 0.28, 0.16);
+                vectorGroup.add(arrow);
+                arrows.push({ arrow, gx: i, gz: j });
+
+                // Orthogonal Poynting Flux Vector S = E x H (Emerald)
+                const sArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, 0.9, 0x10b981, 0.24, 0.14);
+                vectorGroup.add(sArrow);
+                poyntingArrows.push({ arrow: sArrow, gx: i, gz: j });
+            }
+        }
+
+        // Charge Drift Particle Cloud
+        const PARTICLE_COUNT = 350;
+        const particleGeo = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(PARTICLE_COUNT * 3);
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particlePositions[i * 3] = (Math.random() - 0.5) * 14;
+            particlePositions[i * 3 + 1] = (Math.random() - 0.5) * 4;
+            particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 14;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.16, transparent: true, opacity: 0.85 });
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
+
+        // 4D Spacetime Hypercube (Tesseract) Projection Group
+        const tesseractGroup = new THREE.Group();
+        scene.add(tesseractGroup);
+        tesseractGroup.visible = false;
+
+        // Generate 16 vertices of a 4D Hypercube (-1, 1)^4
+        const vertices4D = [];
+        for (let i = 0; i < 16; i++) {
+            vertices4D.push([
+                (i & 1) ? 1 : -1,
+                (i & 2) ? 1 : -1,
+                (i & 4) ? 1 : -1,
+                (i & 8) ? 1 : -1
+            ]);
+        }
+        // Edges connect vertices differing by exactly 1 bit
+        const edges4D = [];
+        for (let i = 0; i < 16; i++) {
+            for (let j = i + 1; j < 16; j++) {
+                let diff = i ^ j;
+                if ((diff & (diff - 1)) === 0) edges4D.push([i, j]);
+            }
+        }
+        const tesseractLineGeo = new THREE.BufferGeometry();
+        const tesseractPositions = new Float32Array(edges4D.length * 2 * 3);
+        tesseractLineGeo.setAttribute('position', new THREE.BufferAttribute(tesseractPositions, 3));
+        const tesseractLineMat = new THREE.LineBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.9 });
+        const tesseractLines = new THREE.LineSegments(tesseractLineGeo, tesseractLineMat);
+        tesseractGroup.add(tesseractLines);
+
+        /*************************************************************************
+         * 4. MATHEMATICAL FIELD EVALUATOR & VERTEX MORPHING (1D / 2D / 3D / 4D)
+         *************************************************************************/
+        function evaluateSurfaceZ(x, z, r, t) {
+            const { freq, amp, sigma, epsR, muR, geometry, dimension } = simState;
+            const k = (freq * 0.45) * Math.sqrt(epsR * muR);
+            const scaleAmp = (amp / 120.0) * 1.8;
+
+            // 1D Linear Mode: Collapse variation to X-axis only (Transmission Line)
+            if (dimension === 1) {
+                if (Math.abs(z) > 0.6) return 0;
+                return Math.sin(x * k - t * 3.5) * scaleAmp * Math.exp(-sigma * Math.abs(x) * 0.15);
+            }
+
+            // Custom formula evaluation if in wave mode
+            if (geometry === 'wave' && compiledCustomFn) {
+                try {
+                    const val = compiledCustomFn(x, z, r, t, k, amp, sigma, epsR, muR);
+                    if (isFinite(val)) return dimension === 2 ? val * 0.15 : val;
+                } catch (e) {}
+            }
+
+            // Dipole Field
+            if (geometry === 'dipole') {
+                const r1 = Math.sqrt((x - 2.2) ** 2 + z ** 2) + 0.4;
+                const r2 = Math.sqrt((x + 2.2) ** 2 + z ** 2) + 0.4;
+                const v = ((1 / r1) - (1 / r2)) * scaleAmp * 2.5 * Math.cos(t * 2.5 - r * k * 0.4);
+                return Math.max(-3.5, Math.min(3.5, v));
+            }
+
+            // Coaxial / Cylindrical Waveguide
+            if (geometry === 'cylinder') {
+                return Math.cos(Math.atan2(z, x) * 2 + t * 2) * Math.sin(r * k - t * 3) * scaleAmp * Math.exp(-sigma * r * 0.2);
+            }
+
+            // Standard radial / harmonic
+            return Math.sin(r * k - t * 3.2) * scaleAmp * Math.exp(-sigma * r * 0.2);
+        }
+
+        function update3DScene(dt) {
+            if (!simState.paused) {
+                simState.time += dt;
+            }
+            const t = simState.time;
+            const posAttr = planeGeo.attributes.position;
+            const colAttr = planeGeo.attributes.color;
+            const { dimension, geometry, freq, epsR, muR, amp, sigma } = simState;
+            const k = (freq * 0.45) * Math.sqrt(epsR * muR);
+
+            // Toggle 4D Tesseract Overlay
+            tesseractGroup.visible = (dimension === 4 || geometry === 'tesseract');
+            if (tesseractGroup.visible) {
+                const angleXW = t * 0.9;
+                const angleZW = t * 0.6;
+                const posArr = tesseractLines.geometry.attributes.position.array;
+                let idx = 0;
+
+                const projected3D = vertices4D.map(v => {
+                    let [x, y, z, w] = v;
+                    // Rotate in XW and ZW 4D planes
+                    let x1 = x * Math.cos(angleXW) - w * Math.sin(angleXW);
+                    let w1 = x * Math.sin(angleXW) + w * Math.cos(angleXW);
+                    let z2 = z * Math.cos(angleZW) - w1 * Math.sin(angleZW);
+                    let w2 = z * Math.sin(angleZW) + w1 * Math.cos(angleZW);
+                    // Stereographic projection from 4D to 3D
+                    const distance4D = 3.2;
+                    const factor = 4.2 / (distance4D - w2);
+                    return [x1 * factor, y * factor, z2 * factor];
+                });
+
+                for (let e of edges4D) {
+                    const p1 = projected3D[e[0]];
+                    const p2 = projected3D[e[1]];
+                    posArr[idx++] = p1[0]; posArr[idx++] = p1[1]; posArr[idx++] = p1[2];
+                    posArr[idx++] = p2[0]; posArr[idx++] = p2[1]; posArr[idx++] = p2[2];
+                }
+                tesseractLines.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // Update Surface Vertices
+            for (let i = 0; i < vertexCount; i++) {
+                const ix = i % (GRID_SEGMENTS + 1);
+                const iz = Math.floor(i / (GRID_SEGMENTS + 1));
+                const u = ix / GRID_SEGMENTS;
+                const v = iz / GRID_SEGMENTS;
+                const x0 = (u - 0.5) * 14;
+                const z0 = (v - 0.5) * 14;
+                const r = Math.sqrt(x0 * x0 + z0 * z0);
+
+                let px = x0, py = 0, pz = z0;
+
+                if (geometry === 'sphere' && dimension >= 3) {
+                    // Parametric Spherical Manifold with EM ripple
+                    const theta = u * Math.PI;
+                    const phi = v * 2 * Math.PI;
+                    const rad = 3.6 + 0.45 * Math.sin(theta * 4 * (freq / 2.4) - t * 3.5) * (amp / 120);
+                    px = rad * Math.sin(theta) * Math.cos(phi);
+                    py = rad * Math.cos(theta);
+                    pz = rad * Math.sin(theta) * Math.sin(phi);
+                } else if (geometry === 'torus' && dimension >= 3) {
+                    // Parametric Toroidal Solenoid Manifold
+                    const uAngle = u * 2 * Math.PI;
+                    const vAngle = v * 2 * Math.PI;
+                    const R = 4.2;
+                    const tubeR = 1.5 + 0.25 * Math.sin(uAngle * 6 - t * 4) * (amp / 120);
+                    px = (R + tubeR * Math.cos(vAngle)) * Math.cos(uAngle);
+                    py = tubeR * Math.sin(vAngle);
+                    pz = (R + tubeR * Math.cos(vAngle)) * Math.sin(uAngle);
+                } else {
+                    py = evaluateSurfaceZ(x0, z0, r, t);
+                    if (dimension === 2) py *= 0.08; // Planar 2D projection
+                }
+
+                posAttr.setXYZ(i, px, py, pz);
+
+                // Dynamic Color Mapping (Cyan -> Purple -> Rose based on field potential & velocity)
+                const normVal = Math.max(0, Math.min(1, (py + 2.2) / 4.4));
+                const cR = 0.05 + normVal * 0.85;
+                const cG = 0.35 + (1 - Math.abs(normVal - 0.5) * 2) * 0.6;
+                const cB = 0.95 - normVal * 0.4;
+                colAttr.setXYZ(i, cR, cG, cB);
+            }
+            posAttr.needsUpdate = true;
+            colAttr.needsUpdate = true;
+
+            // Update Surface Velocity & Poynting Vector Quiver Arrows
+            for (let idx = 0; idx < arrows.length; idx++) {
+                const item = arrows[idx];
+                const sItem = poyntingArrows[idx];
+
+                item.arrow.visible = simState.showVectors;
+                sItem.arrow.visible = simState.showPoynting;
+
+                const x = (item.gx / (ARROW_GRID - 1) - 0.5) * 11;
+                const z = (item.gz / (ARROW_GRID - 1) - 0.5) * 11;
+                const r = Math.sqrt(x * x + z * z) + 0.01;
+                const y = evaluateSurfaceZ(x, z, r, t);
+
+                // Numerical Surface Gradient for Tangential Surface Velocity
+                const eps = 0.15;
+                const dydx = (evaluateSurfaceZ(x + eps, z, Math.sqrt((x + eps) ** 2 + z ** 2), t) - y) / eps;
+                const dydz = (evaluateSurfaceZ(x, z + eps, Math.sqrt(x ** 2 + (z + eps) ** 2), t) - y) / eps;
+
+                item.arrow.position.set(x, dimension === 2 ? 0.1 : y + 0.15, z);
+                const vDir = new THREE.Vector3(-dydx, 0.35, -dydz).normalize();
+                item.arrow.setDirection(vDir);
+                item.arrow.setLength(0.75 + Math.min(0.8, Math.sqrt(dydx * dydx + dydz * dydz) * 0.35), 0.25, 0.14);
+
+                // Poynting Vector S = E x H (Orthogonal propagation direction)
+                sItem.arrow.position.set(x, dimension === 2 ? 0.1 : y + 0.15, z);
+                const sDir = new THREE.Vector3(x / r, 0.1, z / r).normalize();
+                sItem.arrow.setDirection(sDir);
+            }
+
+            // Update Charge Drift Particles
+            particleSystem.visible = simState.showParticles;
+            if (simState.showParticles) {
+                const pArr = particleGeo.attributes.position.array;
+                const vScale = (1 / Math.sqrt(epsR * muR)) * 0.08;
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    let px = pArr[i * 3];
+                    let pz = pArr[i * 3 + 2];
+                    const r = Math.sqrt(px * px + pz * pz);
+                    px += (px / (r + 0.5)) * vScale;
+                    pz += (pz / (r + 0.5)) * vScale;
+                    if (r > 7.5) {
+                        px = (Math.random() - 0.5) * 1.5;
+                        pz = (Math.random() - 0.5) * 1.5;
+                    }
+                    pArr[i * 3] = px;
+                    pArr[i * 3 + 1] = evaluateSurfaceZ(px, pz, r, t) + 0.25;
+                    pArr[i * 3 + 2] = pz;
+                }
+                particleGeo.attributes.position.needsUpdate = true;
+            }
+
+            // Smooth Camera Interpolation
+            camControl.theta += (camControl.targetTheta - camControl.theta) * 0.12;
+            camControl.phi += (camControl.targetPhi - camControl.phi) * 0.12;
+            camControl.radius += (camControl.targetRadius - camControl.radius) * 0.12;
+
+            camera.position.x = camControl.radius * Math.sin(camControl.phi) * Math.sin(camControl.theta);
+            camera.position.y = camControl.radius * Math.cos(camControl.phi);
+            camera.position.z = camControl.radius * Math.sin(camControl.phi) * Math.cos(camControl.theta);
+            camera.lookAt(0, 0, 0);
+
+            renderer.render(scene, camera);
+        }
+
+        /*************************************************************************
+         * 5. 2D OSCILLOSCOPE WAVEFORM STRIP RENDERER
+         *************************************************************************/
+        const scopeCanvas = document.getElementById('scopeCanvas');
+        const scopeCtx = scopeCanvas.getContext('2d');
+
+        function drawOscilloscope() {
+            if (scopeCanvas.width !== scopeCanvas.clientWidth || scopeCanvas.height !== scopeCanvas.clientHeight) {
+                scopeCanvas.width = scopeCanvas.clientWidth;
+                scopeCanvas.height = scopeCanvas.clientHeight;
+            }
+            const w = scopeCanvas.width;
+            const h = scopeCanvas.height;
+            scopeCtx.clearRect(0, 0, w, h);
+
+            // Background Grid
+            scopeCtx.strokeStyle = 'rgba(30, 41, 59, 0.6)';
+            scopeCtx.lineWidth = 1;
+            scopeCtx.beginPath();
+            scopeCtx.moveTo(0, h / 2);
+            scopeCtx.lineTo(w, h / 2);
+            scopeCtx.stroke();
+
+            const t = simState.time;
+            const { freq, epsR, muR, amp, sigma } = simState;
+            const k = (freq * 0.04) * Math.sqrt(epsR * muR);
+            const scale = (amp / 200) * (h * 0.36);
+
+            // 1. Electric Field E(x,t) - Cyan
+            scopeCtx.strokeStyle = '#38bdf8';
+            scopeCtx.lineWidth = 2;
+            scopeCtx.beginPath();
+            for (let x = 0; x < w; x += 3) {
+                const atten = Math.exp(-sigma * (x / w) * 1.2);
+                const y = h / 2 - Math.sin(x * k - t * 4) * scale * atten;
+                if (x === 0) scopeCtx.moveTo(x, y);
+                else scopeCtx.lineTo(x, y);
+            }
+            scopeCtx.stroke();
+
+            // 2. Magnetic Field H(x,t) - Rose
+            scopeCtx.strokeStyle = '#f43f5e';
+            scopeCtx.lineWidth = 1.6;
+            scopeCtx.beginPath();
+            for (let x = 0; x < w; x += 3) {
+                const atten = Math.exp(-sigma * (x / w) * 1.2);
+                const y = h / 2 - Math.sin(x * k - t * 4 - 0.3) * (scale * 0.7) * atten;
+                if (x === 0) scopeCtx.moveTo(x, y);
+                else scopeCtx.lineTo(x, y);
+            }
+            scopeCtx.stroke();
+
+            // 3. Surface Velocity Envelope v_s(x,t) - Amber
+            scopeCtx.strokeStyle = '#f59e0b';
+            scopeCtx.lineWidth = 1.4;
+            scopeCtx.setLineDash([4, 4]);
+            scopeCtx.beginPath();
+            for (let x = 0; x < w; x += 4) {
+                const y = h / 2 - Math.cos(x * k * 0.5 - t * 2) * (scale * 0.55);
+                if (x === 0) scopeCtx.moveTo(x, y);
+                else scopeCtx.lineTo(x, y);
+            }
+            scopeCtx.stroke();
+            scopeCtx.setLineDash([]);
+        }
+
+        /*************************************************************************
+         * 6. REAL-TIME MATHEMATICAL PROOF ENGINE & PARAMETER CALCULATOR
+         *************************************************************************/
+        function updateSimParams() {
+            simState.freq = parseFloat(document.getElementById('slider-freq').value);
+            simState.epsR = parseFloat(document.getElementById('slider-eps').value);
+            simState.muR = parseFloat(document.getElementById('slider-mu').value);
+            simState.amp = parseFloat(document.getElementById('slider-amp').value);
+            simState.sigma = parseFloat(document.getElementById('slider-sigma').value);
+
+            // Update UI Labels
+            document.getElementById('val-freq').textContent = `${simState.freq.toFixed(2)} GHz`;
+            document.getElementById('val-eps').textContent = simState.epsR === 1 ? `1.00 (Vacuum)` : simState.epsR.toFixed(2);
+            document.getElementById('val-mu').textContent = simState.muR.toFixed(2);
+            document.getElementById('val-amp').textContent = `${simState.amp.toFixed(1)} V/m`;
+            document.getElementById('val-sigma').textContent = `${simState.sigma.toFixed(2)} S/m`;
+
+            // Calculate Exact Physical Quantities
+            const fHz = simState.freq * 1e9;
+            const eps = EPS0 * simState.epsR;
+            const mu = MU0 * simState.muR;
+
+            // Phase Velocity v_p = c / sqrt(eps_r * mu_r)
+            const vp = C0 / Math.sqrt(simState.epsR * simState.muR);
+            // Tangential Surface Velocity (dispersive waveguide / skin effect correction)
+            const vs = vp * Math.exp(-simState.sigma * 0.04);
+            // Intrinsic Impedance eta = sqrt(mu / eps)
+            const eta = Math.sqrt(mu / eps);
+            // Poynting Vector Magnitude |S| = E_0^2 / (2 * eta)
+            const poyntingS = (simState.amp * simState.amp) / (2 * eta);
+            // Skin Depth delta = 1 / sqrt(pi * f * mu * sigma)
+            const skinDepth = simState.sigma > 0.001
+                ? 1 / Math.sqrt(Math.PI * fHz * mu * simState.sigma)
+                : Infinity;
+
+            // Electrostatic & Magnetostatic Energy Densities
+            const we = 0.5 * eps * (simState.amp ** 2);
+            const H0 = simState.amp / eta;
+            const wm = 0.5 * mu * (H0 ** 2);
+
+            // Update HUD & Formula Matrix
+            const vpStr = `${(vp / 1e8).toFixed(2)}e8 m/s`;
+            const vsStr = `${(vs / 1e8).toFixed(2)}e8 m/s`;
+            const skinStr = isFinite(skinDepth) ? `${(skinDepth * 1000).toFixed(2)} mm` : '∞ (Lossless)';
+
+            document.getElementById('hud-vp').textContent = vpStr;
+            document.getElementById('hud-vs').textContent = vsStr;
+            document.getElementById('hud-poynting').textContent = `${poyntingS.toFixed(2)} W/m²`;
+            document.getElementById('hud-skin').textContent = skinStr;
+
+            document.getElementById('f-vp').textContent = vpStr;
+            document.getElementById('f-vs').textContent = vsStr;
+            document.getElementById('f-delta').textContent = skinStr;
+            document.getElementById('f-eta').textContent = `${eta.toFixed(1)} Ω`;
+            document.getElementById('f-we').textContent = `${we.toExponential(2)} J/m³`;
+            document.getElementById('f-wm').textContent = `${wm.toExponential(2)} J/m³`;
+
+            // Update Proof Verification Numbers (LHS vs RHS)
+            document.getElementById('proofLHS').textContent = `${poyntingS.toFixed(3)} W/m²`;
+            document.getElementById('proofRHS').textContent = `${( (we + wm) * vp * 0.5 ).toFixed(3)} W/m²`;
+        }
+
+        function resetParameters() {
+            document.getElementById('slider-freq').value = 2.4;
+            document.getElementById('slider-eps').value = 1.0;
+            document.getElementById('slider-mu').value = 1.0;
+            document.getElementById('slider-amp').value = 120;
+            document.getElementById('slider-sigma').value = 0.05;
+            updateSimParams();
+        }
+
+        /*************************************************************************
+         * 7. DIMENSION SWITCHING (1D / 2D / 3D / 4D) & PRESET EXPERIMENTS
+         *************************************************************************/
+        const dimDescriptions = {
+            1: {
+                tag: "R¹ Linear Manifold",
+                coord: "Linear (x, t)",
+                desc: "<strong>1D Linear Space (x):</strong> Wave propagation constrained to a single spatial axis (e.g., TEM Coaxial Transmission Line). Telegrapher's equations govern voltage/current phase velocity."
+            },
+            2: {
+                tag: "R² Planar Manifold",
+                coord: "Planar (x, y)",
+                desc: "<strong>2D Planar Surface (x, y):</strong> Equipotential contour lines and surface current density <strong>J_s</strong>. Ideal for analyzing planar waveguides and boundary interfaces."
+            },
+            3: {
+                tag: "R³ Volumetric Space",
+                coord: "Spherical/Cart (x,y,z)",
+                desc: "<strong>3D Volumetric Space (x, y, z):</strong> Our physical 3D universe. Full curl (∇×) and divergence (∇·) operators with orthogonal Electric, Magnetic, and Surface Velocity vectors."
+            },
+            4: {
+                tag: "M⁴ Minkowski Spacetime",
+                coord: "4D Tensor (ct,x,y,z)",
+                desc: "<strong>4D Relativistic Spacetime (ct, x, y, z):</strong> Electric and Magnetic fields unify into the 4D antisymmetric Electromagnetic Field Tensor <strong>F^μν</strong> with live 4D Tesseract hyper-projection."
+            }
+        };
+
+        function setDimension(dim) {
+            simState.dimension = dim;
+            document.querySelectorAll('.dim-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`dim-${dim}`).classList.add('active');
+
+            document.getElementById('dimTag').textContent = dimDescriptions[dim].tag;
+            document.getElementById('activeCoordBadge').textContent = dimDescriptions[dim].coord;
+            document.getElementById('dimExplanation').innerHTML = dimDescriptions[dim].desc;
+
+            if (dim === 2) setCameraView('top');
+            else if (dim === 1) setCameraView('front');
+            else setCameraView('iso');
+        }
+
+        function setGeometryMode(geo) {
+            simState.geometry = geo;
+            document.querySelectorAll('.geo-btn').forEach(b => {
+                b.className = "geo-btn bg-slate-900 border border-slate-800 text-slate-400 py-1 rounded";
+            });
+            const activeBtn = document.getElementById(`geo-${geo}`);
+            if (activeBtn) {
+                activeBtn.className = "geo-btn bg-purple-500/20 border border-purple-500/50 text-purple-300 py-1 rounded";
+            }
+            if (geo === 'tesseract') setDimension(4);
+        }
+
+        function applyCustomEquation() {
+            const eq = document.getElementById('customEquationInput').value;
+            simState.customEq = eq;
+            simState.geometry = 'wave';
+            setGeometryMode('wave');
+            compileEquation(eq);
+        }
+
+        function updateVisualLayers() {
+            simState.showVectors = document.getElementById('toggleVectors').checked;
+            simState.showPoynting = document.getElementById('togglePoynting').checked;
+            simState.showWireframe = document.getElementById('toggleWireframe').checked;
+            simState.showParticles = document.getElementById('toggleParticles').checked;
+            surfaceMat.wireframe = simState.showWireframe;
+        }
+
+        function selectLawTab(tab) {
+            simState.lawTab = tab;
+            document.querySelectorAll('.law-tab').forEach(b => {
+                b.className = "law-tab bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-white py-1.5 px-2 rounded-lg font-medium text-left truncate";
+            });
+            document.getElementById(`tab-${tab}`).className = "law-tab bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 py-1.5 px-2 rounded-lg font-medium text-left truncate";
+
+            const titleEl = document.getElementById('proofActiveTitle');
+            const eqEl = document.getElementById('proofEquationFormula');
+            const expEl = document.getElementById('proofStepExplanation');
+
+            if (tab === 'maxwell') {
+                titleEl.textContent = "Poynting's Theorem & Conservation of EM Energy";
+                eqEl.textContent = "-∇ · S = ∂/∂t (½εE² + ½μH²) + J · E";
+                expEl.innerHTML = "By integrating the cross product <strong>S = E × H</strong> over the closed boundary manifold, the energy flux leaving the surface equals the time rate of decrease of stored electrostatic (w_e) and magnetostatic (w_m) energy.";
+            } else if (tab === 'electro') {
+                titleEl.textContent = "Gauss's Law & Electrostatic Potential Proof";
+                eqEl.textContent = "∮_S D · dS = ∫_V (∇ · D) dV = Q_enc";
+                expEl.innerHTML = "By Divergence Theorem, the total electric displacement flux <strong>D = εE</strong> crossing any closed Gaussian surface depends solely on the enclosed net charge Q_enc, independent of surface radius.";
+            } else if (tab === 'magneto') {
+                titleEl.textContent = "Ampère's Circuital Law & Stokes' Theorem";
+                eqEl.textContent = "∮_C H · dl = ∫_S (∇ × H) · dS = I_enc";
+                expEl.innerHTML = "The line integral of Magnetic Field Intensity <strong>H</strong> around a closed path equals the total enclosed conduction current plus Maxwell's displacement current ∂D/∂t.";
+            } else if (tab === 'faraday') {
+                titleEl.textContent = "Faraday's Law of Induction & Surface Velocity";
+                eqEl.textContent = "EMF = -dΦ_B/dt = ∮ (E + v_s × B) · dl";
+                expEl.innerHTML = " combines transformer induction (-∂B/∂t) and motional EMF generated by the tangential surface velocity <strong>v_s</strong> cutting across magnetic flux lines.";
+            }
+        }
+
+        function loadPresetExperiment(preset) {
+            if (preset === 'maxwell_wave') {
+                setDimension(3);
+                setGeometryMode('wave');
+                document.getElementById('slider-freq').value = 2.4;
+                document.getElementById('slider-eps').value = 1.0;
+                document.getElementById('slider-sigma').value = 0.05;
+                document.getElementById('customEquationInput').value = "Math.sin(r * freq - t * 3) * (amp / 120) * Math.exp(-sigma * r * 0.3)";
+                applyCustomEquation();
+                selectLawTab('maxwell');
+            } else if (preset === 'gauss_sphere') {
+                setDimension(3);
+                setGeometryMode('sphere');
+                document.getElementById('slider-freq').value = 1.8;
+                document.getElementById('slider-amp').value = 240;
+                selectLawTab('electro');
+            } else if (preset === 'faraday_ring') {
+                setDimension(3);
+                setGeometryMode('dipole');
+                document.getElementById('slider-freq').value = 3.5;
+                document.getElementById('slider-mu').value = 4.0;
+                selectLawTab('faraday');
+            } else if (preset === 'ampere_toroid') {
+                setDimension(3);
+                setGeometryMode('torus');
+                document.getElementById('slider-freq').value = 4.2;
+                document.getElementById('slider-mu').value = 6.0;
+                selectLawTab('magneto');
+            } else if (preset === 'skin_effect') {
+                setDimension(2);
+                setGeometryMode('cylinder');
+                document.getElementById('slider-freq').value = 8.5;
+                document.getElementById('slider-sigma').value = 2.5;
+                selectLawTab('faraday');
+            } else if (preset === 'tesseract_4d') {
+                setDimension(4);
+                setGeometryMode('tesseract');
+                document.getElementById('slider-freq').value = 5.0;
+                selectLawTab('maxwell');
+            }
+            updateSimParams();
+        }
+
+        function togglePause() {
+            simState.paused = !simState.paused;
+            document.getElementById('pauseIcon').className = simState.paused ? "fa-solid fa-play" : "fa-solid fa-pause";
+            document.getElementById('pauseText').textContent = simState.paused ? "Resume" : "Freeze";
+        }
+
+        function switchRightPanel(tab) {
+            const pProofs = document.getElementById('panel-proofs');
+            const pAi = document.getElementById('panel-ai');
+            const bProofs = document.getElementById('rtab-proofs');
+            const bAi = document.getElementById('rtab-ai');
+
+            if (tab === 'proofs') {
+                pProofs.classList.remove('hidden');
+                pAi.classList.add('hidden');
+                pAi.classList.remove('flex');
+                bProofs.className = "flex-1 py-2.5 text-xs font-mono font-semibold border-b-2 border-cyan-400 text-cyan-400 bg-cyan-500/5";
+                bAi.className = "flex-1 py-2.5 text-xs font-mono font-semibold border-b-2 border-transparent text-slate-400 hover:text-white";
+            } else {
+                pProofs.classList.add('hidden');
+                pAi.classList.remove('hidden');
+                pAi.classList.add('flex');
+                bAi.className = "flex-1 py-2.5 text-xs font-mono font-semibold border-b-2 border-purple-400 text-purple-300 bg-purple-500/5";
+                bProofs.className = "flex-1 py-2.5 text-xs font-mono font-semibold border-b-2 border-transparent text-slate-400 hover:text-white";
+            }
+        }
+
+        /*************************************************************************
+         * 8. FREE AI MODEL ARCHITECT (POLLINATIONS / GEMINI SYNTHESIZER)
+         * Automatically generates custom 3D/4D models & equations from user text!
+         *************************************************************************/
+        function runAIPrompt(promptText) {
+            switchRightPanel('ai');
+            document.getElementById('aiUserInput').value = promptText;
+            sendAIMessage();
+        }
+
+        async function sendAIMessage() {
+            const inputEl = document.getElementById('aiUserInput');
+            const chatEl = document.getElementById('aiChatHistory');
+            const btn = document.getElementById('aiSendBtn');
+            const userPrompt = inputEl.value.trim();
+            if (!userPrompt) return;
+
+            inputEl.value = '';
+            chatEl.innerHTML += `
+                <div class="bg-purple-600/20 border border-purple-500/40 rounded-xl p-2.5 text-white ml-4">
+                    <div class="text-[10px] font-mono text-purple-300 mb-0.5">ENGINEER REQUEST</div>
+                    ${userPrompt}
+                </div>
+            `;
+            chatEl.scrollTop = chatEl.scrollHeight;
+
+            btn.disabled = true;
+            btn.textContent = "Synthesizing...";
+
+            // System prompt instructing the free AI endpoint to return strict JSON that reconfigures the 3D/4D engine
+            const systemInstruction = `You are the ElectroField Electromagnetics & Physics Engine Architect.
+The user wants to visualize or experiment with a specific electromagnetic model, dimension, or surface velocity scenario.
+Respond ONLY with a valid JSON object matching this exact schema:
+{
+  "dimension": 1 | 2 | 3 | 4,
+  "geometry": "wave" | "sphere" | "torus" | "dipole" | "cylinder" | "tesseract",
+  "freq": number (between 0.5 and 9.5),
+  "epsR": number (between 1.0 and 10.0),
+  "muR": number (between 1.0 and 10.0),
+  "amp": number (between 50 and 450),
+  "sigma": number (between 0.01 and 3.0),
+  "customEq": "valid JavaScript Math expression using x, y, r, t, freq, amp, sigma, e.g. Math.sin(x*freq - t*3)*Math.cos(y*freq)*(amp/120)",
+  "explanation": "Concise 2-3 sentence scientific explanation of the generated 3D/4D model, its surface velocity, and Maxwell/Faraday proof."
+}`;
+
+            let modelData = null;
+
+            try {
+                // Free Zero-Key AI Endpoint (Pollinations OpenAI-compatible JSON endpoint)
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemInstruction },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        jsonMode: true,
+                        seed: Math.floor(Math.random() * 10000)
+                    })
+                });
+                const rawText = await response.text();
+                const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    modelData = JSON.parse(jsonMatch[0]);
+                }
+            } catch (err) {
+                // Deterministic Physics Fallback Synthesizer if offline
+                modelData = null;
+            }
+
+            // Fallback intelligent parser if external network is blocked
+            if (!modelData || !modelData.customEq) {
+                const p = userPrompt.toLowerCase();
+                modelData = {
+                    dimension: p.includes('4d') ? 4 : (p.includes('2d') ? 2 : (p.includes('1d') ? 1 : 3)),
+                    geometry: p.includes('toro') ? 'torus' : (p.includes('spher') ? 'sphere' : (p.includes('dipol') ? 'dipole' : 'wave')),
+                    freq: p.includes('5.8') ? 5.8 : 3.8,
+                    epsR: p.includes('9') ? 9.0 : 2.2,
+                    muR: 1.5,
+                    amp: 220,
+                    sigma: 0.15,
+                    customEq: "Math.sin(x * freq * 0.6 - t * 3) * Math.cos(y * freq * 0.6) * (amp / 100) * Math.exp(-sigma * r * 0.25)",
+                    explanation: "Synthesized custom multi-dimensional standing-wave manifold. The phase velocity v_p = c/√(ε_r μ_r) and tangential surface velocity vectors have been dynamically mapped to your requested topology."
+                };
+            }
+
+            // Apply AI-Synthesized Model directly to the 3D/4D Engine!
+            setDimension(modelData.dimension || 3);
+            setGeometryMode(modelData.geometry || 'wave');
+            document.getElementById('slider-freq').value = modelData.freq || 2.4;
+            document.getElementById('slider-eps').value = modelData.epsR || 1.0;
+            document.getElementById('slider-mu').value = modelData.muR || 1.0;
+            document.getElementById('slider-amp').value = modelData.amp || 150;
+            document.getElementById('slider-sigma').value = modelData.sigma || 0.05;
+            document.getElementById('customEquationInput').value = modelData.customEq;
+            compileEquation(modelData.customEq);
+            updateSimParams();
+
+            chatEl.innerHTML += `
+                <div class="bg-slate-900/95 border border-cyan-500/40 rounded-xl p-3 text-slate-200">
+                    <div class="flex items-center justify-between text-[10px] font-mono text-cyan-400 mb-1">
+                        <span>✓ MODEL SYNTHESIZED & PLOTTED</span>
+                        <span>${modelData.dimension}D | ${modelData.geometry.toUpperCase()}</span>
+                    </div>
+                    <p class="leading-relaxed mb-2">${modelData.explanation}</p>
+                    <div class="bg-slate-950 p-1.5 rounded border border-slate-800 font-mono text-[10px] text-emerald-400">
+                        Z(x,y,t) = ${modelData.customEq}
+                    </div>
+                </div>
+            `;
+            chatEl.scrollTop = chatEl.scrollHeight;
+            btn.disabled = false;
+            btn.textContent = "Synthesize";
+        }
+
+        /*************************************************************************
+         * 9. STANDALONE PYTHON SOLVER GENERATOR (FOR GITHUB REPO)
+         *************************************************************************/
+        function openPythonModal() {
+            const pyCode = `"""
+ElectroField.py - Multi-Dimensional Electromagnetics & Surface Velocity Solver
+Exported Live Configuration from ElectroField Workbench
+Dimension: ${simState.dimension}D | Topology: ${simState.geometry.toUpperCase()} | Frequency: ${simState.freq} GHz
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+
+# 1. Fundamental Physical Constants
+C0 = 2.99792458e8                  # Speed of light in vacuum (m/s)
+EPS0 = 8.854187817e-12             # Vacuum permittivity (F/m)
+MU0 = 4 * np.pi * 1e-7             # Vacuum permeability (H/m)
+
+# 2. Active Workbench Parameters
+FREQ_GHZ = ${simState.freq}
+EPS_R = ${simState.epsR}
+MU_R = ${simState.muR}
+E0_AMP = ${simState.amp}
+SIGMA = ${simState.sigma}
+
+# 3. Derived Wave, Surface Velocity & Poynting Proof Quantities
+f_hz = FREQ_GHZ * 1e9
+eps = EPS0 * EPS_R
+mu = MU0 * MU_R
+v_phase = C0 / np.sqrt(EPS_R * MU_R)
+v_surface = v_phase * np.exp(-SIGMA * 0.04)
+eta = np.sqrt(mu / eps)
+poynting_flux = (E0_AMP ** 2) / (2 * eta)
+skin_depth = 1.0 / np.sqrt(np.pi * f_hz * mu * max(SIGMA, 1e-6))
+
+print(f"=== ELECTROFIELD MATHEMATICAL PROOF REPORT ===")
+print(f"Phase Velocity (v_p)     : {v_phase:.3e} m/s")
+print(f"Surface Velocity (v_s)   : {v_surface:.3e} m/s")
+print(f"Intrinsic Impedance (eta): {eta:.2f} Ohms")
+print(f"Poynting Vector |S|      : {poynting_flux:.3f} W/m^2")
+print(f"Skin Depth (delta)       : {skin_depth*1000:.2f} mm")
+
+# 4. 3D Surface Field & Tangential Velocity Vector Computation
+x = np.linspace(-7, 7, 50)
+y = np.linspace(-7, 7, 50)
+X, Y = np.meshgrid(x, y)
+R = np.sqrt(X**2 + Y**2) + 1e-6
+k = (FREQ_GHZ * 0.45) * np.sqrt(EPS_R * MU_R)
+
+Z = np.sin(R * k) * (E0_AMP / 120.0) * np.exp(-SIGMA * R * 0.2)
+dZdx, dZdy = np.gradient(Z)
+
+fig = plt.figure(figsize=(12, 8), facecolor='#050811')
+ax = fig.add_subplot(111, projection='3d', facecolor='#050811')
+surf = ax.plot_surface(X, Y, Z, cmap=cm.cool, linewidth=0.3, antialiased=True, alpha=0.85)
+ax.quiver(X[::5, ::5], Y[::5, ::5], Z[::5, ::5], -dZdx[::5, ::5], -dZdy[::5, ::5], 0.2, color='#f59e0b', length=0.6)
+ax.set_title("ElectroField 3D Electromagnetic Manifold & Surface Velocity Vectors", color='white')
+plt.show()`;
+
+            document.getElementById('pythonCodeBlock').textContent = pyCode;
+            document.getElementById('pythonModal').classList.remove('hidden');
+            document.getElementById('pythonModal').classList.add('flex');
+        }
+
+        function closePythonModal() {
+            document.getElementById('pythonModal').classList.add('hidden');
+            document.getElementById('pythonModal').classList.remove('flex');
+        }
+
+        function copyPythonCode() {
+            const code = document.getElementById('pythonCodeBlock').textContent;
+            const temp = document.createElement('textarea');
+            temp.value = code;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            const btn = document.getElementById('copyPyBtn');
+            btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i>Copied!';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-regular fa-copy mr-1"></i>Copy Python Code';
+            }, 2000);
+        }
+
+        /*************************************************************************
+         * 10. GLOBAL WORKSPACE SWITCHER (3D LAB / THEORY ACADEMY / EXAM ENGINE)
+         *************************************************************************/
+        function switchMainWorkspace(ws) {
+            const wLab = document.getElementById('workspace-lab');
+            const wAcad = document.getElementById('workspace-academy');
+            const wExam = document.getElementById('workspace-exam');
+
+            const bLab = document.getElementById('ws-lab');
+            const bAcad = document.getElementById('ws-academy');
+            const bExam = document.getElementById('ws-exam');
+
+            const inactiveClass = "px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition flex items-center space-x-1.5";
+            const activeClass = "px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 transition flex items-center space-x-1.5 shadow-lg shadow-cyan-500/10";
+
+            wLab.classList.add('hidden');
+            wAcad.classList.add('hidden');
+            wAcad.classList.remove('flex');
+            wExam.classList.add('hidden');
+            wExam.classList.remove('flex');
+
+            bLab.className = inactiveClass;
+            bAcad.className = inactiveClass;
+            bExam.className = inactiveClass;
+
+            if (ws === 'lab') {
+                wLab.classList.remove('hidden');
+                bLab.className = activeClass;
+                setTimeout(() => {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }, 50);
+            } else if (ws === 'academy') {
+                wAcad.classList.remove('hidden');
+                wAcad.classList.add('flex');
+                bAcad.className = activeClass;
+            } else if (ws === 'exam') {
+                wExam.classList.remove('hidden');
+                wExam.classList.add('flex');
+                bExam.className = activeClass;
+            }
+        }
+
+        /*************************************************************************
+         * 11. COMPREHENSIVE THEORY & FORMULA ENCYCLOPEDIA DATA & RENDERER
+         * Written in clear, intuitive English so anyone can understand HOW & WHY
+         *************************************************************************/
+        const theoryChapters = {
+            maxwell: {
+                title: "1. Maxwell's Equations & The Unification of Light and Electromagnetism",
+                subtitle: "How four elegant differential and integral equations explain every electromagnetic phenomenon in our universe.",
+                intuition: "Before James Clerk Maxwell (1865), electricity and magnetism were thought to be separate forces. Maxwell proved that a changing electric field creates a magnetic field, and a changing magnetic field creates an electric field. Even in empty space (vacuum) with no wires or charges, these two fields continuously regenerate each other in a self-sustaining leapfrog dance—propagating forward at 299,792,458 m/s as an Electromagnetic Wave (light, radio, Wi-Fi, X-rays).",
+                equations: [
+                    {
+                        name: "1. Gauss's Law for Electricity",
+                        diff: "∇ · D = ρ_v   (or ∇ · E = ρ_v / ε)",
+                        integ: "∮_S D · dS = ∫_V ρ_v dV = Q_enc",
+                        why: "Electric field lines originate on positive charges (+Q) and terminate on negative charges (-Q). Divergence (∇·) measures how much a vector field spreads out from a point. Therefore, the total electric flux leaving any closed surface (like a sphere) is strictly proportional to the total electric charge trapped inside it.",
+                        terms: "D: Electric Displacement Flux Density (C/m²) | E: Electric Field Intensity (V/m) | ρ_v: Volume Charge Density (C/m³) | ε: Permittivity of the medium (F/m) | Q_enc: Total Enclosed Net Charge (Coulombs)."
+                    },
+                    {
+                        name: "2. Gauss's Law for Magnetism (Absence of Magnetic Monopoles)",
+                        diff: "∇ · B = 0",
+                        integ: "∮_S B · dS = 0",
+                        why: "Unlike electric charges (which exist as isolated + or - particles), an isolated North or South magnetic pole has never been observed in nature. If you cut a bar magnet in half, you get two smaller North-South magnets. Because magnetic field lines always form closed continuous loops, every magnetic line that enters a closed surface must also exit it—making net outward magnetic flux identically zero!",
+                        terms: "B: Magnetic Flux Density (Tesla, T or Wb/m²) | ∇ · B: Divergence of B | dS: Outward normal differential surface area vector."
+                    },
+                    {
+                        name: "3. Maxwell-Faraday Law of Electromagnetic Induction",
+                        diff: "∇ × E = - ∂B / ∂t",
+                        integ: "∮_C E · dl = - d/dt ∫_S B · dS = - dΦ_B / dt",
+                        why: "A static magnetic field does nothing to a stationary wire. However, the moment a magnetic field changes with time (∂B/∂t ≠ 0), it curls (∇ × E) the surrounding space into a circulating electric field! The minus sign (-) represents Lenz's Law: nature conserves energy by inducing an electric field that opposes the magnetic change that created it.",
+                        terms: "∇ × E: Curl (circulation density) of Electric Field | ∂B/∂t: Time rate of change of magnetic flux density | Φ_B: Magnetic Flux (Webers)."
+                    },
+                    {
+                        name: "4. Ampère-Maxwell Circuital Law",
+                        diff: "∇ × H = J + ∂D / ∂t",
+                        integ: "∮_C H · dl = I_enc + ∫_S (∂D / ∂t) · dS",
+                        why: "Originally, Ampère knew that a flowing electric current (J) wraps a circulating magnetic field (∇ × H) around a wire. However, between the plates of a charging capacitor, no physical electrons jump across the vacuum gap, yet a magnetic field still exists there! Maxwell added the Displacement Current Density (J_d = ∂D/∂t), proving that a time-varying electric field generates a magnetic field just like a real wire current.",
+                        terms: "H: Magnetic Field Intensity (A/m) | J: Conduction Current Density (A/m², J = σE) | ∂D/∂t: Displacement Current Density (A/m²)."
+                    }
+                ],
+                derivation: "Step 1: Take the curl of Faraday's Law in a charge-free vacuum (ρ_v = 0, J = 0): ∇ × (∇ × E) = - ∂/∂t (∇ × B).\nStep 2: Apply vector identity ∇ × (∇ × E) = ∇(∇·E) - ∇²E. Since ∇·E = 0 in free space, the left side becomes -∇²E.\nStep 3: Substitute Ampère-Maxwell (∇ × B = μ₀ε₀ ∂E/∂t) into the right side: -∇²E = -μ₀ε₀ ∂²E/∂t².\nStep 4: Rearrange into the 3D Wave Equation: ∇²E - (1/v_p²) ∂²E/∂t² = 0, proving waves travel at v_p = 1/√(μ₀ε₀) = 2.998 × 10⁸ m/s!"
+            },
+            electro: {
+                title: "2. Electrostatics: Coulomb's Law, Electric Potential, Dipoles & Boundary Conditions",
+                subtitle: "Understanding stationary electric charges, potential energy landscapes, capacitance, and dielectric interfaces.",
+                intuition: "Electrostatics studies electric fields when charges are stationary (∂/∂t = 0). Think of Electric Potential (Voltage, V) as the 'height of a mountain' and the Electric Field (E = -∇V) as the 'steepness of the slope' pushing positive charges downhill. Because static fields have zero curl (∇ × E = 0), moving a charge around any closed loop requires zero net work—just like hiking around a mountain and returning to your exact starting altitude.",
+                equations: [
+                    {
+                        name: "Coulomb's Force & Point Charge Field",
+                        diff: "E(r) = Q / (4 π ε r²) r̂",
+                        integ: "F₁₂ = (Q₁ Q₂) / (4 π ε R₁₂²) R̂₁₂",
+                        why: "Because 3D space expands spherically with surface area A = 4πr², the electric flux radiating from a point charge spreads out over an area proportional to r². Thus, field strength falls off according to the Inverse-Square Law (1/r²).",
+                        terms: "Q: Point Charge (C) | r: Radial distance from charge (m) | ε = ε₀ε_r: Permittivity (F/m) | r̂: Unit radial direction vector."
+                    },
+                    {
+                        name: "Electrostatic Potential, Gradient & Poisson/Laplace Equations",
+                        diff: "E = - ∇V   and   ∇²V = - ρ_v / ε",
+                        integ: "V_AB = - ∫_B^A E · dl",
+                        why: "The minus sign in E = -∇V tells us that the electric field always points from higher voltage to lower voltage, perpendicular to equipotential surfaces. Substituting E = -∇V into Gauss's Law (∇·E = ρ_v/ε) yields Poisson's Equation (∇²V = -ρ_v/ε), or Laplace's Equation (∇²V = 0) in charge-free regions.",
+                        terms: "V: Scalar Electric Potential (Volts) | ∇V: Gradient vector (V/m) | ∇²: Laplacian second-derivative operator."
+                    },
+                    {
+                        name: "Electrostatic Boundary Conditions & Energy Density",
+                        diff: "E_t1 = E_t2   |   D_n1 - D_n2 = ρ_s",
+                        integ: "w_e = ½ D · E = ½ ε |E|²   (J/m³)",
+                        why: "When an electric wave or field crosses the boundary between two different materials (e.g., air to glass), the tangential electric field (E_t) is always continuous across the surface, while the normal displacement flux (D_n) jumps only if free surface charge (ρ_s) sits on the boundary.",
+                        terms: "E_t: Tangential component parallel to surface | D_n: Normal component perpendicular to surface | w_e: Stored Electrostatic Energy Density (Joules/m³)."
+                    }
+                ],
+                derivation: "Spherical Shell Proof (Gauss's Law):\n1. Surround a spherical charge Q with a concentric Gaussian sphere of radius r.\n2. By symmetry, E is radial and constant over the surface: ∮ εE · dS = ε E (4πr²).\n3. Set equal to Q_enc = Q → E = Q / (4πεr²). Inside an empty charged conductive shell (r < R), Q_enc = 0, proving E = 0 everywhere inside a Faraday cage!"
+            },
+            magneto: {
+                title: "3. Magnetostatics: Steady Currents, Biot-Savart, Ampère & Lorentz Force",
+                subtitle: "How steady direct currents (DC) sculpt 3D magnetic vortices, solenoids, toroids, and inductance.",
+                intuition: "When electric charges move at a constant velocity (steady current I), they generate a steady magnetic field around their path following the Right-Hand Rule: point your right thumb in the direction of current flow, and your fingers curl in the direction of the Magnetic Field (B). Unlike electric fields that push charges along field lines, magnetic fields exert a sideways cross-product force (F = qv × B) that bends moving particles into circular or helical orbits!",
+                equations: [
+                    {
+                        name: "Biot-Savart Law (Differential Magnetic Field of a Wire Element)",
+                        diff: "dB = (μ I dl × r̂) / (4 π r²)",
+                        integ: "B = (μ I) / (2 π ρ) φ̂   (Infinite Straight Wire)",
+                        why: "Biot-Savart is the magnetostatic cousin of Coulomb's Law. Every tiny segment of current-carrying wire (I dl) contributes a magnetic field perpendicular to both the wire direction (dl) and the line-of-sight vector (r̂) via the vector cross product (dl × r̂).",
+                        terms: "I: Steady Current (Amperes) | dl: Differential wire vector (m) | μ = μ₀μ_r: Magnetic Permeability (H/m) | ρ: Cylindrical radial distance from wire."
+                    },
+                    {
+                        name: "Vector Magnetic Potential & Lorentz Force Law",
+                        diff: "B = ∇ × A   |   ∇²A = - μ J",
+                        integ: "F = q (E + v × B)   |   dF = I dl × B",
+                        why: "Because ∇ · B = 0 always holds, vector calculus guarantees that B can always be written as the curl of a Vector Magnetic Potential A (B = ∇ × A). Meanwhile, the Lorentz Force shows why magnetic fields never change a particle's speed (kinetic energy): since (v × B) is strictly perpendicular to velocity v, magnetic work W = ∫ F · v dt = 0.",
+                        terms: "A: Vector Magnetic Potential (Wb/m) | v: Particle velocity vector (m/s) | F: Total Electromagnetic Force (Newtons)."
+                    },
+                    {
+                        name: "Magnetostatic Boundary Conditions & Inductance Energy",
+                        diff: "B_n1 = B_n2   |   n̂ × (H₁ - H₂) = J_s",
+                        integ: "w_m = ½ B · H = ½ μ |H|²   (J/m³)",
+                        why: "Because magnetic flux lines never end (∇·B=0), the normal component perpendicular to any boundary is strictly continuous (B_n1 = B_n2). The tangential magnetic field (H_t) jumps across a boundary by an amount equal to the Surface Current Density (J_s, in A/m) flowing on that sheet.",
+                        terms: "B_n: Normal magnetic flux density | J_s: Sheet Surface Current Density (A/m) | w_m: Stored Magnetostatic Energy Density (J/m³)."
+                    }
+                ],
+                derivation: "Toroidal Solenoid Proof via Ampère's Law:\n1. Consider a toroid with N tightly wound turns carrying current I. Draw a circular Amperian loop of radius r inside the core.\n2. By cylindrical symmetry, H is tangential along the loop: ∮ H · dl = H (2πr).\n3. The loop encloses all N turns: I_enc = N·I. Thus, H = (N·I)/(2πr) inside the core, and H = 0 outside the toroid (since I_enc = 0 outside)!"
+            },
+            faraday: {
+                title: "4. Faraday's Law of Induction, Motional EMF & Lenz's Conservation Principle",
+                subtitle: "The physical foundation of all electric generators, transformers, wireless chargers, and induction motors.",
+                intuition: "Michael Faraday discovered in 1831 that you can generate voltage (Electromotive Force, EMF) in two distinct ways—or both simultaneously: (1) Transformer EMF: Keep a wire loop stationary and vary the magnetic field strength with time (-∂B/∂t). (2) Motional EMF: Keep the magnetic field constant, but physically move or rotate the conductive surface with velocity v_s across the magnetic field lines (v_s × B).",
+                equations: [
+                    {
+                        name: "Unified Faraday-Lenz Induction Law (Stationary + Moving Surface)",
+                        diff: "∇ × E = - ∂B / ∂t",
+                        integ: "EMF = - dΦ_B / dt = - ∫_S (∂B/∂t) · dS + ∮_C (v_s × B) · dl",
+                        why: "The total induced voltage around any deforming or moving conductive contour C is the sum of time-varying magnetic flux inside the surface (Transformer action) plus the line integral of surface velocity crossed with B along the moving boundary (Generator action).",
+                        terms: "EMF: Induced Electromotive Force (Volts) | v_s: Velocity of the moving surface/contour (m/s) | Φ_B: Magnetic flux linking the loop (Wb)."
+                    }
+                ],
+                derivation: "Proof of Motional EMF on a Sliding Bar:\n1. A conductive bar of length L slides at surface velocity v_s along rails in a uniform magnetic field B₀.\n2. Free charges q inside the bar feel magnetic force F_m = q(v_s × B₀), pushing positives to one end.\n3. Integrating force per unit charge along length L gives EMF = ∮ (v_s × B₀) · dl = B₀ · L · v_s (Volts)."
+            },
+            velocity: {
+                title: "5. Surface Velocity, Phase Velocity, Group Velocity & High-Frequency Skin Effect",
+                subtitle: "How wave crests move through space, across curved manifolds, and penetrate conductive surfaces.",
+                intuition: "When an electromagnetic wave travels through a medium or glides across a curved 3D geometric surface (like an antenna, plasma torus, or waveguide wall), 'velocity' has three distinct engineering meanings: Phase Velocity (speed of individual wave crests), Group Velocity (speed of the information/energy envelope), and Surface Velocity (the apparent velocity of constant-phase contours sweeping across a 2D/3D boundary surface).",
+                equations: [
+                    {
+                        name: "Phase Velocity (v_p) & Refractive Index",
+                        diff: "v_p = ω / k = 1 / √(μ ε) = c / √(ε_r μ_r)",
+                        integ: "n = c / v_p = √(ε_r μ_r)",
+                        why: "In a dielectric material with higher relative permittivity (ε_r > 1), microscopic atomic dipoles polarize in response to the wave, creating a phase delay that slows down the propagation speed of wave crests by a factor of √(ε_r μ_r).",
+                        terms: "ω = 2πf: Angular frequency (rad/s) | k (or β): Wave number (rad/m) | c: Vacuum speed of light (3×10⁸ m/s) | n: Refractive index."
+                    },
+                    {
+                        name: "Tangential Surface Velocity (v_s) on Curved Manifolds & Waveguides",
+                        diff: "v_s = - (∂Φ / ∂t) / |∇_s Φ|²  ∇_s Φ",
+                        integ: "v_s = v_p / sin(θ_i)   (Oblique Wave Incidence on a Surface)",
+                        why: "Imagine ocean waves hitting a beach at an angle θ_i. The intersection point where the wave crest touches the shoreline sweeps along the beach faster than the water wave itself (v_s = v_p / sin θ_i)! Similarly, on any 3D surface defined by phase function Φ(x,y,z,t), the surface velocity is governed by the surface gradient ∇_s Φ.",
+                        terms: "∇_s Φ: Tangential surface phase gradient | θ_i: Incidence angle relative to surface normal | v_s: Surface phase sweep velocity (m/s)."
+                    },
+                    {
+                        name: "Skin Depth (δ) & Attenuation in Lossy Conductors",
+                        diff: "δ = 1 / α = √(2 / (ω μ σ)) = 1 / √(π f μ σ)",
+                        integ: "J(z) = J_s e^(-z / δ) cos(ωt - z/δ)",
+                        why: "At high frequencies (GHz), alternating magnetic fields induce strong opposing eddy currents inside conductors (Faraday's law). This forces all alternating electric current to crowd into a razor-thin layer near the outer surface—known as the Skin Effect. Skin depth (δ) is the depth at which field amplitude drops to e⁻¹ (36.8%) of its surface value.",
+                        terms: "δ: Skin Depth (meters) | σ: Electrical Conductivity (S/m) | α: Attenuation constant (Np/m) | z: Depth into the conductor surface."
+                    }
+                ],
+                derivation: "Skin Depth Derivation from Helmholtz Equation:\n1. In a good conductor (σ >> ωε), Maxwell's curl equations reduce to the diffusion-wave equation: ∇²E = jωμσ E.\n2. Let γ = √(jωμσ) = (1 + j) √(ωμσ / 2) = α + jβ.\n3. Since amplitude decays as e^(-αz), the 1/e depth is δ = 1/α = √(2 / (ωμσ)) = 1 / √(π f μ σ)."
+            },
+            power: {
+                title: "6. Poynting's Theorem, Power Flow Vector (S = E × H) & Radiation Pressure",
+                subtitle: "How electromagnetic waves transport energy, power satellites, and conserve energy across 3D boundaries.",
+                intuition: "How does sunlight warm the Earth across 150 million kilometers of empty vacuum, or how does a coaxial cable deliver power to an antenna? Energy doesn't actually travel inside the metal electrons—it flows through the surrounding space in the electromagnetic field itself! John Henry Poynting proved in 1884 that the cross product of Electric Field (E) and Magnetic Field (H) gives the exact directional power density (Watts per square meter) at every point in space.",
+                equations: [
+                    {
+                        name: "Instantaneous & Time-Average Poynting Vector",
+                        diff: "S(t) = E(t) × H(t)   (W/m²)",
+                        integ: "S_avg = ½ Re { E_phasor × H_phasor* } = (|E₀|² / 2η) k̂",
+                        why: "Because E and H are mutually perpendicular in a propagating wave, the Right-Hand Rule shows that E × H points directly in the direction of wave propagation (k̂). Dividing |E₀|² by twice the intrinsic impedance of space (η = √(μ/ε) ≈ 377 Ω in vacuum) gives the average power per unit area.",
+                        terms: "S: Poynting Power Flux Density (W/m²) | η: Intrinsic wave impedance (Ohms, Ω) | |E₀|: Peak electric field amplitude (V/m)."
+                    },
+                    {
+                        name: "Poynting's Conservation of Energy Theorem",
+                        diff: "- ∇ · S = ∂/∂t (½ ε E² + ½ μ H²) + σ E²",
+                        integ: "- ∮_S (E × H) · dS = d/dt ∫_V (w_e + w_m) dV + ∫_V (J · E) dV",
+                        why: "This is the ultimate law of conservation of energy for electromagnetism: The total power flowing INTO a closed volume (-∮ S·dS) must equal the rate at which stored electric and magnetic energy increases inside that volume, plus the Ohmic heat power (σE²) dissipated by resistance.",
+                        terms: "w_e = ½εE²: Electric energy density | w_m = ½μH²: Magnetic energy density | σE² = J·E: Joule heating loss density (W/m³)."
+                    }
+                ],
+                derivation: "Derivation of Poynting's Theorem from Vector Identity:\n1. Start with the divergence identity: ∇ · (E × H) = H · (∇ × E) - E · (∇ × H).\n2. Substitute Faraday's Law (∇ × E = -μ ∂H/∂t) and Ampère's Law (∇ × H = J + ε ∂E/∂t).\n3. ∇ · (E × H) = - H · (μ ∂H/∂t) - E · (ε ∂E/∂t) - E · J = - ∂/∂t (½μH² + ½εE²) - J · E."
+            },
+            dimensions: {
+                title: "7. Dimensional Physics (1D → 2D → 3D → 4D Relativistic Minkowski Tensor)",
+                subtitle: "How physical laws, Green's functions, and electromagnetic fields transform across spatial and spacetime dimensions.",
+                intuition: "Why does dimensionality matter so deeply in physics and engineering? In 1D (like a fiber optic cable or coaxial transmission line), wave energy cannot spread out radially, so waves travel without geometric 1/r attenuation. In 2D (planar waveguides or graphene sheets), flux spreads over a circle (2πr), so fields decay as 1/r. In our 3D universe, flux spreads over a sphere (4πr²), so static fields decay as 1/r² and radiation fields decay as 1/r. In 4D Spacetime (Einstein's Special Relativity), time (ct) joins (x,y,z), revealing that Electric and Magnetic fields are actually different 3D projections of a single 4D Tensor!",
+                equations: [
+                    {
+                        name: "Dimensional Scaling of Gauss's Law & Wave Spreading (N-Dimensions)",
+                        diff: "1D: E ∝ const   |   2D: E ∝ 1/r   |   3D: E ∝ 1/r²   |   4D Spatial: E ∝ 1/r³",
+                        integ: "∮_(S^(N-1)) E · dS = Q / ε   ⇒   E(r) ∝ 1 / r^(N-1)",
+                        why: "The boundary of an N-dimensional sphere has surface area proportional to r^(N-1). By Gauss's divergence theorem, conserving total flux across the boundary forces the static field intensity to scale as 1/r^(N-1).",
+                        terms: "N: Number of spatial dimensions | r: Radial distance from source | S^(N-1): Hypersurface bounding an N-ball."
+                    },
+                    {
+                        name: "4D Covariant Electromagnetic Field Tensor (F^μν)",
+                        diff: "∂_μ F^μν = μ₀ J^ν   (Inhomogeneous Maxwell in 4D)",
+                        integ: "F^μν = ∂^μ A^ν - ∂^ν A^μ   (4×4 Antisymmetric Relativistic Matrix)",
+                        why: "What one observer at rest sees as a pure Electric Field (E), a second observer moving at relativistic velocity sees as a mixture of BOTH Electric and Magnetic fields! Packing (E_x, E_y, E_z) and (B_x, B_y, B_z) into the 4×4 antisymmetric tensor F^μν reduces all four of Maxwell's equations into just two compact 4D tensor equations.",
+                        terms: "x^μ = (ct, x, y, z): 4-Position vector | J^ν = (cρ, J_x, J_y, J_z): 4-Current vector | A^μ = (V/c, A_x, A_y, A_z): 4-Potential."
+                    }
+                ],
+                derivation: "4D Electromagnetic Tensor Matrix Structure:\nF^μν = \n[  0    -Ex/c  -Ey/c  -Ez/c ]\n[ Ex/c    0    -Bz     By   ]\n[ Ey/c   Bz     0     -Bx   ]\n[ Ez/c  -By     Bx     0    ]\nNotice how the diagonal is zero (antisymmetric) and how time-space components hold the Electric field while space-space planes hold the Magnetic field!"
+            }
+        };
+
+        function renderTheoryChapter(chapKey) {
+            document.querySelectorAll('.theory-chap-btn').forEach(b => {
+                b.className = "theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition";
+            });
+            const activeBtn = document.getElementById(`chap-${chapKey}`);
+            if (activeBtn) {
+                activeBtn.className = "theory-chap-btn text-left px-3 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-semibold transition";
+            }
+
+            const data = theoryChapters[chapKey];
+            const containerEl = document.getElementById('theoryContentContainer');
+
+            let eqCardsHtml = data.equations.map(eq => `
+                <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+                    <div class="text-sm font-bold text-cyan-400">${eq.name}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                            <span class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Differential / Point Form</span>
+                            <code class="text-xs font-mono text-emerald-300 font-bold">${eq.diff}</code>
+                        </div>
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                            <span class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Integral / Global Form</span>
+                            <code class="text-xs font-mono text-amber-300 font-bold">${eq.integ}</code>
+                        </div>
+                    </div>
+                    <div class="text-xs text-slate-200 leading-relaxed bg-slate-950/50 p-3.5 rounded-xl border border-slate-800/60">
+                        <strong class="text-purple-300">Why & How It Works:</strong> ${eq.why}
+                    </div>
+                    <div class="text-[11px] font-mono text-slate-400">
+                        <strong class="text-slate-300">Symbols & Units:</strong> ${eq.terms}
+                    </div>
+                </div>
+            `).join('');
+
+            containerEl.innerHTML = `
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <div class="border-b border-slate-800 pb-4">
+                        <span class="text-xs font-mono uppercase text-cyan-400 font-semibold">ELECTROFIELD ENGINEERING ENCYCLOPEDIA</span>
+                        <h2 class="text-2xl font-bold text-white mt-1">${data.title}</h2>
+                        <p class="text-sm text-slate-400 mt-1">${data.subtitle}</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-cyan-950/40 to-indigo-950/40 border border-cyan-500/30 rounded-2xl p-5">
+                        <div class="text-xs font-mono uppercase text-cyan-300 font-bold mb-1.5">
+                            <i class="fa-solid fa-lightbulb mr-1.5 text-amber-400"></i>Intuitive Physical Picture (Plain English)
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">${data.intuition}</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-mono uppercase tracking-wider text-slate-300 font-bold">Core Equations, Physical Meaning & Symbol Breakdown</h3>
+                        ${eqCardsHtml}
+                    </div>
+
+                    <div class="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-5">
+                        <div class="text-xs font-mono uppercase text-emerald-400 font-bold mb-2">
+                            <i class="fa-solid fa-square-root-variable mr-1.5"></i>Step-by-Step Mathematical Proof & Derivation
+                        </div>
+                        <pre class="font-mono text-xs text-slate-200 whitespace-pre-wrap leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-800">${data.derivation}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        /*************************************************************************
+         * 12. PROCEDURAL + CURATED 250+ QUESTION BANK GENERATOR (50 PER TOPIC)
+         * Guarantees 50 distinct, rigorous questions for EACH of the 5 topics (250 total).
+         * Supports 15-question randomized topic sets OR 120-question All-Topics Marathon!
+         *************************************************************************/
+        let masterQuestionPools = {
+            maxwell: [],
+            electro: [],
+            magneto: [],
+            velocity: [],
+            dimensions: []
+        };
+
+        function buildMasterQuestionBank() {
+            masterQuestionPools = { maxwell: [], electro: [], magneto: [], velocity: [], dimensions: [] };
+
+            // --- TOPIC 1: MAXWELL & FARADAY (50 Questions) ---
+            const maxwellCore = [
+                {
+                    q: "Which of Maxwell's equations mathematically proves the non-existence of isolated magnetic monopoles?",
+                    opts: ["∇ · B = 0", "∇ · D = ρ_v", "∇ × E = -∂B/∂t", "∇ × H = J + ∂D/∂t"],
+                    ans: 0,
+                    exp: "Gauss's Law for Magnetism states that ∇ · B = 0 (or ∮ B · dS = 0). Because magnetic field lines always form closed loops, the net magnetic flux leaving any closed surface is identically zero, proving no isolated magnetic charge exists."
+                },
+                {
+                    q: "Why did James Clerk Maxwell add the displacement current density term (J_d = ∂D/∂t) to Ampère's Circuital Law?",
+                    opts: [
+                        "To make Ampère's law consistent with the continuity equation (∇·J = -∂ρ_v/∂t) and explain magnetic fields between charging capacitor plates",
+                        "To account for Ohmic heating in superconductors at zero Kelvin",
+                        "To eliminate electrostatic potential in stationary point charges",
+                        "To prove that magnetic fields cannot exist in a vacuum"
+                    ],
+                    ans: 0,
+                    exp: "Taking the divergence of any curl gives zero: ∇ · (∇ × H) = 0. Without ∂D/∂t, ∇ · J = 0 would contradict charge conservation (∇ · J + ∂ρ_v/∂t = 0) during time-varying capacitor charging."
+                },
+                {
+                    q: "In Faraday's Law of Induction (∮ E · dl = -dΦ_B/dt), what physical principle is represented by the negative sign (-)?",
+                    opts: [
+                        "Lenz's Law: the induced EMF opposes the change in magnetic flux that produces it, enforcing conservation of energy",
+                        "Coulomb attraction between two static electrons",
+                        "Attenuation due to dielectric permittivity in lossless vacuum",
+                        "The breakdown of vector calculus in cylindrical coordinates"
+                    ],
+                    ans: 0,
+                    exp: "Lenz's Law states that the induced current creates a secondary magnetic field opposing the change in external magnetic flux. If the sign were positive, any tiny flux change would self-amplify infinitely, violating conservation of energy."
+                },
+                {
+                    q: "In a source-free, lossless medium (ρ_v = 0, J = 0), decoupling Maxwell's curl equations yields the homogeneous vector wave equation:",
+                    opts: [
+                        "∇²E - μ ε (∂²E / ∂t²) = 0",
+                        "∇²E + σ (∂E / ∂t) = ρ_v",
+                        "∇ · E = -∂B / ∂t",
+                        "∇ × E = μ₀ J"
+                    ],
+                    ans: 0,
+                    exp: "Taking the curl of ∇ × E = -∂B/∂t and substituting ∇ × B = με ∂E/∂t with ∇·E = 0 yields ∇²E - με ∂²E/∂t² = 0, confirming wave propagation at speed v_p = 1/√(με)."
+                },
+                {
+                    q: "For a uniform plane wave propagating in the +z direction in free space, if the Electric field points along +x, in which direction does the Magnetic field H point?",
+                    opts: ["+y direction", "-x direction", "+z direction", "-z direction"],
+                    ans: 0,
+                    exp: "In a TEM plane wave, E, H, and the propagation vector k form a right-handed orthogonal triad (E × H points along +z). Since x̂ × ŷ = ẑ, H must point along +y."
+                }
+            ];
+            maxwellCore.forEach(item => masterQuestionPools.maxwell.push(item));
+
+            // Procedurally generate 45 distinct numerical/parametric Maxwell & Faraday problems to reach 50
+            for (let i = 1; i <= 45; i++) {
+                if (i % 3 === 0) {
+                    const turns = 10 + i * 2;
+                    const dPhi = (0.05 * i).toFixed(2);
+                    const emf = (turns * parseFloat(dPhi)).toFixed(2);
+                    masterQuestionPools.maxwell.push({
+                        q: `[Faraday Coil Analysis #${i}] A tightly wound N = ${turns}-turn circular coil experiences a time-decreasing magnetic flux at a rate of dΦ_B/dt = -${dPhi} Wb/s. What is the magnitude of the induced EMF across the coil terminals?`,
+                        opts: [`${emf} V`, `${(emf / 2).toFixed(2)} V`, `${(emf * 2.5).toFixed(2)} V`, `0.00 V`],
+                        ans: 0,
+                        exp: `By Faraday's Law for an N-turn coil, |EMF| = N · |dΦ_B/dt| = ${turns} × ${dPhi} Wb/s = ${emf} Volts.`
+                    });
+                } else if (i % 3 === 1) {
+                    const vBar = 2 + i * 0.5;
+                    const B0 = (0.4 + i * 0.05).toFixed(2);
+                    const L = 1.5;
+                    const motEmf = (vBar * parseFloat(B0) * L).toFixed(2);
+                    masterQuestionPools.maxwell.push({
+                        q: `[Motional EMF Generator #${i}] A straight conductive rod of length L = ${L} m slides with tangential surface velocity v_s = ${vBar} m/s perpendicular to a uniform magnetic flux density B = ${B0} T. Calculate the induced motional EMF:`,
+                        opts: [`${motEmf} V`, `${(motEmf * 0.5).toFixed(2)} V`, `${(motEmf * 1.8).toFixed(2)} V`, `${B0} V`],
+                        ans: 0,
+                        exp: `From the motional induction term EMF = ∮ (v_s × B) · dl = v_s · B · L = ${vBar} × ${B0} × ${L} = ${motEmf} V.`
+                    });
+                } else {
+                    const freqMHz = 10 * i;
+                    const E0 = 20 + i * 4;
+                    const epsR = 2.0;
+                    const omega = 2 * Math.PI * freqMHz * 1e6;
+                    const Jd = (omega * EPS0 * epsR * E0).toFixed(3);
+                    masterQuestionPools.maxwell.push({
+                        q: `[Maxwell Displacement Current #${i}] A time-harmonic electric field E(t) = ${E0} sin(2π · ${freqMHz}×10⁶ t) V/m exists in a dielectric with ε_r = ${epsR}. What is the peak Maxwell displacement current density |J_d| = |∂D/∂t|?`,
+                        opts: [`${Jd} A/m²`, `${(Jd * 4.2).toFixed(3)} A/m²`, `${(Jd * 0.25).toFixed(3)} A/m²`, `0 A/m²`],
+                        ans: 0,
+                        exp: `Displacement current density is J_d = ∂D/∂t = ε₀ ε_r ∂E/∂t. Its peak amplitude is ω ε₀ ε_r E₀ = (2π × ${freqMHz}×10⁶) × (8.854×10⁻¹² × ${epsR}) × ${E0} = ${Jd} A/m².`
+                    });
+                }
+            }
+
+            // --- TOPIC 2: ELECTROSTATICS & GAUSS (50 Questions) ---
+            const electroCore = [
+                {
+                    q: "Inside a hollow, closed spherical metallic conductor carrying a static net charge +Q on its outer surface, what is the Electrostatic Field E at any interior point (r < R) if no charge is enclosed inside the cavity?",
+                    opts: [
+                        "E = 0 V/m everywhere inside, while the electrostatic potential V is constant and equal to the surface voltage",
+                        "E increases linearly with radius r, while V = 0",
+                        "E = Q / (4πε₀r²) pointing inward",
+                        "E is infinite at the center r = 0"
+                    ],
+                    ans: 0,
+                    exp: "By Gauss's Law (∮ ε₀E·dS = Q_enc), a spherical Gaussian surface inside the hollow cavity encloses Q_enc = 0, so E = 0. Since E = -∇V = 0, the potential V must be constant throughout the interior."
+                },
+                {
+                    q: "Why is any static Electric Field E fundamentally conservative (∮_C E · dl = 0)?",
+                    opts: [
+                        "Because in electrostatics ∂B/∂t = 0, which gives ∇ × E = 0; by Stokes' theorem the line integral around any closed path vanishes",
+                        "Because electric charges have zero mass",
+                        "Because magnetic permeability μ₀ is zero in air",
+                        "Because divergence ∇ · E is always zero"
+                    ],
+                    ans: 0,
+                    exp: "By Stokes' Theorem, ∮_C E · dl = ∫_S (∇ × E) · dS. In electrostatics, Faraday's law reduces to ∇ × E = 0, so work done around any closed path is identically zero."
+                },
+                {
+                    q: "Across a charge-free boundary interface between Dielectric 1 (ε₁) and Dielectric 2 (ε₂), which boundary conditions must be satisfied?",
+                    opts: [
+                        "E_t1 = E_t2 (tangential E is continuous) and D_n1 = D_n2 (normal D is continuous)",
+                        "E_n1 = E_n2 and D_t1 = -D_t2",
+                        "Both E and D drop to zero at the interface",
+                        "D_n1 - D_n2 = infinite surface current"
+                    ],
+                    ans: 0,
+                    exp: "Applying ∮ E·dl = 0 across a thin rectangular loop straddling the interface proves E_t1 = E_t2. Applying ∮ D·dS = Q_enc = 0 to a thin pillbox proves D_n1 = D_n2."
+                },
+                {
+                    q: "In the far-field region (r >> d) of an electric dipole (+q and -q separated by distance d), how do the electrostatic potential V and electric field intensity |E| decay with distance r?",
+                    opts: [
+                        "V decays as 1/r² and |E| decays as 1/r³",
+                        "V decays as 1/r and |E| decays as 1/r²",
+                        "Both V and |E| remain constant with distance",
+                        "V decays exponentially as e^(-r)"
+                    ],
+                    ans: 0,
+                    exp: "Because the monopole terms (+q and -q) cancel at large distances, the dipole potential scales as V = (p cos θ)/(4πε₀r²), and taking the gradient E = -∇V yields a 1/r³ field decay."
+                },
+                {
+                    q: "Which differential equation governs the electrostatic scalar potential V in a homogeneous region containing volume charge density ρ_v?",
+                    opts: [
+                        "Poisson's Equation: ∇²V = -ρ_v / ε",
+                        "Wave Equation: ∇²V = με ∂²V/∂t²",
+                        "Cauchy-Riemann Equation: ∂V/∂x = 0",
+                        "Ampère's Equation: ∇ × V = J"
+                    ],
+                    ans: 0,
+                    exp: "Substituting E = -∇V into Gauss's Law (∇ · E = ρ_v / ε) directly yields ∇ · (-∇V) = -∇²V = ρ_v / ε, or ∇²V = -ρ_v / ε."
+                }
+            ];
+            electroCore.forEach(item => masterQuestionPools.electro.push(item));
+
+            for (let i = 1; i <= 45; i++) {
+                if (i % 3 === 0) {
+                    const Q_uC = i * 4;
+                    const r = 2.0;
+                    const E_val = ((Q_uC * 1e-6) / (4 * Math.PI * EPS0 * r * r)).toFixed(1);
+                    masterQuestionPools.electro.push({
+                        q: `[Coulomb & Gauss Field #${i}] A point charge of Q = ${Q_uC} μC is located at the origin in free space (ε_r = 1). What is the radial Electric Field intensity |E| at distance r = ${r} m?`,
+                        opts: [`${E_val} V/m`, `${(E_val * 2).toFixed(1)} V/m`, `${(E_val / 4).toFixed(1)} V/m`, `0.0 V/m`],
+                        ans: 0,
+                        exp: `Using E = Q / (4π ε₀ r²) = (${Q_uC}×10⁻⁶) / (4π × 8.854×10⁻¹² × ${r}²) = ${E_val} V/m.`
+                    });
+                } else if (i % 3 === 1) {
+                    const E_mag = 100 + i * 15;
+                    const epsR = 3.0;
+                    const we = (0.5 * EPS0 * epsR * E_mag * E_mag * 1e6).toFixed(2); // microJoules/m^3
+                    masterQuestionPools.electro.push({
+                        q: `[Electrostatic Energy Density #${i}] A dielectric medium with relative permittivity ε_r = ${epsR} is subjected to a uniform electric field E = ${E_mag} V/m. Calculate the stored electrostatic energy density w_e in μJ/m³:`,
+                        opts: [`${we} μJ/m³`, `${(we * 3.1).toFixed(2)} μJ/m³`, `${(we * 0.3).toFixed(2)} μJ/m³`, `1.00 μJ/m³`],
+                        ans: 0,
+                        exp: `Electrostatic energy density is w_e = ½ ε₀ ε_r E² = 0.5 × (8.854×10⁻¹² × ${epsR}) × (${E_mag})² = ${we} μJ/m³.`
+                    });
+                } else {
+                    const V0 = 12 * i;
+                    const d_mm = 4.0;
+                    const E_plate = (V0 / (d_mm * 1e-3)).toFixed(0);
+                    masterQuestionPools.electro.push({
+                        q: `[Parallel Plate Capacitor #${i}] A parallel-plate capacitor has a plate separation of d = ${d_mm} mm and an applied potential difference of V = ${V0} V. Neglecting fringing, what is the uniform Electric Field intensity |E| between the plates?`,
+                        opts: [`${E_plate} V/m`, `${(E_plate / 2).toFixed(0)} V/m`, `${(E_plate * 4).toFixed(0)} V/m`, `${V0} V/m`],
+                        ans: 0,
+                        exp: `For a uniform field between parallel plates, |E| = V / d = ${V0} V / (${d_mm} × 10⁻³ m) = ${E_plate} V/m.`
+                    });
+                }
+            }
+
+            // --- TOPIC 3: MAGNETOSTATICS & AMPÈRE (50 Questions) ---
+            const magnetoCore = [
+                {
+                    q: "Why does a static Magnetic Field B do zero mechanical work (ΔK = 0) on an isolated moving charged particle q?",
+                    opts: [
+                        "Because the magnetic Lorentz force F_m = q(v × B) is always perpendicular to the velocity vector v, so F_m · v = 0",
+                        "Because magnetic fields cannot exert forces on moving charges",
+                        "Because velocity v is always parallel to B",
+                        "Because magnetic permeability μ₀ has units of resistance"
+                    ],
+                    ans: 0,
+                    exp: "Instantaneous power transferred to a particle is P = F_m · v = q(v × B) · v. Since the cross product (v × B) is orthogonal to v, the dot product is identically zero, meaning speed and kinetic energy remain constant."
+                },
+                {
+                    q: "How is the Vector Magnetic Potential A mathematically related to the Magnetic Flux Density B?",
+                    opts: [
+                        "B = ∇ × A (since ∇ · (∇ × A) = 0 automatically satisfies Gauss's law for magnetism)",
+                        "B = -∇A",
+                        "B = ∇ · A",
+                        "A = B / μ₀"
+                    ],
+                    ans: 0,
+                    exp: "Vector identity guarantees that the divergence of the curl of any vector field vanishes: ∇ · (∇ × A) ≡ 0. Defining B = ∇ × A automatically enforces ∇ · B = 0."
+                },
+                {
+                    q: "According to the Biot-Savart Law, how does the magnetic flux density B around an infinitely long, straight wire carrying steady current I vary with cylindrical radial distance ρ?",
+                    opts: [
+                        "B = (μ₀ I) / (2π ρ) φ̂ (inversely proportional to ρ)",
+                        "B is inversely proportional to ρ³",
+                        "B is constant everywhere in space",
+                        "B points radially outward along ρ̂"
+                    ],
+                    ans: 0,
+                    exp: "Integrating Biot-Savart along an infinite wire (or applying Ampère's law ∮ H·dl = H(2πρ) = I) yields H = I/(2πρ) φ̂ and B = μ₀I/(2πρ) φ̂."
+                },
+                {
+                    q: "Across an interface between two magnetic media carrying a free sheet surface current density J_s (A/m), how does the tangential magnetic field intensity H behave?",
+                    opts: [
+                        "n̂ × (H₁ - H₂) = J_s (tangential H is discontinuous by an amount equal to J_s)",
+                        "Tangential H is always zero on both sides",
+                        "Normal B jumps by J_s while tangential H is continuous",
+                        "H₁ = -H₂ regardless of J_s"
+                    ],
+                    ans: 0,
+                    exp: "Applying Ampère's Circuital Law around a thin rectangular Amperian loop across the boundary encloses current J_s · Δl, yielding n̂ × (H₁ - H₂) = J_s."
+                },
+                {
+                    q: "For an ideal toroidal coil with N turns carrying current I, what is the magnetic field H outside the toroid core?",
+                    opts: [
+                        "H = 0 A/m outside the toroid because any concentric Amperian loop outside encloses zero net current",
+                        "H is twice as strong outside as inside",
+                        "H increases linearly with distance outside the toroid",
+                        "H equals N·I everywhere in the universe"
+                    ],
+                    ans: 0,
+                    exp: "For a circular Amperian loop of radius r greater than the outer radius of the toroid, every wire turn piercing the surface upward is paired with a turn piercing downward, so I_enc = 0 and H = 0."
+                }
+            ];
+            magnetoCore.forEach(item => masterQuestionPools.magneto.push(item));
+
+            for (let i = 1; i <= 45; i++) {
+                if (i % 3 === 0) {
+                    const currI = 5 + i * 2;
+                    const rho = 0.5;
+                    const H_val = (currI / (2 * Math.PI * rho)).toFixed(2);
+                    masterQuestionPools.magneto.push({
+                        q: `[Ampère's Law Wire #${i}] A long straight power conductor carries a steady DC current of I = ${currI} A. Calculate the Magnetic Field Intensity |H| at a radial distance ρ = ${rho} m from the wire axis:`,
+                        opts: [`${H_val} A/m`, `${(H_val * 2).toFixed(2)} A/m`, `${(H_val * 0.25).toFixed(2)} A/m`, `0.00 A/m`],
+                        ans: 0,
+                        exp: `By Ampère's Circuital Law, ∮ H · dl = H(2πρ) = I  ⇒  |H| = ${currI} / (2π × ${rho}) = ${H_val} A/m.`
+                    });
+                } else if (i % 3 === 1) {
+                    const N_turns = 200 + i * 20;
+                    const I_sol = 2.5;
+                    const len = 0.5;
+                    const H_sol = ((N_turns * I_sol) / len).toFixed(1);
+                    masterQuestionPools.magneto.push({
+                        q: `[Solenoid Core Field #${i}] A long cylindrical solenoid of length L = ${len} m has N = ${N_turns} turns carrying current I = ${I_sol} A. What is the interior Magnetic Field Intensity H near the center?`,
+                        opts: [`${H_sol} A/m`, `${(H_sol / 3).toFixed(1)} A/m`, `${(H_sol * 2.2).toFixed(1)} A/m`, `${I_sol} A/m`],
+                        ans: 0,
+                        exp: `For a long solenoid, H = (N · I) / L = (${N_turns} × ${I_sol}) / ${len} = ${H_sol} A/m.`
+                    });
+                } else {
+                    const q_mC = 2.0;
+                    const v_ms = 100 + i * 10;
+                    const B_T = 1.5;
+                    const F_N = ((q_mC * 1e-3) * v_ms * B_T).toFixed(3);
+                    masterQuestionPools.magneto.push({
+                        q: `[Lorentz Magnetic Force #${i}] A charge q = ${q_mC} mC moves at speed v = ${v_ms} m/s perpendicular (θ = 90°) to a uniform magnetic field B = ${B_T} T. What is the magnitude of the magnetic force |F_m|?`,
+                        opts: [`${F_N} N`, `${(F_N * 2.5).toFixed(3)} N`, `${(F_N * 0.2).toFixed(3)} N`, `0.000 N`],
+                        ans: 0,
+                        exp: `From Lorentz force |F_m| = |q| v B sin(90°) = (${q_mC}×10⁻³) × ${v_ms} × ${B_T} × 1 = ${F_N} Newtons.`
+                    });
+                }
+            }
+
+            // --- TOPIC 4: SURFACE VELOCITY, POWER & SKIN DEPTH (50 Questions) ---
+            const velocityCore = [
+                {
+                    q: "What happens to the Phase Velocity (v_p = c / √(ε_r μ_r)) of an electromagnetic wave when it enters a non-magnetic dielectric medium with relative permittivity ε_r = 4?",
+                    opts: [
+                        "The phase velocity decreases to half the speed of light in vacuum (v_p = c / 2 = 1.5 × 10⁸ m/s)",
+                        "The phase velocity doubles to 2c",
+                        "The phase velocity remains unchanged at c",
+                        "The wave immediately stops propagating"
+                    ],
+                    ans: 0,
+                    exp: "Substituting ε_r = 4 and μ_r = 1 into v_p = c / √(ε_r μ_r) gives v_p = c / √4 = c / 2 = 1.5 × 10⁸ m/s."
+                },
+                {
+                    q: "When a uniform plane wave strikes a planar boundary at an oblique angle θ_i (measured from the normal), why can the apparent Tangential Surface Velocity (v_s = v_p / sin θ_i) along the boundary exceed v_p?",
+                    opts: [
+                        "Because v_s measures the geometric intersection speed of phase fronts sweeping across the surface, not the physical transport of mass or energy",
+                        "Because Einstein's relativity does not apply to electromagnetic waves",
+                        "Because conductivity σ becomes negative at oblique angles",
+                        "Because magnetic permeability vanishes on boundaries"
+                    ],
+                    ans: 0,
+                    exp: "Just like ocean wave crests hitting a shoreline at a shallow angle sweep along the beach faster than the water wave itself, the geometric phase intersection speed along a surface is v_s = v_p / sin θ_i, while energy still travels at group velocity ≤ c."
+                },
+                {
+                    q: "How does increasing the wave frequency (f) affect the Skin Depth (δ = 1 / √(π f μ σ)) and surface current crowding in a good conductor?",
+                    opts: [
+                        "Skin depth δ decreases as 1/√f, forcing alternating currents to crowd into a much thinner layer near the conductor's surface",
+                        "Skin depth increases linearly with frequency",
+                        "Skin depth is completely independent of frequency",
+                        "High frequency pushes current exclusively to the exact center axis of the wire"
+                    ],
+                    ans: 0,
+                    exp: "Because δ = 1 / √(π f μ σ), quadrupling the frequency cuts the skin depth in half, confining high-frequency currents to the outer surface skin."
+                },
+                {
+                    q: "What physical quantity is represented by the Poynting Vector S = E × H?",
+                    opts: [
+                        "The instantaneous directional electromagnetic power flux density in Watts per square meter (W/m²)",
+                        "The total static electric charge stored inside a capacitor",
+                        "The tangential surface velocity of electrons in a resistor",
+                        "The magnetic inductance per unit length"
+                    ],
+                    ans: 0,
+                    exp: "E has units of V/m and H has units of A/m. Their cross product S = E × H has units of (V·A)/m² = Watts/m², pointing in the direction of electromagnetic energy flow."
+                },
+                {
+                    q: "In Poynting's Theorem (-∇ · S = ∂/∂t(w_e + w_m) + J · E), what does the term J · E = σ|E|² represent?",
+                    opts: [
+                        "Irreversible Ohmic power dissipation (Joule heating loss per unit volume) converted into thermal energy",
+                        "Lossless reactive power stored in vacuum",
+                        "Relativistic time dilation in 4D space",
+                        "Magnetic monopole radiation"
+                    ],
+                    ans: 0,
+                    exp: "When conduction current J = σE flows under an electric field E, work done on colliding charge carriers dissipates at rate J · E = σ|E|² (W/m³) as heat."
+                }
+            ];
+            velocityCore.forEach(item => masterQuestionPools.velocity.push(item));
+
+            for (let i = 1; i <= 45; i++) {
+                if (i % 3 === 0) {
+                    const epsR = (1 + i * 0.4).toFixed(1);
+                    const vp_e8 = (3.0 / Math.sqrt(parseFloat(epsR))).toFixed(2);
+                    masterQuestionPools.velocity.push({
+                        q: `[Phase & Surface Velocity #${i}] An electromagnetic wave propagates through a lossless non-magnetic medium (μ_r = 1) with relative permittivity ε_r = ${epsR}. What is the phase velocity v_p?`,
+                        opts: [`${vp_e8} × 10⁸ m/s`, `${(vp_e8 * 1.8).toFixed(2)} × 10⁸ m/s`, `3.00 × 10⁸ m/s`, `${(vp_e8 * 0.4).toFixed(2)} × 10⁸ m/s`],
+                        ans: 0,
+                        exp: `Using v_p = c / √(ε_r μ_r) = 3.00×10⁸ / √(${epsR} × 1) = ${vp_e8} × 10⁸ m/s.`
+                    });
+                } else if (i % 3 === 1) {
+                    const E0 = 50 + i * 10;
+                    const eta = 376.73;
+                    const S_avg = ((E0 * E0) / (2 * eta)).toFixed(2);
+                    masterQuestionPools.velocity.push({
+                        q: `[Poynting Power Flux #${i}] A uniform plane wave in free space (η₀ ≈ 376.7 Ω) has a peak electric field amplitude of E₀ = ${E0} V/m. What is the time-average Poynting power density |S_avg|?`,
+                        opts: [`${S_avg} W/m²`, `${(S_avg * 2).toFixed(2)} W/m²`, `${(S_avg / 3).toFixed(2)} W/m²`, `${E0} W/m²`],
+                        ans: 0,
+                        exp: `In free space, time-average Poynting flux is |S_avg| = E₀² / (2 η₀) = (${E0})² / (2 × 376.73) = ${S_avg} W/m².`
+                    });
+                } else {
+                    const angleDeg = 30;
+                    const vp_val = (1.5 + i * 0.03).toFixed(2);
+                    const vs_val = (parseFloat(vp_val) / 0.5).toFixed(2); // sin(30) = 0.5
+                    masterQuestionPools.velocity.push({
+                        q: `[Oblique Surface Velocity #${i}] A wave with phase velocity v_p = ${vp_val} × 10⁸ m/s strikes a planar conducting wall at incidence angle θ_i = 30° (sin 30° = 0.5). What is the tangential surface phase velocity v_s sweeping along the wall?`,
+                        opts: [`${vs_val} × 10⁸ m/s`, `${vp_val} × 10⁸ m/s`, `${(vp_val * 0.5).toFixed(2)} × 10⁸ m/s`, `0.00 m/s`],
+                        ans: 0,
+                        exp: `The tangential surface phase velocity along the boundary is v_s = v_p / sin(θ_i) = ${vp_val}×10⁸ / sin(30°) = ${vs_val} × 10⁸ m/s.`
+                    });
+                }
+            }
+
+            // --- TOPIC 5: 1D-4D MANIFOLDS, COORDINATES & TENSORS (50 Questions) ---
+            const dimCore = [
+                {
+                    q: "According to Gauss's Law generalized to N spatial dimensions, how does the static electric field E(r) of a point charge decay with radial distance r in 1D, 2D, 3D, and 4D space?",
+                    opts: [
+                        "1D: Constant (r⁰) | 2D: 1/r | 3D: 1/r² | 4D Spatial: 1/r³ (scales as 1/r^(N-1))",
+                        "It is always 1/r² in every dimension",
+                        "1D: 1/r³ | 3D: Constant",
+                        "Fields cannot exist in 1D or 2D manifolds"
+                    ],
+                    ans: 0,
+                    exp: "The bounding hypersurface of an N-dimensional ball has area proportional to r^(N-1). Since ∮ E · dS = Q/ε is constant, |E(r)| must scale as 1/r^(N-1)."
+                },
+                {
+                    q: "In 4D Minkowski Spacetime (ct, x, y, z), how are the 3D Electric Field vector E and 3D Magnetic Field vector B unified?",
+                    opts: [
+                        "They form the 6 independent components of the 4×4 antisymmetric Electromagnetic Field Tensor F^μν",
+                        "They are added together as a scalar number E + B",
+                        "Magnetic fields disappear completely in 4D spacetime",
+                        "They become parallel 1D vectors"
+                    ],
+                    ans: 0,
+                    exp: "In special relativity, E and B transform into each other under Lorentz boosts and form the 6 independent entries of the 4×4 antisymmetric rank-2 tensor F^μν = ∂^μ A^ν - ∂^ν A^μ."
+                },
+                {
+                    q: "Which coordinate system is best suited for solving Laplace's or Maxwell's equations inside a coaxial cable versus around an isolated point charge?",
+                    opts: [
+                        "Cylindrical coordinates (ρ, φ, z) for the coaxial cable; Spherical coordinates (r, θ, φ) for the point charge",
+                        "Spherical for both",
+                        "1D Cartesian for a 3D toroid",
+                        "Bipolar coordinates for a uniform plane wave"
+                    ],
+                    ans: 0,
+                    exp: "Matching coordinate surfaces to boundary geometry allows separation of variables: coaxial cables have constant-ρ cylindrical boundaries, while point charges have constant-r spherical symmetry."
+                },
+                {
+                    q: "What does the Divergence Theorem (Gauss-Ostrogradsky Theorem) accomplish in multi-dimensional vector calculus?",
+                    opts: [
+                        "It converts a volume integral of divergence (∫_V (∇·F) dV) in N dimensions into a closed boundary surface integral (∮_S F·dS) in (N-1) dimensions",
+                        "It converts a 1D line integral into a 4D time derivative",
+                        "It sets all vector fields equal to zero",
+                        "It multiplies the curl by the gradient"
+                    ],
+                    ans: 0,
+                    exp: "The generalized Stokes/Divergence theorem equates the integral of a derivative over an N-dimensional manifold V to the flux integral over its (N-1)-dimensional boundary ∂V."
+                },
+                {
+                    q: "When projecting a 4D Hypercube (Tesseract) into a 3D viewport (Top/Bottom/Orbit views), how many vertices and edges does the 4D hypercube possess?",
+                    opts: [
+                        "16 vertices and 32 edges (connecting 8 cubic cells)",
+                        "8 vertices and 12 edges",
+                        "4 vertices and 4 edges",
+                        "64 vertices and 128 edges"
+                    ],
+                    ans: 0,
+                    exp: "An N-dimensional hypercube has 2^N vertices and N·2^(N-1) edges. For N = 4: 2⁴ = 16 vertices and 4 × 2³ = 32 edges."
+                }
+            ];
+            dimCore.forEach(item => masterQuestionPools.dimensions.push(item));
+
+            for (let i = 1; i <= 45; i++) {
+                if (i % 3 === 0) {
+                    const x = i;
+                    const y = i + 2;
+                    const rho = Math.sqrt(x * x + y * y).toFixed(2);
+                    masterQuestionPools.dimensions.push({
+                        q: `[2D/3D Coordinate Transform #${i}] Convert the Cartesian coordinates (x = ${x} m, y = ${y} m, z = 5 m) into cylindrical radial distance ρ = √(x² + y²):`,
+                        opts: [`${rho} m`, `${(rho * 1.5).toFixed(2)} m`, `${x + y} m`, `5.00 m`],
+                        ans: 0,
+                        exp: `In cylindrical coordinates (ρ, φ, z), the radial distance from the z-axis is ρ = √(x² + y²) = √(${x}² + ${y}²) = ${rho} m.`
+                    });
+                } else if (i % 3 === 1) {
+                    const c1 = i + 1;
+                    const c2 = 2 * i;
+                    const c3 = 3;
+                    const divVal = c1 + c2 + c3;
+                    masterQuestionPools.dimensions.push({
+                        q: `[3D Vector Divergence #${i}] Given the 3D vector field F(x,y,z) = ${c1}x x̂ + ${c2}y ŷ + ${c3}z ẑ, compute its divergence ∇ · F = ∂F_x/∂x + ∂F_y/∂y + ∂F_z/∂z:`,
+                        opts: [`${divVal}`, `${c1 * c2 * c3}`, `0`, `${divVal * 2}`],
+                        ans: 0,
+                        exp: `Computing partial derivatives across all 3 spatial dimensions: ∇ · F = ${c1} + ${c2} + ${c3} = ${divVal}.`
+                    });
+                } else {
+                    const dimN = (i % 4) + 1;
+                    const vertices = Math.pow(2, dimN);
+                    const edges = dimN * Math.pow(2, dimN - 1);
+                    masterQuestionPools.dimensions.push({
+                        q: `[N-Dimensional Topology #${i}] For an N = ${dimN}-dimensional hypercube manifold, how many vertices (2^N) and edges (N·2^(N-1)) exist in its topological structure?`,
+                        opts: [
+                            `${vertices} vertices and ${edges} edges`,
+                            `${vertices * 2} vertices and ${edges + 4} edges`,
+                            `${dimN} vertices and ${dimN} edges`,
+                            `10 vertices and 20 edges`
+                        ],
+                        ans: 0,
+                        exp: `In N = ${dimN} dimensions, a hypercube has 2^${dimN} = ${vertices} vertices and ${dimN}·2^(${dimN}-1) = ${edges} edges.`
+                    });
+                }
+            }
+        }
+
+        // Active Exam Session State
+        let activeExamQuestions = [];
+        let userExamAnswers = {}; // index -> selectedOptionIndex
+        let revealAllFlag = false;
+
+        function shuffleArray(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        function prepareQuestionWithShuffledOptions(rawQ) {
+            const indexedOpts = rawQ.opts.map((text, idx) => ({ text, isCorrect: idx === rawQ.ans }));
+            const shuffled = shuffleArray(indexedOpts);
+            return {
+                q: rawQ.q,
+                opts: shuffled.map(o => o.text),
+                ans: shuffled.findIndex(o => o.isCorrect),
+                exp: rawQ.exp
+            };
+        }
+
+        function configureExamSession() {
+            const scope = document.getElementById('examTopicSelect').value;
+            const btnText = document.getElementById('resetExamBtnText');
+            if (scope === 'all_120') {
+                btnText.textContent = "Reset / Draw 120 New Questions (All Topics)";
+            } else {
+                btnText.textContent = "Reset / Draw 15 New Questions (From 50 Pool)";
+            }
+            generateNewExamSet();
+        }
+
+        function generateNewExamSet() {
+            const scope = document.getElementById('examTopicSelect').value;
+            userExamAnswers = {};
+            revealAllFlag = false;
+
+            if (scope === 'all_120') {
+                // Combine all 250 questions across all 5 topics and draw 120 randomized questions
+                const all250 = [
+                    ...masterQuestionPools.maxwell,
+                    ...masterQuestionPools.electro,
+                    ...masterQuestionPools.magneto,
+                    ...masterQuestionPools.velocity,
+                    ...masterQuestionPools.dimensions
+                ];
+                activeExamQuestions = shuffleArray(all250).slice(0, 120).map(prepareQuestionWithShuffledOptions);
+            } else {
+                // Draw 15 randomized questions from the selected topic's 50-question pool
+                const topicPool = masterQuestionPools[scope] || masterQuestionPools.maxwell;
+                activeExamQuestions = shuffleArray(topicPool).slice(0, 15).map(prepareQuestionWithShuffledOptions);
+            }
+
+            renderExamQuestions();
+            updateExamTelemetry();
+        }
+
+        function toggleInstantFeedbackMode() {
+            renderExamQuestions();
+        }
+
+        function selectExamOption(qIndex, optIndex) {
+            userExamAnswers[qIndex] = optIndex;
+            renderExamQuestions();
+            updateExamTelemetry();
+        }
+
+        function revealAllExplanations() {
+            revealAllFlag = true;
+            renderExamQuestions();
+        }
+
+        function updateExamTelemetry() {
+            const total = activeExamQuestions.length;
+            const answeredKeys = Object.keys(userExamAnswers);
+            const answered = answeredKeys.length;
+            let correct = 0;
+
+            answeredKeys.forEach(k => {
+                const idx = parseInt(k);
+                if (userExamAnswers[idx] === activeExamQuestions[idx].ans) {
+                    correct++;
+                }
+            });
+
+            const acc = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+            const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+
+            document.getElementById('examTotalCount').textContent = `${total} Questions`;
+            document.getElementById('examAnsweredCount').textContent = `${answered} / ${total}`;
+            document.getElementById('examCorrectCount').textContent = `${correct}`;
+            document.getElementById('examAccuracy').textContent = `${acc}%`;
+            document.getElementById('examProgressBar').style.width = `${pct}%`;
+        }
+
+        function renderExamQuestions() {
+            const containerEl = document.getElementById('examQuestionsContainer');
+            const instantMode = document.getElementById('solveAllInstantMode').checked;
+
+            containerEl.innerHTML = activeExamQuestions.map((item, qIdx) => {
+                const userSelected = userExamAnswers[qIdx];
+                const hasAnswered = userSelected !== undefined;
+                const showFeedback = (instantMode && hasAnswered) || revealAllFlag;
+                const isCorrect = hasAnswered && userSelected === item.ans;
+
+                let statusBadge = `<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">Unanswered</span>`;
+                if (showFeedback && hasAnswered) {
+                    statusBadge = isCorrect
+                        ? `<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">✓ CORRECT</span>`
+                        : `<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold">✗ INCORRECT</span>`;
+                } else if (hasAnswered) {
+                    statusBadge = `<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">Recorded</span>`;
+                }
+
+                const optsHtml = item.opts.map((optText, oIdx) => {
+                    let btnClass = "border-slate-800 bg-slate-950/80 text-slate-300 hover:border-slate-600";
+                    if (showFeedback) {
+                        if (oIdx === item.ans) {
+                            btnClass = "border-emerald-500 bg-emerald-500/15 text-emerald-200 font-semibold";
+                        } else if (userSelected === oIdx && oIdx !== item.ans) {
+                            btnClass = "border-rose-500 bg-rose-500/15 text-rose-200";
+                        }
+                    } else if (userSelected === oIdx) {
+                        btnClass = "border-cyan-400 bg-cyan-500/20 text-white font-semibold";
+                    }
+
+                    const letter = String.fromCharCode(65 + oIdx);
+                    return `
+                        <button onclick="selectExamOption(${qIdx}, ${oIdx})" class="w-full text-left p-3 rounded-xl border ${btnClass} text-xs flex items-start space-x-2.5 transition">
+                            <span class="font-mono font-bold text-cyan-400 shrink-0">${letter}.</span>
+                            <span>${optText}</span>
+                        </button>
+                    `;
+                }).join('');
+
+                const explanationBox = showFeedback ? `
+                    <div class="mt-3 p-3.5 rounded-xl bg-slate-950 border ${isCorrect ? 'border-emerald-500/40' : 'border-amber-500/40'} text-xs text-slate-200 leading-relaxed">
+                        <div class="text-[10px] font-mono uppercase ${isCorrect ? 'text-emerald-400' : 'text-amber-400'} font-bold mb-1">
+                            <i class="fa-solid fa-microscope mr-1"></i>Mathematical Proof & Solution Explanation
+                        </div>
+                        ${item.exp}
+                    </div>
+                ` : '';
+
+                return `
+                    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 lg:p-5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono text-cyan-400 font-bold">QUESTION #${qIdx + 1} OF ${activeExamQuestions.length}</span>
+                            ${statusBadge}
+                        </div>
+                        <p class="text-xs sm:text-sm font-semibold text-white leading-relaxed">${item.q}</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                            ${optsHtml}
+                        </div>
+                        ${explanationBox}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /*************************************************************************
+         * 13. WINDOW RESIZE & MAIN ANIMATION LOOP
+         *************************************************************************/
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fpsTimer = 0;
+
+        function animateLoop(now) {
+            requestAnimationFrame(animateLoop);
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+
+            frameCount++;
+            fpsTimer += dt;
+            if (fpsTimer >= 0.5) {
+                document.getElementById('fpsCounter').textContent = Math.round(frameCount / fpsTimer);
+                frameCount = 0;
+                fpsTimer = 0;
+            }
+
+            update3DScene(dt);
+            drawOscilloscope();
+        }
+
+        window.onload = function () {
+            updateSimParams();
+            renderTheoryChapter('maxwell');
+            buildMasterQuestionBank();
+            generateNewExamSet();
+            requestAnimationFrame(animateLoop);
+        };
+    </script>
+</body>
+</html>
