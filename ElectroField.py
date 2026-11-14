@@ -4,7 +4,6 @@ Standalone Python numerical solver (NumPy/Matplotlib) + WebGL Workbench Launcher
 """
 
 import os
-import sys
 import webbrowser
 import numpy as np
 import matplotlib.pyplot as plt
@@ -66,19 +65,12 @@ def launch_3d_matplotlib_preview(freq_ghz=2.4, eps_r=1.0, mu_r=1.0, e0_amp=120.0
     plt.show()
 
 
-def get_resource_path(relative_path):
-    """Finds the correct path whether running as a .py script or a compiled .exe release."""
-    if hasattr(sys, '_MEIPASS'):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
-
-
 if __name__ == "__main__":
     # 1. Print mathematical verification in terminal
     run_numerical_proof()
 
     # 2. Automatically open the interactive 1D-4D WebGL Workbench (index.html) if present
-    html_file = get_resource_path("index.html")
+    html_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
     if os.path.exists(html_file):
         print("\n[INFO] Launching ElectroField 3D/4D Interactive Workbench (index.html)...")
         webbrowser.open(f"file://{html_file}")
