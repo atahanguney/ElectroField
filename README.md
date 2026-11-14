@@ -83,5 +83,12 @@ No installation or local server is required for the web interface. Simply double
 
 ---
 
+## Author & Developer
+**Atahan Güney** — Electrical & Electronics Engineering Student  
+Focus areas: Embedded Systems (ESP32, RP2040), Digital Signal Processing (DSP), Computer Vision, and Electromagnetic Simulation.
+- GitHub: [@atahanguney](https://github.com/atahanguney)
+- LinkedIn: [Atahan Güney](https://www.linkedin.com/in/atahan-g%C3%BCney)
+
+---
 ## License
 This project is open-source and available under the MIT License.
