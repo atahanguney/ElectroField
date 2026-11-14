@@ -129,7 +129,7 @@
             </button>
             <button onclick="switchMainWorkspace('exam')" id="ws-exam" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white border border-transparent transition flex items-center space-x-1.5">
                 <i class="fa-solid fa-graduation-cap"></i>
-                <span>Question Bank (250+)</span>
+                <span>Question Bank (250)</span>
             </button>
         </div>
 
@@ -415,11 +415,11 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-[11px] font-mono">
                         <div class="bg-slate-950/70 p-2 rounded border border-slate-800">
-                            <div class="text-slate-400 text-[10px]">LHS (Surface Integral ∮S·dA)</div>
+                            <div class="text-slate-400 text-[10px]">Average normal power flux</div>
                             <div id="proofLHS" class="text-emerald-400 font-bold mt-0.5">19.104 W/m²</div>
                         </div>
                         <div class="bg-slate-950/70 p-2 rounded border border-slate-800">
-                            <div class="text-slate-400 text-[10px]">RHS (Volume Energy Rate)</div>
+                            <div class="text-slate-400 text-[10px]">Lossless plane-wave energy flux</div>
                             <div id="proofRHS" class="text-emerald-400 font-bold mt-0.5">19.104 W/m²</div>
                         </div>
                     </div>
@@ -579,7 +579,7 @@
     </div>
 
     <!-- =========================================================================
-         WINDOW 3: DYNAMIC ASSESSMENT & 250+ QUESTION BANK ENGINE
+         WINDOW 3: DYNAMIC ASSESSMENT & 250-QUESTION BANK ENGINE
          Supports 15-Question Topic Sets (Resettable from 50-Q pool per topic)
          OR 120-Question All-Topics Comprehensive Marathon with Instant Explanations
          ========================================================================= -->
@@ -593,7 +593,7 @@
                         <span class="text-xs font-mono uppercase text-purple-400 font-bold">
                             <i class="fa-solid fa-brain mr-1.5"></i>Assessment Engine
                         </span>
-                        <span class="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">250+ Pool</span>
+                        <span class="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">250 Question Pool</span>
                     </div>
                     <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">
                         Each topic contains a deep pool of <strong>50 unique questions</strong>. Resetting a single topic draws a fresh randomized set of <strong>15 questions</strong>. Selecting <strong>All Topics</strong> unlocks the <strong>120-question comprehensive marathon</strong>.
@@ -722,7 +722,18 @@
 
         let compiledCustomFn = null;
         function compileEquation(eqStr) {
+            compiledCustomFn = null;
             try {
+                const allowedNames = new Set([
+                    'x', 'y', 'r', 't', 'freq', 'amp', 'sigma', 'epsR', 'muR', 'Math',
+                    'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'sqrt',
+                    'abs', 'exp', 'log', 'pow', 'min', 'max', 'PI', 'E'
+                ]);
+                const names = String(eqStr).match(/[A-Za-z_$][A-Za-z0-9_$]*/g) || [];
+                if (!/^[A-Za-z0-9_$\s.+*\/%(),-]+$/.test(String(eqStr)) ||
+                    names.some(name => !allowedNames.has(name))) {
+                    throw new Error('Only arithmetic and Math functions are allowed.');
+                }
                 compiledCustomFn = new Function('x', 'y', 'r', 't', 'freq', 'amp', 'sigma', 'epsR', 'muR', `return ${eqStr};`);
                 document.getElementById('eqStatus').textContent = "✓ Real-time surface mesh solver active";
                 document.getElementById('eqStatus').className = "text-[10px] font-mono text-emerald-400 mt-1";
@@ -1213,18 +1224,18 @@
             const eps = EPS0 * simState.epsR;
             const mu = MU0 * simState.muR;
 
-            // Phase Velocity v_p = c / sqrt(eps_r * mu_r)
-            const vp = C0 / Math.sqrt(simState.epsR * simState.muR);
-            // Tangential Surface Velocity (dispersive waveguide / skin effect correction)
-            const vs = vp * Math.exp(-simState.sigma * 0.04);
-            // Intrinsic Impedance eta = sqrt(mu / eps)
-            const eta = Math.sqrt(mu / eps);
-            // Poynting Vector Magnitude |S| = E_0^2 / (2 * eta)
-            const poyntingS = (simState.amp * simState.amp) / (2 * eta);
-            // Skin Depth delta = 1 / sqrt(pi * f * mu * sigma)
-            const skinDepth = simState.sigma > 0.001
-                ? 1 / Math.sqrt(Math.PI * fHz * mu * simState.sigma)
-                : Infinity;
+            // Uniform plane wave in a lossy medium (e^(jωt) convention).
+            const omega = 2 * Math.PI * fHz;
+            const lossRatio = simState.sigma / (omega * eps);
+            const beta = omega * Math.sqrt(mu * eps / 2 * (Math.sqrt(1 + lossRatio ** 2) + 1));
+            const alpha = omega * Math.sqrt(mu * eps / 2 * (Math.sqrt(1 + lossRatio ** 2) - 1));
+            const vp = omega / beta;
+            // Normal incidence is assumed here; an oblique intersection speed needs θ_i.
+            const vs = vp;
+            const etaMagnitude = Math.sqrt(mu / eps) / (1 + lossRatio ** 2) ** 0.25;
+            const etaPhase = 0.5 * Math.atan(lossRatio);
+            const poyntingS = 0.5 * simState.amp ** 2 * Math.cos(etaPhase) / etaMagnitude;
+            const skinDepth = alpha > 0 ? 1 / alpha : Infinity;
 
             // Electrostatic & Magnetostatic Energy Densities
             const we = 0.5 * eps * (simState.amp ** 2);
@@ -1244,13 +1255,15 @@
             document.getElementById('f-vp').textContent = vpStr;
             document.getElementById('f-vs').textContent = vsStr;
             document.getElementById('f-delta').textContent = skinStr;
-            document.getElementById('f-eta').textContent = `${eta.toFixed(1)} Ω`;
+            document.getElementById('f-eta').textContent = `${etaMagnitude.toFixed(1)} Ω`;
             document.getElementById('f-we').textContent = `${we.toExponential(2)} J/m³`;
             document.getElementById('f-wm').textContent = `${wm.toExponential(2)} J/m³`;
 
             // Update Proof Verification Numbers (LHS vs RHS)
             document.getElementById('proofLHS').textContent = `${poyntingS.toFixed(3)} W/m²`;
-            document.getElementById('proofRHS').textContent = `${( (we + wm) * vp * 0.5 ).toFixed(3)} W/m²`;
+            document.getElementById('proofRHS').textContent = simState.sigma === 0
+                ? `${((we + wm) * vp * 0.5).toFixed(3)} W/m²`
+                : 'Not evaluated (lossy medium)';
         }
 
         function resetParameters() {
@@ -1440,6 +1453,12 @@
             sendAIMessage();
         }
 
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
         async function sendAIMessage() {
             const inputEl = document.getElementById('aiUserInput');
             const chatEl = document.getElementById('aiChatHistory');
@@ -1451,7 +1470,7 @@
             chatEl.innerHTML += `
                 <div class="bg-purple-600/20 border border-purple-500/40 rounded-xl p-2.5 text-white ml-4">
                     <div class="text-[10px] font-mono text-purple-300 mb-0.5">ENGINEER REQUEST</div>
-                    ${userPrompt}
+                    ${escapeHTML(userPrompt)}
                 </div>
             `;
             chatEl.scrollTop = chatEl.scrollHeight;
@@ -1513,7 +1532,7 @@ Respond ONLY with a valid JSON object matching this exact schema:
                     amp: 220,
                     sigma: 0.15,
                     customEq: "Math.sin(x * freq * 0.6 - t * 3) * Math.cos(y * freq * 0.6) * (amp / 100) * Math.exp(-sigma * r * 0.25)",
-                    explanation: "Synthesized custom multi-dimensional standing-wave manifold. The phase velocity v_p = c/√(ε_r μ_r) and tangential surface velocity vectors have been dynamically mapped to your requested topology."
+                    explanation: "Synthesized custom multi-dimensional standing-wave manifold. The workbench calculates phase-front propagation using the selected material loss and maps the requested topology onto the visualization."
                 };
             }
 
@@ -1533,11 +1552,11 @@ Respond ONLY with a valid JSON object matching this exact schema:
                 <div class="bg-slate-900/95 border border-cyan-500/40 rounded-xl p-3 text-slate-200">
                     <div class="flex items-center justify-between text-[10px] font-mono text-cyan-400 mb-1">
                         <span>✓ MODEL SYNTHESIZED & PLOTTED</span>
-                        <span>${modelData.dimension}D | ${modelData.geometry.toUpperCase()}</span>
+                        <span>${escapeHTML(modelData.dimension)}D | ${escapeHTML(modelData.geometry).toUpperCase()}</span>
                     </div>
-                    <p class="leading-relaxed mb-2">${modelData.explanation}</p>
+                    <p class="leading-relaxed mb-2">${escapeHTML(modelData.explanation)}</p>
                     <div class="bg-slate-950 p-1.5 rounded border border-slate-800 font-mono text-[10px] text-emerald-400">
-                        Z(x,y,t) = ${modelData.customEq}
+                        Z(x,y,t) = ${escapeHTML(modelData.customEq)}
                     </div>
                 </div>
             `;
@@ -1576,16 +1595,21 @@ SIGMA = ${simState.sigma}
 f_hz = FREQ_GHZ * 1e9
 eps = EPS0 * EPS_R
 mu = MU0 * MU_R
-v_phase = C0 / np.sqrt(EPS_R * MU_R)
-v_surface = v_phase * np.exp(-SIGMA * 0.04)
-eta = np.sqrt(mu / eps)
-poynting_flux = (E0_AMP ** 2) / (2 * eta)
-skin_depth = 1.0 / np.sqrt(np.pi * f_hz * mu * max(SIGMA, 1e-6))
+omega = 2 * np.pi * f_hz
+loss_ratio = SIGMA / (omega * eps)
+beta = omega * np.sqrt(mu * eps / 2 * (np.sqrt(1 + loss_ratio**2) + 1))
+alpha = omega * np.sqrt(mu * eps / 2 * (np.sqrt(1 + loss_ratio**2) - 1))
+v_phase = omega / beta
+v_surface = v_phase  # Normal incidence; oblique speed is v_phase / sin(theta_i).
+eta_magnitude = np.sqrt(mu / eps) / (1 + loss_ratio**2)**0.25
+eta_phase = 0.5 * np.arctan(loss_ratio)
+poynting_flux = 0.5 * E0_AMP**2 * np.cos(eta_phase) / eta_magnitude
+skin_depth = 1 / alpha if alpha > 0 else np.inf
 
 print(f"=== ELECTROFIELD MATHEMATICAL PROOF REPORT ===")
 print(f"Phase Velocity (v_p)     : {v_phase:.3e} m/s")
 print(f"Surface Velocity (v_s)   : {v_surface:.3e} m/s")
-print(f"Intrinsic Impedance (eta): {eta:.2f} Ohms")
+print(f"|Intrinsic Impedance|    : {eta_magnitude:.2f} Ohms")
 print(f"Poynting Vector |S|      : {poynting_flux:.3f} W/m^2")
 print(f"Skin Depth (delta)       : {skin_depth*1000:.2f} mm")
 
@@ -1597,7 +1621,7 @@ R = np.sqrt(X**2 + Y**2) + 1e-6
 k = (FREQ_GHZ * 0.45) * np.sqrt(EPS_R * MU_R)
 
 Z = np.sin(R * k) * (E0_AMP / 120.0) * np.exp(-SIGMA * R * 0.2)
-dZdx, dZdy = np.gradient(Z)
+dZdy, dZdx = np.gradient(Z, y, x)
 
 fig = plt.figure(figsize=(12, 8), facecolor='#050811')
 ax = fig.add_subplot(111, projection='3d', facecolor='#050811')
@@ -1929,7 +1953,7 @@ plt.show()`;
         }
 
         /*************************************************************************
-         * 12. PROCEDURAL + CURATED 250+ QUESTION BANK GENERATOR (50 PER TOPIC)
+         * 12. PROCEDURAL + CURATED 250-QUESTION BANK GENERATOR (50 PER TOPIC)
          * Guarantees 50 distinct, rigorous questions for EACH of the 5 topics (250 total).
          * Supports 15-question randomized topic sets OR 120-question All-Topics Marathon!
          *************************************************************************/
