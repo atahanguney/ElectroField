@@ -7,6 +7,29 @@
     <meta name="author" content="Atahan Güney">
     <meta name="description" content="Multi-dimensional (1D-4D) Electromagnetic Field and Maxwell Solver Workbench developed by Atahan Güney (Electrical & Electronics Engineering).">
     <!-- Tailwind CSS -->
+    <!-- Google Structured Data (Schema.org) for Instant Author & Profile Indexing -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ElectroField",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "WebGL / Browser",
+      "url": "https://atahanguney.github.io/ElectroField/",
+      "author": {
+        "@type": "Person",
+        "name": "Atahan Güney",
+        "affiliation": "Antalya Bilim University",
+        "jobTitle": "Electrical & Electronics Engineering Student",
+        "url": "https://github.com/atahanguney",
+        "sameAs": [
+          "https://github.com/atahanguney",
+          "https://www.linkedin.com/in/atahan-guney"
+        ]
+      }
+    }
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Three.js for 3D/4D WebGL Rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -119,11 +142,16 @@
             </button>
         </div>
 
-       <div style="font-size: 12px; opacity: 0.8;">
-         Developed by <strong>Atahan Güney</strong> | 
-         <a href="https://github.com/atahanguney" target="_blank">GitHub</a> | 
-         <a href="https://www.linkedin.com/in/atahan-guney" target="_blank">LinkedIn</a>
-       </div>
+        <!-- AUTHOR & SEO BACKLINK BADGE -->
+        <div class="hidden xl:flex items-center space-x-2 text-xs font-mono bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-300">
+            <span>Developed by <strong class="text-white">Atahan Güney</strong></span>
+            <span class="text-slate-600">|</span>
+            <a href="https://github.com/atahanguney" target="_blank" rel="author" class="text-cyan-400 hover:underline"><i class="fa-brands fa-github mr-1"></i>GitHub</a>
+            <span class="text-slate-600">|</span>
+            <a href="https://www.linkedin.com/in/atahan-guney" target="_blank" rel="me" class="text-cyan-400 hover:underline"><i class="fa-brands fa-linkedin mr-1"></i>LinkedIn</a>
+        </div>
+        
+       
         
         <!-- GLOBAL WORKSPACE WINDOW SWITCHER (LAB / ENCYCLOPEDIA / EXAM ENGINE) -->
         <div class="flex items-center bg-slate-950/90 p-1 rounded-xl border border-cyan-500/30 space-x-1">
