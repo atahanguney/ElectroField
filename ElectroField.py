@@ -16,34 +16,49 @@ MU0 = 4 * np.pi * 1e-7             # Vacuum permeability (H/m)
 
 
 def run_numerical_proof(freq_ghz=2.4, eps_r=1.0, mu_r=1.0, e0_amp=120.0, sigma=0.05):
-    """Calculates exact lossy-medium phase velocity, surface velocity, Poynting flux, and skin depth."""
+    """Calculates analytical plane-wave values in a homogeneous lossy medium."""
+    if freq_ghz <= 0 or eps_r <= 0 or mu_r <= 0 or e0_amp < 0 or sigma < 0:
+        raise ValueError(
+            "Frequency, eps_r, and mu_r must be positive; amplitude and conductivity cannot be negative."
+        )
+
     f_hz = freq_ghz * 1e9
     eps = EPS0 * eps_r
     mu = MU0 * mu_r
     omega = 2.0 * np.pi * f_hz
 
     loss_ratio = sigma / (omega * eps)
-    beta = omega * np.sqrt((mu * eps / 2.0) * (np.sqrt(1.0 + loss_ratio ** 2) + 1.0))
-    alpha = omega * np.sqrt((mu * eps / 2.0) * (np.sqrt(1.0 + loss_ratio ** 2) - 1.0))
+    root = np.hypot(1.0, loss_ratio)
+
+    beta = omega * np.sqrt((mu * eps / 2.0) * (root + 1.0))
+    alpha = omega * np.sqrt((mu * eps / 2.0) * (root - 1.0))
 
     v_phase = omega / beta
-    v_surface = v_phase  # Normal incidence; oblique incidence is v_phase / sin(theta_i)
-    eta_mag = np.sqrt(mu / eps) / ((1.0 + loss_ratio ** 2) ** 0.25)
+    eta_mag = np.sqrt(mu / eps) / np.sqrt(root)
     eta_phase = 0.5 * np.arctan(loss_ratio)
-    poynting_flux = 0.5 * (e0_amp ** 2) * np.cos(eta_phase) / eta_mag
-    skin_depth = (1.0 / alpha) if alpha > 0 else np.inf
+
+    # e0_amp is the peak amplitude of the sinusoidal electric field.
+    poynting_flux = (
+        0.5 * e0_amp**2 * np.cos(eta_phase) / eta_mag
+    )
+
+    skin_depth = 1.0 / alpha if alpha > 0 else np.inf
 
     print("=" * 56)
-    print(" ELECTROFIELD - MATHEMATICAL PROOF & TELEMETRY REPORT")
+    print(" ELECTROFIELD - ANALYTICAL CALCULATION REPORT")
     print("=" * 56)
     print(f" Wave Frequency (f)        : {freq_ghz:.2f} GHz")
     print(f" Relative Permittivity (er): {eps_r:.2f}")
     print(f" Relative Permeability (ur): {mu_r:.2f}")
-    print(f" Phase Velocity (v_p)      : {v_phase:.3e} m/s")
-    print(f" Surface Velocity (v_s)    : {v_surface:.3e} m/s")
-    print(f" Intrinsic Impedance (eta) : {eta:.2f} Ohms")
-    print(f" Poynting Vector |S_avg|   : {poynting_flux:.3f} W/m^2")
-    print(f" Skin Depth (delta_s)      : {skin_depth * 1000:.2f} mm")
+    print(f" Phase Velocity (vp)       : {v_phase:.3e} m/s")
+    print(f" Intrinsic Impedance |eta| : {eta_mag:.2f} Ohms")
+    print(f" Average Poynting Flux     : {poynting_flux:.3f} W/m^2")
+
+    if np.isfinite(skin_depth):
+        print(f" Skin Depth (delta)        : {skin_depth * 1000:.2f} mm")
+    else:
+        print(" Skin Depth (delta)        : Infinite (lossless)")
+
     print("=" * 56)
 
 
