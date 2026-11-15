@@ -1275,8 +1275,9 @@
 
             // Electrostatic & Magnetostatic Energy Densities
             const we = 0.5 * eps * (simState.amp ** 2);
-            const H0 = simState.amp / eta;
+            const H0 = simState.amp / etaMagnitude;
             const wm = 0.5 * mu * (H0 ** 2);
+  
 
             // Update HUD & Formula Matrix
             const vpStr = `${(vp / 1e8).toFixed(2)}e8 m/s`;
