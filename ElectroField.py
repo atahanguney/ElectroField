@@ -16,16 +16,22 @@ MU0 = 4 * np.pi * 1e-7             # Vacuum permeability (H/m)
 
 
 def run_numerical_proof(freq_ghz=2.4, eps_r=1.0, mu_r=1.0, e0_amp=120.0, sigma=0.05):
-    """Calculates phase velocity, tangential surface velocity, Poynting flux, and skin depth."""
+    """Calculates exact lossy-medium phase velocity, surface velocity, Poynting flux, and skin depth."""
     f_hz = freq_ghz * 1e9
     eps = EPS0 * eps_r
     mu = MU0 * mu_r
+    omega = 2.0 * np.pi * f_hz
 
-    v_phase = C0 / np.sqrt(eps_r * mu_r)
-    v_surface = v_phase * np.exp(-sigma * 0.04)
-    eta = np.sqrt(mu / eps)
-    poynting_flux = (e0_amp ** 2) / (2.0 * eta)
-    skin_depth = 1.0 / np.sqrt(np.pi * f_hz * mu * max(sigma, 1e-6))
+    loss_ratio = sigma / (omega * eps)
+    beta = omega * np.sqrt((mu * eps / 2.0) * (np.sqrt(1.0 + loss_ratio ** 2) + 1.0))
+    alpha = omega * np.sqrt((mu * eps / 2.0) * (np.sqrt(1.0 + loss_ratio ** 2) - 1.0))
+
+    v_phase = omega / beta
+    v_surface = v_phase  # Normal incidence; oblique incidence is v_phase / sin(theta_i)
+    eta_mag = np.sqrt(mu / eps) / ((1.0 + loss_ratio ** 2) ** 0.25)
+    eta_phase = 0.5 * np.arctan(loss_ratio)
+    poynting_flux = 0.5 * (e0_amp ** 2) * np.cos(eta_phase) / eta_mag
+    skin_depth = (1.0 / alpha) if alpha > 0 else np.inf
 
     print("=" * 56)
     print(" ELECTROFIELD - MATHEMATICAL PROOF & TELEMETRY REPORT")
