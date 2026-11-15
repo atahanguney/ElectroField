@@ -63,7 +63,7 @@ def run_numerical_proof(freq_ghz=2.4, eps_r=1.0, mu_r=1.0, e0_amp=120.0, sigma=0
 
 
 def launch_3d_matplotlib_preview(freq_ghz=2.4, eps_r=1.0, mu_r=1.0, e0_amp=120.0, sigma=0.05):
-    """Generates a 3D surface manifold and tangential surface velocity quiver plot in Python."""
+    """Draws a schematic wave surface and its gradient vectors"""
     x = np.linspace(-7, 7, 50)
     y = np.linspace(-7, 7, 50)
     X, Y = np.meshgrid(x, y)
@@ -81,7 +81,7 @@ def launch_3d_matplotlib_preview(freq_ghz=2.4, eps_r=1.0, mu_r=1.0, e0_amp=120.0
         -dZdx[::5, ::5], -dZdy[::5, ::5], 0.2,
         color='#f59e0b', length=0.6
     )
-    ax.set_title("ElectroField 3D Electromagnetic Manifold & Surface Velocity Vectors", color='white')
+    ax.set_title("ElectroField - Schematic Surface and Gradient Vectors", color='white')
     ax.tick_params(colors='white')
     plt.show()
 
