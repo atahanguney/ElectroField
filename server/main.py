@@ -214,6 +214,19 @@ def img_corner(Q: float = 1e-9, x0: float = 0.3, y0: float = 0.5, eps_r: float =
     return images.corner(Q, x0, y0, eps_r)
 
 
+# ---------------------------------------------------------------- worked problems
+@app.get("/api/wk/catalog")
+def wk_catalog():
+    from engine import worked
+    return worked.catalog()
+
+
+@app.get("/api/wk/solve")
+def wk_solve(id: str):
+    from engine import worked
+    return worked.solve(id)
+
+
 # ---------------------------------------------------------------- verification report
 @app.get("/api/report/run")
 def report_run():

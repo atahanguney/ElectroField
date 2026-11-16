@@ -71,6 +71,8 @@ ROUTES = {
     "bs/square": (biot.square, {"I": (F, 1), "a": (F, 0.2), "N": (I, 100)}),
     "img/plane": (images.plane, {"Q": (F, 1e-9), "d": (F, 0.4), "eps_r": (F, 1)}),
     "img/corner": (images.corner, {"Q": (F, 1e-9), "x0": (F, 0.3), "y0": (F, 0.5), "eps_r": (F, 1)}),
+    "wk/catalog": (lambda: __import__("engine.worked", fromlist=["catalog"]).catalog(), {}),
+    "wk/solve": (lambda id: __import__("engine.worked", fromlist=["solve"]).solve(id), {"id": (S, REQ)}),
     "report/run": (lambda: __import__("engine.report", fromlist=["run"]).run(), {}),
 }
 

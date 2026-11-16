@@ -7,7 +7,7 @@ const seq = {};
 const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 const ENGINE_BASE = new URL('../../engine/', import.meta.url).href;   // web/js/ → repo engine/, wherever the page is served from
 const ENGINE_FILES = ['__init__.py', 'constants.py', 'derivation.py', 'coordinates.py', 'waves.py', 'electrostatics.py', 'magnetostatics.py',
-  'maxwell.py', 'reflection.py', 'tlines.py', 'radiation.py', 'dimensions.py', 'questions.py', 'report.py', 'routes.py'];
+  'maxwell.py', 'reflection.py', 'tlines.py', 'radiation.py', 'dimensions.py', 'questions.py', 'report.py', 'biot.py', 'images.py', 'worked.py', 'routes.py'];
 
 let modeP = null;
 /** 'server' when the local Python server answers, otherwise 'pyodide'. */

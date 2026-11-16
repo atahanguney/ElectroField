@@ -30,6 +30,8 @@ GET = [
     ("dim/compare", {"f": 1e9}),
     ("qb/catalog", {}),
     ("report/run", {}),
+    ("wk/catalog", {}),
+    ("wk/solve", {"id": "tli2"}),
     ("bs/segment", {"I": 2, "z1": -0.5, "z2": 0.5, "r": 0.2}),
     ("bs/loop", {"I": 1, "a": 0.1, "z": 0.05}),
     ("bs/square", {"I": 1, "a": 0.2}),
