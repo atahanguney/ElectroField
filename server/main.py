@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from pydantic import BaseModel
 
-from engine import dimensions as dm, questions as qb
+from engine import biot, dimensions as dm, images, questions as qb
 from engine import constants as K, coordinates as co, electrostatics as es, magnetostatics as ms, maxwell as mx, radiation as ra, reflection as rf, tlines as tl, waves as wv
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -186,6 +186,32 @@ def ra_array(N: int = 8, d_lambda: float = 0.5, delta_deg: float = 0):
 @app.get("/api/dim/compare")
 def dim_compare(f: float = 1e9, eps_r: float = 1, mu_r: float = 1, sigma: float = 0, r_max_lambda: float = 6):
     return dm.compare(f, eps_r, mu_r, sigma, r_max_lambda)
+
+
+# ---------------------------------------------------------------- Biot–Savart and image method
+@app.get("/api/bs/segment")
+def bs_segment(I: float = 1, z1: float = -0.5, z2: float = 0.5, r: float = 0.2, N: int = 200, mu_r: float = 1):
+    return biot.segment(I, z1, z2, r, N, mu_r)
+
+
+@app.get("/api/bs/loop")
+def bs_loop(I: float = 1, a: float = 0.1, z: float = 0.05, N: int = 200, mu_r: float = 1):
+    return biot.loop(I, a, z, N, mu_r)
+
+
+@app.get("/api/bs/square")
+def bs_square(I: float = 1, a: float = 0.2, N: int = 100):
+    return biot.square(I, a, N)
+
+
+@app.get("/api/img/plane")
+def img_plane(Q: float = 1e-9, d: float = 0.4, eps_r: float = 1):
+    return images.plane(Q, d, eps_r)
+
+
+@app.get("/api/img/corner")
+def img_corner(Q: float = 1e-9, x0: float = 0.3, y0: float = 0.5, eps_r: float = 1):
+    return images.corner(Q, x0, y0, eps_r)
 
 
 # ---------------------------------------------------------------- verification report
