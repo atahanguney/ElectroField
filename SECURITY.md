@@ -2,59 +2,62 @@
 
 ## 1. Overview and Scope
 
-**ElectroField** is a client-side scientific computing and visualization workbench developed for multi-dimensional ($1\text{D}$–$4\text{D}$) electromagnetic field analysis and Maxwell equation solving. The software operates across two primary runtime environments:
-1. **Browser-Based WebGL Runtime (`index.html`):** Executes entirely within the user's local browser sandbox using `Three.js` (WebGL 2.0) and HTML5 Canvas APIs.
-2. **Standalone Desktop Distribution (`ElectroField.exe` / `.py`):** A local Python wrapper (`NumPy` / `Matplotlib` / `PyWebView`) compiled via `PyInstaller`.
+**ElectroField** is an applied-electromagnetics workbench. Since version 3.0 it runs as two parts on the user's own machine:
 
-Because the project processes user-defined mathematical expressions and parses external JSON payloads from an optional language model interface, this document outlines the security model, input validation mechanisms, and vulnerability reporting procedures for the repository.
+1. **Python engine and API (`engine/`, `server/main.py`):** NumPy/SciPy solvers behind a FastAPI server that binds to `127.0.0.1:8765` only. Every result is computed from typed numeric parameters; no user-supplied code or expressions are evaluated.
+2. **Browser UI (`web/`):** Static ES modules, rendering with Plotly and KaTeX.
+
+On GitHub Pages there is no server: the same `engine/*.py` files are loaded into [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly, pinned v0.26.4 from jsDelivr) and run inside the browser sandbox through `engine/routes.py`. They receive only numeric/enumerated parameters, exactly as the HTTP API does.
+
+The previous single-file WebGL workbench is kept at `legacy/index.html` together with its desktop wrapper. Sections 3.5–3.6 describe it.
 
 ---
 
 ## 2. Supported Versions
 
-Security patches, parser rules, and dependency updates are maintained for the current stable branch (`main`) and the corresponding standalone executable release.
-
 | Version | Distribution Target | Runtime Stack | Support Status |
 | :--- | :--- | :--- | :--- |
-| **2.5.x** | WebGL Workbench & Desktop `.exe` | `Three.js r128` / `Python 3.10+` | :white_check_mark: Active |
-| **2.4.x** | Core WebGL Solver | `Three.js r128` | :warning: Maintenance Only |
-| **< 2.4** | Early Academic Prototypes | Legacy DOM / Canvas | :x: Unsupported |
+| **3.x** | Local Python engine + web UI | Python 3.10+, FastAPI, NumPy/SciPy, Plotly | :white_check_mark: Active |
+| **2.5.x** | WebGL page (`index.html`, GitHub Pages) & desktop `.exe` | Three.js r128 / Python | :warning: Maintenance only |
+| **< 2.5** | Early academic prototypes | Legacy DOM / Canvas | :x: Unsupported |
 
 ---
 
 ## 3. Technical Security Controls & Threat Model
 
-### 3.1. Mathematical Expression Parser (`compileEquation`)
-The workbench allows users to input custom parametric surface functions $Z(x, y, t)$ that are evaluated over a $48 \times 48$ vertex mesh ($2,401$ nodes) per animation frame.
-* **Risk:** Dynamic code evaluation in JavaScript (`new Function` or `eval`) introduces arbitrary code execution (ACE) risks if raw strings are passed directly from the DOM.
-* **Mitigation:** Prior to function compilation, `compileEquation(eqStr)` enforces a two-stage lexical filter:
-  1. **Character Set Restriction:** The input string is tested against the regular expression `/^[A-Za-z0-9_$\s.+*\/%(),-]+$/`. Semicolons, brackets, assignment operators (`=`), and property accessors beyond standard dot notation are rejected.
-  2. **Identifier Allowlisting:** All extracted identifier tokens (`/([A-Za-z_$][A-Za-z0-9_$]*)/g`) are checked against a static `Set` containing only spatial/temporal state variables (`x`, `y`, `r`, `t`, `freq`, `amp`, `sigma`, `epsR`, `muR`) and standard `Math` methods (`sin`, `cos`, `tan`, `exp`, `sqrt`, `pow`, `PI`, etc.). Any unrecognized token aborts compilation and reverts the solver to the default harmonic equation.
+### 3.1. Input handling in the API
+* All `/api/*` endpoints take numeric or enumerated parameters, validated by FastAPI/Pydantic types and by explicit range checks in each solver (`ValueError` → HTTP 400 with a plain-text message).
+* There is no `eval`, `exec`, `new Function` or expression parser anywhere in the 3.x code path.
+* Array sizes are fixed or clamped server-side (grids ≤ 161², sweeps ≤ 2000 points, ≤ 8 charges/wires) to bound CPU and memory.
 
-### 3.2. Cross-Site Scripting (XSS) & AI Payload Sanitization
-The *AI Model Architect* module sends natural-language physics prompts to an external inference endpoint (`text.pollinations.ai`) and expects a structured JSON response containing simulation parameters.
-* **Risk:** Untrusted external API responses or reflected user prompts could contain malformed HTML or inline `<script>` tags.
-* **Mitigation:**
-  * All user inputs and external text explanations are passed through `escapeHTML()`, which encodes `&`, `<`, `>`, `"`, and `'` into their respective HTML entities before DOM insertion.
-  * Numeric parameters (`freq`, `epsR`, `muR`, `amp`, `sigma`) are coerced via `parseFloat()` and bounded by the range constraints of the simulation state.
-  * The synthesized `customEq` field from the JSON response is routed through the same `compileEquation()` lexical allowlist described in Section 3.1.
+### 3.2. Local-only server
+* `run.py` binds to `127.0.0.1`; the API is not reachable from other machines unless the user changes the host deliberately.
+* There are no accounts, cookies, sessions or database; the server holds no user state.
 
-### 3.3. WebGL Context & Main-Thread Resource Limits
-* **Risk:** Unbounded geometry subdivisions or high-frequency `requestAnimationFrame` loops can cause GPU context loss (`webglcontextlost`) or main-thread starvation.
-* **Mitigation:** Mesh resolution is fixed at `GRID_SEGMENTS = 48` and particle count is capped at `PARTICLE_COUNT = 350`. Viewport dimensions (`getBoundingClientRect`) are cached and updated only on window `resize` events to prevent forced synchronous layout reflows.
+### 3.3. AI assistant (`server/assistant.py`)
+* The assistant uses the official Anthropic SDK with the user's own credentials (`ANTHROPIC_API_KEY` or an `ant auth login` profile) read from the environment on the server side; the key is never sent to the browser or written to disk by ElectroField.
+* The model can only call a fixed list of solver tools with JSON-schema-typed arguments; tool inputs go through the same validation as the API. It cannot run code, read files or reach other URLs.
+* Model text is inserted into the page with `textContent` (no HTML injection); numbers shown to the user come from the engine, not the model.
 
-### 3.4. Standalone Desktop Binary (`ElectroField.exe`)
-* The desktop executable is built from `build_desktop_exe.py` using `PyInstaller` in `--onefile` mode.
-* It loads the local `index.html` asset via the `file://` URI scheme (`sys._MEIPASS`) inside an isolated `pywebview` or Chromium `--app` window without opening local network sockets or requiring administrative privileges.
+### 3.4. Front-end rendering
+* The UI builds DOM nodes with `document.createElement`/`textContent`; KaTeX renders only formula strings generated by the engine (`throwOnError: false`).
+* Third-party code: Plotly is served from the installed `plotly` Python package; KaTeX is loaded from `cdn.jsdelivr.net` with a pinned version.
+
+### 3.5. Legacy WebGL page (`legacy/index.html`)
+* Custom surface equations are filtered by `compileEquation()` (character-set restriction and identifier allow-list) before compilation; AI responses from the legacy external endpoint are escaped with `escapeHTML()` and their numbers coerced with `parseFloat()`.
+* Mesh resolution and particle counts are capped to avoid GPU context loss.
+
+### 3.6. Legacy desktop binary
+* Built with PyInstaller from `legacy/ElectroField.spec`; it opens the local `index.html` via `file://` without opening network sockets.
 
 ---
 
 ## 4. Out of Scope
 
-The following items are known architectural characteristics of a static GitHub Pages deployment and are considered out of scope for vulnerability reports:
-* **HTTP Response Headers on GitHub Pages:** Static hosting on `github.io` does not support custom server-side HTTP headers such as strict `Content-Security-Policy` (CSP), `X-Frame-Options`, or `Cross-Origin-Opener-Policy` (COOP).
-* **Client-Side Parameter Tampering:** Modifying `simState` variables locally via browser DevTools affects only the local client session; no server-side state or database exists.
-* **Third-Party CDN Availability:** Availability or upstream integrity of public CDNs (`cdnjs.cloudflare.com`, `cdn.tailwindcss.com`, `fonts.googleapis.com`).
+* **HTTP response headers on GitHub Pages** (CSP, X-Frame-Options, COOP) for the legacy static page.
+* **Exposing the local server to a network** by changing the bind address or running it behind a public proxy.
+* **Client-side parameter tampering** in the browser — it only affects the local session.
+* **Third-party CDN or API availability** (jsDelivr for KaTeX, Plotly and Pyodide on the static site; the Anthropic API for the optional assistant).
 
 ---
 
@@ -69,6 +72,6 @@ If a bypass in the `compileEquation()` lexical filter, a DOM-based XSS vector, o
    * **LinkedIn:** [linkedin.com/in/atahan-guney](https://www.linkedin.com/in/atahan-guney)
 
 ### What to Include in a Report
-* A minimal proof-of-concept (PoC) input string or payload (e.g., the specific equation string that bypasses `allowedNames` in `compileEquation`).
-* The target environment (Browser version / OS or Desktop `.exe` version).
+* A minimal proof-of-concept (PoC) input or request (e.g., the API call or assistant prompt that triggers the issue).
+* The target environment (browser version / OS / Python version, or legacy `.exe` version).
 * Expected behavior versus observed behavior.
