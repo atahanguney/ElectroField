@@ -95,6 +95,6 @@ function table() {
     ['Typical systems', INFO['1D'].ex, INFO['2D'].ex, INFO['3D'].ex],
     ['Book', 'Ulaby ch. 2 & 7', 'Ulaby §9 (line sources), Cheng ch. 10', 'Ulaby ch. 9, Cheng ch. 11'],
   ];
-  return h('div', { class: 'tablewrap' }, h('table', { class: 't' }, h('thead', {}, h('tr', {}, ['', '1-D', '2-D', '3-D'].map((x) => h('th', {}, x)))),
+  return h('div', { class: 'tablewrap' }, h('table', { class: 't' }, h('thead', {}, h('tr', {}, ['Property', '1-D', '2-D', '3-D'].map((x) => h('th', { scope: 'col' }, x)))),
     h('tbody', {}, rows.map((r) => h('tr', {}, h('td', {}, h('b', {}, r[0])), ...r.slice(1).map((x) => h('td', {}, /[\\^{]/.test(x) ? tex(x) : x)))))));
 }

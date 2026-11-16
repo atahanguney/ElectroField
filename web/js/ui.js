@@ -52,13 +52,16 @@ export function si(x, unit = '', sig = 4) {
 }
 
 // ---------- controls ----------
+let uid = 0;
 /** Slider + text field. log=true uses a log10 slider; text accepts SI prefixes (2.45G). */
 export function control({ label, texLabel, unit = '', value, min, max, log = false, step, onchange }) {
   const toS = (v) => (log ? Math.log10(v) : v), fromS = (s) => (log ? 10 ** s : s);
-  const range = h('input', { type: 'range', min: toS(min), max: toS(max), step: step ?? (log ? 0.01 : (max - min) / 400), value: toS(value) });
-  const text = h('input', { type: 'text', value: fmtIn(value) });
+  const id = `c${++uid}`;
+  const name = [texLabel && texLabel.replace(/\\|[{}_^]/g, ''), label, unit && `(${unit})`].filter(Boolean).join(' ');
+  const range = h('input', { type: 'range', min: toS(min), max: toS(max), step: step ?? (log ? 0.01 : (max - min) / 400), value: toS(value), 'aria-label': `${name}${log ? ', logarithmic' : ''} slider` });
+  const text = h('input', { type: 'text', id, value: fmtIn(value), inputmode: 'decimal', autocomplete: 'off', 'aria-label': name });
   const wrap = h('div', { class: 'ctl' },
-    h('label', {}, h('span', {}, texLabel ? tex(texLabel) : label, texLabel && label ? ` ${label}` : ''), h('span', { class: 'unit' }, unit)),
+    h('label', { for: id }, h('span', {}, texLabel ? tex(texLabel) : label, texLabel && label ? ` ${label}` : ''), h('span', { class: 'unit' }, unit)),
     h('div', { class: 'row' }, range, text));
   let v = value;
   const set = (nv, from) => {
@@ -82,9 +85,10 @@ function fmtIn(v) {
 }
 
 export function segmented(options, value, onchange) {
-  const el = h('div', { class: 'seg' });
+  const el = h('div', { class: 'seg', role: 'group' });
   const btns = options.map(([key, text]) => h('button', {
-    class: key === value ? 'on' : '', onclick: () => { btns.forEach((b) => b.classList.remove('on')); btn(key).classList.add('on'); onchange(key); },
+    type: 'button', class: key === value ? 'on' : '', 'aria-pressed': String(key === value),
+    onclick: () => { btns.forEach((b) => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); }); btn(key).classList.add('on'); btn(key).setAttribute('aria-pressed', 'true'); onchange(key); },
   }, text));
   const btn = (k) => btns[options.findIndex((o) => o[0] === k)];
   el.append(...btns);
@@ -106,7 +110,7 @@ export function checksTable(checks) {
   const ok = checks.every((c) => c.passed);
   return h('div', { class: 'tablewrap' },
     h('table', { class: 't' },
-      h('thead', {}, h('tr', {}, ['Identity / limit', 'Method', 'Reference', 'Computed', 'Rel. error', ''].map((x) => h('th', {}, x)))),
+      h('thead', {}, h('tr', {}, ['Identity / limit', 'Method', 'Reference', 'Computed', 'Rel. error', 'Result'].map((x) => h('th', {}, x)))),
       h('tbody', {}, checks.map((c) => h('tr', {},
         h('td', {}, tex(c.label)), h('td', { class: 'note' }, c.method),
         h('td', { class: 'num' }, sci(c.reference, 6)), h('td', { class: 'num' }, sci(c.computed, 6)),
@@ -141,6 +145,38 @@ export function onPlotClick(fig, cb) {
     const fl = fig._fullLayout, bb = fig.querySelector('.nsewdrag')?.getBoundingClientRect();
     if (!fl || !bb || ev.clientX < bb.left || ev.clientX > bb.right || ev.clientY < bb.top || ev.clientY > bb.bottom) return;
     cb(fl.xaxis.p2l(ev.clientX - bb.left), fl.yaxis.p2l(ev.clientY - bb.top));
+  });
+}
+/**
+ * Accessibility pass over freshly rendered content: give every form control an accessible
+ * name, every icon-only button a label and every plot an image role with its caption.
+ */
+export function a11y(root) {
+  root.querySelectorAll('input, select, textarea').forEach((el) => {
+    if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.closest('label') || (el.id && root.querySelector(`label[for="${el.id}"]`))) return;
+    let name = el.placeholder || el.title;
+    const row = el.closest('.qrow');
+    if (!name && row) {   // table-like rows: use the column header above
+      const head = row.parentElement.querySelector('.qrow.head');
+      const i = [...row.children].indexOf(el);
+      name = head?.children[i]?.textContent;
+    }
+    if (!name) name = el.closest('.panel, .fig')?.querySelector('h3, h2, .lbl')?.textContent || el.type || 'value';
+    el.setAttribute('aria-label', name.trim());
+  });
+  root.querySelectorAll('button').forEach((b) => { if (!b.getAttribute('aria-label') && /^[×✕x]$/.test(b.textContent.trim())) b.setAttribute('aria-label', 'Remove'); });
+  // keep heading levels sequential: worksheets put h3 panel titles right after the h1
+  root.querySelectorAll('.work').forEach((w) => {
+    if (w.previousElementSibling?.matches('h2.sr-only')) return;
+    const prev = [...root.querySelectorAll('h1, h2, .work')].filter((x) => x.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING).pop();
+    if (prev && prev.tagName === 'H1') w.before(h('h2', { class: 'sr-only' }, 'Inputs and results'));
+  });
+  root.querySelectorAll('table.t').forEach((t) => t.querySelectorAll('thead th:not([scope])').forEach((th) => th.setAttribute('scope', 'col')));
+  root.querySelectorAll('.plot').forEach((p) => {
+    if (p.getAttribute('role')) return;
+    const cap = p.parentElement?.querySelector('.cap')?.textContent;
+    p.setAttribute('role', 'img');
+    p.setAttribute('aria-label', (cap || 'Interactive plot').split('. ')[0]);
   });
 }
 export const plotCfg = { displaylogo: false, responsive: true, scrollZoom: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] };

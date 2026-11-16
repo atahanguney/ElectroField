@@ -181,7 +181,8 @@ function converter() {
       const v = r.values, L = S[dst.value];
       out.replaceChildren(kv([...L.map((n, i) => [n, sci(v.point[i], 6)]), ...L.map((n, i) => [`A along ${n.split(' ')[0]}̂`, sci(v.vector[i], 6)])]),
         h('h3', {}, 'Transformation matrix (rows: target unit vectors · source unit vectors)'),
-        h('table', { class: 't' }, h('tbody', {}, v.matrix.map((row) => h('tr', {}, row.map((x) => h('td', { class: 'num' }, sci(x, 5))))))),
+        h('table', { class: 't' }, h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'target \\ source'), ...S[src.value].map((n) => h('th', { scope: 'col' }, `${n.split(' ')[0]}̂`)))),
+          h('tbody', {}, v.matrix.map((row, i) => h('tr', {}, h('th', { scope: 'row' }, `${L[i].split(' ')[0]}̂`), ...row.map((x) => h('td', { class: 'num' }, sci(x, 5))))))),
         h('h3', {}, 'Checks'), checksTable(r.checks));
     } catch (e) { if (!e.stale) out.replaceChildren(h('p', { class: 'error' }, e.message)); }
   };
