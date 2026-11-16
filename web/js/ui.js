@@ -120,6 +120,15 @@ export function checksTable(checks) {
       : 'At least one check failed — treat these numbers with caution.'));
 }
 
+/** Plain-language companion to a professional derivation: what it says, what to remember, typical mistakes. */
+export function simple({ idea, remember = [], mistakes = [] }) {
+  return h('aside', { class: 'simple', 'aria-label': 'Simple explanation' },
+    h('div', { class: 'simple-h' }, 'Simple explanation'),
+    h('p', {}, idea),
+    remember.length ? h('div', {}, h('b', {}, 'Remember'), h('ul', {}, remember.map((x) => h('li', {}, ...(Array.isArray(x) ? x : [x]))))) : null,
+    mistakes.length ? h('div', {}, h('b', {}, 'Typical mistakes'), h('ul', {}, mistakes.map((x) => h('li', {}, x)))) : null);
+}
+
 export function kv(pairs) {
   return h('div', { class: 'kv' }, pairs.map(([k, v]) => h('div', {}, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v))));
 }

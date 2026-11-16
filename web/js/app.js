@@ -1,5 +1,5 @@
 // Router + table of contents. Chapters register here; `load` is a lazy import.
-import { h, a11y } from './ui.js';
+import { h, a11y, simple } from './ui.js';
 import { backend } from './api.js';
 
 const CHAPTERS = [
@@ -7,7 +7,9 @@ const CHAPTERS = [
   { id: 'dimensions', n: '0', title: '1-D, 2-D and 3-D waves', blurb: 'Lines, cylinders, spheres: how geometry sets the spreading law and what each parameter changes.', load: () => import('./modules/dimensions.js') },
   { id: 'coordinates', n: '1', title: 'Vectors & coordinate systems', blurb: 'Cartesian, cylindrical, spherical; dl, ds, dv and how they scale.', load: () => import('./modules/coordinates.js') },
   { id: 'electrostatics', n: '2', title: 'Electrostatics', blurb: 'Coulomb, Gauss, potential, conductors, dielectrics, capacitance, images.', load: () => import('./modules/electrostatics.js') },
+  { id: 'images', n: '2.1', title: 'Method of images', blurb: 'Q above a grounded plane ≡ Q and −Q: field lines, induced charge, force, uniqueness.', load: () => import('./modules/images.js') },
   { id: 'magnetostatics', n: '3', title: 'Magnetostatics', blurb: 'Biot–Savart, Ampère, vector potential, inductance, magnetic forces.', load: () => import('./modules/magnetostatics.js') },
+  { id: 'biot', n: '3.1', title: 'Biot–Savart law', blurb: 'dH = I dl × R̂ / 4πR²: wires, loops and squares summed element by element.', load: () => import('./modules/biot.js') },
   { group: 'Time-varying fields' },
   { id: 'maxwell', n: '4', title: "Maxwell's equations", blurb: 'Faraday, displacement current, boundary conditions, continuity.', load: () => import('./modules/maxwell.js') },
   { id: 'waves', n: '5', title: 'Plane waves in media', blurb: 'α, β, ηc, skin depth and power vs ε, μ, σ and f.', load: () => import('./modules/waves.js') },
@@ -16,6 +18,8 @@ const CHAPTERS = [
   { id: 'radiation', n: '8', title: 'Waveguides & antennas', blurb: 'TE/TM modes, cut-off, dipole radiation, arrays.', load: () => import('./modules/radiation.js') },
   { group: 'Practice' },
   { id: 'questions', n: 'Q', title: 'Question bank', blurb: 'Randomised problems in textbook style; answers solved and verified by the engine.', load: () => import('./modules/questions.js') },
+  { id: 'worked', n: 'W', title: 'Worked problems', blurb: 'Exam-level problems in every topic with figures, full solutions, simple explanations and engine-verified answers.', load: () => import('./modules/worked.js') },
+  { id: 'rules', n: 'R', title: 'Rules & conventions', blurb: 'Hat notation, cross products, coordinate systems, operators, theorems, signs, units and pitfalls.', load: () => import('./modules/rules.js') },
   { id: 'tutor', n: 'AI', title: 'EM tutor (AI)', blurb: 'Ask for a graph, a formula or an explanation; the AI plans, the engine computes and verifies.', load: () => import('./modules/tutor.js') },
   { id: 'report', n: 'V', title: 'Verification report', blurb: 'Reference problem, theoretical result, numerical result and error for every module.', load: () => import('./modules/report.js') },
 ];
@@ -67,6 +71,11 @@ async function route() {
   const mod = await ch.load();
   const init = pendingInit || {}; pendingInit = null;
   cleanup = mod.render(view, ch, init) || null;
+  // plain-language companion under the introduction (chapters that do not already include one)
+  import('./simple-notes.js').then(({ NOTES }) => {
+    const note = NOTES[ch.id], lede = view.querySelector('.lede');
+    if (note && lede && !view.querySelector('.simple')) lede.after(simple(note));
+  });
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
