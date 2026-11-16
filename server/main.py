@@ -188,6 +188,13 @@ def dim_compare(f: float = 1e9, eps_r: float = 1, mu_r: float = 1, sigma: float 
     return dm.compare(f, eps_r, mu_r, sigma, r_max_lambda)
 
 
+# ---------------------------------------------------------------- verification report
+@app.get("/api/report/run")
+def report_run():
+    from engine import report
+    return report.run()
+
+
 # ---------------------------------------------------------------- question bank
 @app.get("/api/qb/catalog")
 def qb_catalog():

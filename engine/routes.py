@@ -65,6 +65,7 @@ ROUTES = {
     "mx/boundary": (mx.boundary, {"kind": (S, "E"), "eps1": (F, 1), "eps2": (F, 4), "mu1": (F, 1), "mu2": (F, 1), "F1": (F, 1), "theta1_deg": (F, 40), "source": (F, 0), "pec": (B, False)}),
     "mx/faraday": (mx.faraday, {"mode": (S, "motional"), "B0": (F, 0.1), "f": (F, 50), "w": (F, 0.1), "l": (F, 0.2), "N": (I, 1), "R": (F, 1), "alpha_deg": (F, 0)}),
     "mx/currents": (mx.currents, {"eps_r": (F, 81), "sigma": (F, 4), "f": (F, 1e6), "E0": (F, 1)}),
+    "report/run": (lambda: __import__("engine.report", fromlist=["run"]).run(), {}),
 }
 
 

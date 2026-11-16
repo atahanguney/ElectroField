@@ -29,6 +29,7 @@ GET = [
     ("ra/array", {"N": 8, "d_lambda": 0.5, "delta_deg": -45}),
     ("dim/compare", {"f": 1e9}),
     ("qb/catalog", {}),
+    ("report/run", {}),
     ("qb/new", {"id": "c5-skin", "seed": 3}),
     ("qb/check", {"id": "c5-skin", "seed": 3, "answer": 10}),
     ("mx/boundary", {"kind": "H", "mu2": 100, "F1": 5, "theta1_deg": 60}),
