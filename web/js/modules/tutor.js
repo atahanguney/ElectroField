@@ -29,7 +29,13 @@ const oai = (base, keyUrl, name, needsKey, pick) => ({
 const PROVIDERS = {
   gemini: {
     name: 'Google Gemini — free API key (recommended)', keyUrl: 'https://aistudio.google.com/apikey', needsKey: true,
-    pick: (ms) => ms.filter((m) => /flash/.test(m) && !/lite|image|tts|audio|live|exp|preview/.test(m)).sort().reverse()[0] || ms.find((m) => /flash/.test(m)),
+    // text models only: stable "gemini-X.Y-flash" first (newest), then flash-lite; never tts/image/audio/live/embedding/gemma
+    rank: (ms) => {
+      const ok = ms.filter((m) => /^gemini-[\d.]+-flash(-lite)?(-\d+)?$/.test(m));
+      const ver = (m) => parseFloat(m.match(/gemini-([\d.]+)/)[1]);
+      return ok.sort((a, b) => (/lite/.test(a) - /lite/.test(b)) || ver(b) - ver(a));
+    },
+    pick(ms) { return this.rank(ms)[0] || ms.find((m) => /flash/.test(m) && !/tts|image|audio|live|embed|gemma/.test(m)); },
     async models(key) {
       const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key } });
       const j = await r.json().catch(() => ({}));
@@ -163,7 +169,8 @@ export function render(view, ch) {
     status.textContent = 'Loading the provider’s current model list…';
     try {
       const ms = (await p.models(S.key)).sort();
-      const best = S.model && ms.includes(S.model) ? S.model : p.pick(ms);
+      const usable = p.rank ? p.rank(ms) : ms;
+      const best = S.model && usable.includes(S.model) ? S.model : p.pick(ms);   // ignore a remembered model that is not a text model
       modelSel.replaceChildren(...ms.map((m) => h('option', { value: m, selected: m === best }, m)));
       S.model = best || ms[0] || ''; status.textContent = ms.length ? `${ms.length} models available.` : 'No models returned.';
     } catch (e) {
@@ -171,9 +178,23 @@ export function render(view, ch) {
     }
   }
 
+  // on a free-tier quota error or an unsupported model, fall back to the next suitable model automatically
   async function llm(system, msgs) {
     const p = PROVIDERS[S.provider];
-    return p.chat(S.key, S.model, system, msgs);
+    const all = [...modelSel.options].map((o) => o.value);
+    const order = [S.model, ...(p.rank ? p.rank(all) : []).filter((m) => m !== S.model)].filter(Boolean).slice(0, 4);
+    let last;
+    for (const m of order) {
+      try {
+        const out = await p.chat(S.key, m, system, msgs);
+        if (m !== S.model) { S.model = m; modelSel.value = m; store.set('model', m); status.textContent = `Switched to ${m} (the previous model was unavailable on the free tier).`; }
+        return out;
+      } catch (e) {
+        last = e;
+        if (!/429|quota|rate|not enabled|not supported|not found|limit: 0/i.test(String(e.message))) throw e;
+      }
+    }
+    throw last;
   }
 
   async function run() {
