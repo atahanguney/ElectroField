@@ -6,6 +6,7 @@
 import { h, tex, kv, si, sci, stepsTable, checksTable, layout, plotCfg, C } from '../ui.js';
 import { api, post, backend } from '../api.js';
 import { openChapter } from '../app.js';
+import * as B from '../tutor-builtin.js';
 
 // ---------------------------------------------------------------- providers (all have a free option)
 const oai = (base, keyUrl, name, needsKey, pick) => ({
@@ -27,6 +28,8 @@ const oai = (base, keyUrl, name, needsKey, pick) => ({
   },
 });
 const PROVIDERS = {
+  builtin: { name: 'Built-in tutor — no key, always available (engine + formula templates)', needsKey: false, builtin: true,
+    async models() { return ['engine templates']; }, pick: (ms) => ms[0] },
   gemini: {
     name: 'Google Gemini — free API key (recommended)', keyUrl: 'https://aistudio.google.com/apikey', needsKey: true,
     // text models only: stable "gemini-X.Y-flash" first (newest), then flash-lite; never tts/image/audio/live/embedding/gemma
@@ -97,6 +100,7 @@ Rules:
 ${Object.entries(ROUTES).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
 
 const EXPLAIN = `You are ElectroField's electromagnetics tutor for electrical-engineering students. Answer in the same language as the user's question.
+Everything you say must be consistent with Maxwell's equations, the constitutive relations and standard electromagnetic field theory (Ulaby & Ravaioli, Cheng); if the request contradicts physics, say so and explain why.
 Hard rules:
 - Use ONLY numerical values that appear in ENGINE RESULTS (you may round to 3–4 significant figures or change SI prefixes). Never invent, estimate or recall a numerical result. If a needed number was not computed, say which part of the site computes it.
 - Write the governing formula in LaTeX ($...$ inline, $$...$$ on its own line), substitute the values, then give the result with units.
@@ -112,7 +116,7 @@ const store = {
 };
 
 export function render(view, ch) {
-  const S = { provider: store.get('provider', 'gemini'), key: store.get('key', ''), model: store.get('model', ''), remember: store.get('key', '') !== '' };
+  const S = { provider: store.get('provider', 'builtin'), key: store.get('key', ''), model: store.get('model', ''), remember: store.get('key', '') !== '' };
   const history = [];
   const log = h('div', { class: 'tutor-log', 'aria-live': 'polite' });
   const status = h('p', { class: 'hint', role: 'status' });
@@ -127,7 +131,7 @@ export function render(view, ch) {
   q.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) run(); });
 
   view.append(h('div', { class: 'eyebrow' }, 'AI'), h('h1', {}, ch.title),
-    h('p', { class: 'lede' }, 'Ask for a graph, a formula or an explanation. A free language model decides which computation answers you, the ElectroField engine runs it with its independent checks, and only then does the model write the answer — from the engine’s numbers. Every number in the answer is matched against the engine output; anything that does not match is flagged.'),
+    h('p', { class: 'lede' }, 'Ask for a graph, a formula or an explanation, in English or Turkish. The built-in tutor needs no key and always works: it reads the quantities in your question, runs the ElectroField engine with its independent checks and writes the answer from formula templates filled only with engine results. If you add your own free key, a language model can phrase the answer more freely — under the same rule: the engine computes, every number in the answer is matched against the engine output, and anything that does not match is flagged.'),
     h('div', { class: 'work' },
       h('div', { class: 'panel' },
         h('h2', { class: 'h3' }, 'Connection'),
@@ -147,7 +151,7 @@ export function render(view, ch) {
     const opts = Object.entries(PROVIDERS).map(([k, p]) => [k, p.name]);
     if ((await backend()) === 'server') opts.push(['claude', 'Claude via the local server (ANTHROPIC_API_KEY)']);
     provSel.replaceChildren(...opts.map(([k, n]) => h('option', { value: k, selected: k === S.provider }, n)));
-    if (!opts.some(([k]) => k === S.provider)) S.provider = 'gemini';
+    if (!opts.some(([k]) => k === S.provider)) S.provider = 'builtin';
     provSel.value = S.provider;
     syncKey();
   })();
@@ -208,6 +212,7 @@ export function render(view, ch) {
     turn.append(body); log.prepend(turn);
     try {
       if (S.provider === 'claude') return await viaClaude(text, body);
+      if (S.provider === 'builtin') return await viaBuiltin(text, body);
       // 1 · plan
       const recent = history.slice(-4);
       const raw = await llm(PLAN, [...recent, { role: 'user', content: text }]);
@@ -236,6 +241,21 @@ export function render(view, ch) {
     } finally {
       ask.disabled = false;
     }
+  }
+
+  async function viaBuiltin(text, body) {
+    const p = B.plan(text);
+    body.replaceChildren(h('p', { class: 'hint' }, p.calls.length ? `Running ${p.calls.length} engine computation(s)…` : 'Looking up the explanation…'));
+    const results = [];
+    for (const c of p.calls) {
+      try { results.push({ ...c, result: POST_ROUTES.has(c.route) ? await post(c.route, c.params, `tb${results.length}`) : await api(c.route, c.params, `tb${results.length}`) }); }
+      catch (e) { results.push({ ...c, error: e.message }); }
+    }
+    const answer = B.answer(text, p, results);
+    const consts = await api('constants', {}, 'tutorK').catch(() => []);
+    const note = results.length ? audit(answer, numbersOf(results, consts), true)
+      : h('p', { class: 'audit' }, p.concept ? 'Explanation from the built-in formula sheet; no numerical result was computed. Add values with units to get an engine-verified calculation.' : 'No computation was run.');
+    body.replaceChildren(...md(answer), note, ...results.map((r) => engineCard(r)));
   }
 
   async function viaClaude(text, body) {
@@ -288,7 +308,16 @@ function numbersOf(results, consts) {
     if (Array.isArray(o)) { if (o.length <= 12) o.forEach((x) => walk(x, depth + 1)); return; }
     if (typeof o === 'object') Object.entries(o).forEach(([k, v]) => { if (!['field', 'profile', 'grid', 'faces', 'edges', 'views', 'maps', 'pattern', 'sweep', 'dispersion', 'fsweep', 'r', 'profiles', 'equipotentials', 'field_lines', 'smith', 'axis', 't', 'Phi', 'emf', 'I'].includes(k)) walk(v, depth + 1); });
   };
-  results.forEach((r) => { walk(r.result); walk(r.params); });
+  results.forEach((r) => {
+    walk(r.result); walk(r.params);
+    // numbers the engine itself wrote into its derivation formulas (e.g. η₂ = 251.2 inside a step)
+    (r.result?.steps || []).forEach((s) => {
+      for (const m of String(s.tex || '').matchAll(/(\d+(?:\.\d+)?)(?:\\times10\^\{(-?\d+)\})?/g)) {
+        const v = parseFloat(m[1]) * 10 ** (m[2] ? parseInt(m[2]) : 0);
+        if (v) out.push(v);
+      }
+    });
+  });
   consts.forEach((k) => out.push(Math.abs(k.value)));
   return out;
 }
@@ -409,7 +438,7 @@ function quickPlot(route, r) {
   return el;
 }
 
-function chapterFor(route, p) {
+export function chapterFor(route, p) {
   const tab = (chapter, t, key = t) => ({ chapter, params: { tab: t, [key]: p } });
   switch (route) {
     case 'waves/solve': return { chapter: 'waves', params: p };
@@ -433,6 +462,9 @@ function chapterFor(route, p) {
     case 'ra/waveguide': return tab('radiation', 'waveguide');
     case 'ra/dipole': return tab('radiation', 'dipole');
     case 'ra/array': return tab('radiation', 'array');
+    case 'img/plane': return { chapter: 'images', params: { Q: (p.Q ?? 1e-9) / 1e-9, d: p.d ?? 0.4, eps_r: p.eps_r ?? 1 } };
+    case 'img/corner': return { chapter: 'images', params: {} };
+    case 'bs/segment': case 'bs/loop': case 'bs/square': return { chapter: 'biot', params: {} };
     default: return null;
   }
 }
