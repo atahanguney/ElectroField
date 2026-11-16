@@ -22,5 +22,8 @@ Interactive applied-electromagnetics workbench (Ulaby & Ravaioli / Cheng notatio
 
 ## Roadmap
 Done: 0 1-D/2-D/3-D waves · 1 Coordinates · 2 Electrostatics · 3 Magnetostatics · 4 Maxwell/boundaries/Faraday/displacement · 5 Plane waves · 6 Reflection · 7 Transmission lines/Smith · 8 Waveguides/antennas · assistant (18 tools). 125 tests.
+EM tutor (`web/js/modules/tutor.js`): browser-side, user's free key (Gemini/Groq/OpenRouter; keyless Pollinations now needs Cloudflare Turnstile, unusable). Plan JSON → engine routes → explain → number audit. New route ⇒ add it to ROUTES there too.
+Verification report (`engine/report.py`): theory written in plain `math`, never via engine code; add ≥3 cases per new module.
+Accessibility/SEO: `a11y()` in ui.js names controls, plots and fixes heading order; keep root `index.html` = `web/index.html` with `web/` prefixes (tested). Lighthouse 12: perf 99–100, a11y 100, SEO 100.
 Question bank done (`engine/questions.py`, 27 templates; add a template with `q(...)` + a solver adapter — `tests/test_questions.py` runs every template on 5 seeds).
 Ideas next: more templates per chapter, Turkish UI option, lossy waveguides, Poisson/Laplace numerical solver (FDM) for arbitrary electrode shapes.

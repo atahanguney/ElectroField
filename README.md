@@ -6,7 +6,15 @@ Notation and coverage follow Ulaby & Ravaioli, *Fundamentals of Applied Electrom
 
 ## Use it online
 
-**https://atahanguney.github.io/ElectroField/** — the complete workbench runs in your browser: the same Python engine (`engine/`) is executed client-side with [Pyodide](https://pyodide.org) (NumPy and SciPy compiled to WebAssembly). The first visit downloads about 30 MB, after that it is cached. Only the AI assistant needs the local version.
+**https://atahanguney.github.io/ElectroField/** — the complete workbench runs in your browser: the same Python engine (`engine/`) is executed client-side with [Pyodide](https://pyodide.org) (NumPy and SciPy compiled to WebAssembly). The first visit downloads about 30 MB, after that it is cached.
+
+### EM tutor (AI)
+
+The **EM tutor** page connects to a free language model with your own free key — Google Gemini ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)), Groq or OpenRouter free models. The model never computes: it (1) picks engine routes and parameters, (2) the engine runs them with their independent checks, (3) the model explains the engine's numbers with the formulas, and (4) every number in the answer is matched against the engine output — unmatched numbers are flagged. Results come with graphs, the derivation and a link to the chapter. The key goes only from your browser to the chosen provider; it is stored in the browser only if you tick "remember".
+
+### Verification report
+
+The **Verification report** page runs 30 reference problems (at least three per module): the theoretical value is evaluated from the textbook closed form with plain arithmetic, the numerical value is what the site computes, and the table lists both with the percentage error. It can be downloaded as CSV. `tests/test_report.py` keeps every case passing.
 
 `tests/test_routes.py` checks that the browser build (`engine/routes.py`) returns exactly the same results as the local server for every route.
 
@@ -17,7 +25,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-On Windows you can also double-click `Start_ElectroField.bat`. Opens http://127.0.0.1:8765. Verification suite (331 tests): `python -m pytest -q -p no:anyio tests`
+On Windows you can also double-click `Start_ElectroField.bat`. Opens http://127.0.0.1:8765. Verification suite (335 tests): `python -m pytest -q -p no:anyio tests`
 
 ### Assistant
 
