@@ -40,7 +40,8 @@ The previous single-file WebGL workbench is kept at `legacy/index.html` together
 * Model text is inserted into the page with `textContent` (no HTML injection); numbers shown to the user come from the engine, not the model.
 
 ### 3.4. EM tutor page (browser-side AI)
-* The user chooses a provider (Google Gemini, Groq, OpenRouter) and pastes their own free key. Requests go directly from the browser to that provider; ElectroField has no server in between and never receives the key.
+* The default "built-in tutor" runs entirely in the browser with no network request beyond the engine itself; it parses the question with fixed rules and calls only whitelisted engine routes.
+* Optionally the user chooses a provider (Google Gemini, Groq, OpenRouter) and pastes their own free key. Requests go directly from the browser to that provider; ElectroField has no server in between and never receives the key.
 * The key stays in memory unless the user ticks "remember", in which case it is kept in `localStorage` of that browser only.
 * What is sent to the provider: the question, the last few turns, and the engine's numerical results.
 * The model's plan is parsed as JSON and only whitelisted engine routes are executed, with the same parameter validation as the API. The answer is rendered as text nodes and KaTeX (no HTML injection), and every number in it is compared with the engine output.

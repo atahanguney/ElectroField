@@ -10,7 +10,17 @@ Notation and coverage follow Ulaby & Ravaioli, *Fundamentals of Applied Electrom
 
 ### EM tutor (AI)
 
-The **EM tutor** page connects to a free language model with your own free key — Google Gemini ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)), Groq or OpenRouter free models. The model never computes: it (1) picks engine routes and parameters, (2) the engine runs them with their independent checks, (3) the model explains the engine's numbers with the formulas, and (4) every number in the answer is matched against the engine output — unmatched numbers are flagged. Results come with graphs, the derivation and a link to the chapter. The key goes only from your browser to the chosen provider; it is stored in the browser only if you tick "remember".
+By default the **EM tutor** uses a **built-in tutor that needs no key and always works**: it reads the question (English or Turkish), extracts quantities with units (GHz, mm, nC, εr, Ω, …) and materials, runs the matching engine routes and writes the answer from formula templates filled only with engine results, plus a formula sheet for conceptual questions. It cannot state a number the engine did not compute.
+
+Optionally, the page connects to a free language model with your own free key — Google Gemini ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)), Groq or OpenRouter free models. The model never computes: it (1) picks engine routes and parameters, (2) the engine runs them with their independent checks, (3) the model explains the engine's numbers with the formulas, and (4) every number in the answer is matched against the engine output — unmatched numbers are flagged. Results come with graphs, the derivation and a link to the chapter. The key goes only from your browser to the chosen provider; it is stored in the browser only if you tick "remember".
+
+### Worked problems, method of images, Biot–Savart, rules
+
+- **Worked problems**: 86 original exam-level problems (8–9 per topic) with SVG figures, step-by-step and full solutions, a simple explanation and engine-verified answers. Each cites the textbook section that teaches the topic; none is a copy of a textbook or exam question.
+- **Method of images**: charge above a grounded plane next to its equivalent Q / −Q pair, induced surface charge, force, energy, the uniqueness argument and a 90° corner.
+- **Biot–Savart law**: the line integral evaluated as an explicit sum of current elements and compared with the closed forms for a finite wire, a loop and a square.
+- **Rules & conventions**: hat notation, cross products, coordinate systems, operators, theorems, sign conventions, units, constants and exam pitfalls.
+- Every topic page also has a plain-language "Simple explanation" next to the professional derivation.
 
 ### Verification report
 
@@ -25,7 +35,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-On Windows you can also double-click `Start_ElectroField.bat`. Opens http://127.0.0.1:8765. Verification suite (335 tests): `python -m pytest -q -p no:anyio tests`
+On Windows you can also double-click `Start_ElectroField.bat`. Opens http://127.0.0.1:8765. Verification suite (439 tests): `python -m pytest -q -p no:anyio tests`
 
 ### Assistant
 
