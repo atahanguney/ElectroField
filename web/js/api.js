@@ -7,7 +7,7 @@ const seq = {};
 const PYODIDE = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/';
 const ENGINE_BASE = new URL('../../engine/', import.meta.url).href;   // web/js/ → repo engine/, wherever the page is served from
 const ENGINE_FILES = ['__init__.py', 'constants.py', 'derivation.py', 'coordinates.py', 'waves.py', 'electrostatics.py', 'magnetostatics.py',
-  'maxwell.py', 'reflection.py', 'tlines.py', 'radiation.py', 'dimensions.py', 'questions.py', 'routes.py'];
+  'maxwell.py', 'reflection.py', 'tlines.py', 'radiation.py', 'dimensions.py', 'questions.py', 'report.py', 'routes.py'];
 
 let modeP = null;
 /** 'server' when the local Python server answers, otherwise 'pyodide'. */
@@ -27,12 +27,14 @@ export function backend() {
 }
 
 // ---------- Pyodide backend
-let pyP = null;
+let pyP = null, pyDone = false;
+/** true once the in-browser engine has finished loading in this tab */
+export const engineReady = () => pyDone;
 const banner = (() => {
   let el = null;
   return (msg) => {
     if (!msg) { el && el.remove(); el = null; return; }
-    if (!el) { el = document.createElement('div'); el.className = 'engine-banner'; document.body.append(el); }
+    if (!el) { el = document.createElement('div'); el.className = 'engine-banner'; el.setAttribute('role', 'status'); document.body.append(el); }
     el.textContent = msg;
   };
 })();
@@ -58,6 +60,7 @@ function python() {
       py.runPython('import sys\nif "/home/pyodide" not in sys.path: sys.path.insert(0, "/home/pyodide")');
       const fn = py.pyimport('engine.routes').call_json;
       banner(null);
+      pyDone = true;
       return fn;
     } catch (e) {
       banner(`The in-browser engine could not start: ${e.message}. Reload the page, or run the local version (python run.py).`);

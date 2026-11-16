@@ -1,6 +1,6 @@
 // Landing page: what the workbench is, a live engine-verified example, and the proof methods used.
 import { h, tex, kv, si, sci, stepsTable, checksTable } from './ui.js';
-import { api, backend } from './api.js';
+import { api, backend, engineReady } from './api.js';
 
 const R = String.raw;
 
@@ -28,7 +28,7 @@ const METHODS = [
 ];
 
 export function home(view, chapters) {
-  const live = h('div', {}, h('p', { class: 'hint' }, 'Computing with the Python engine…'));
+  const live = h('div', { 'aria-live': 'polite' });
   view.append(
     h('div', { class: 'eyebrow' }, 'OVERVIEW'),
     h('h1', {}, 'Electromagnetics you can check'),
@@ -39,7 +39,7 @@ export function home(view, chapters) {
     live,
     h('h2', {}, 'Chapters'),
     h('div', { class: 'chapters' }, chapters.filter((c) => !c.group).map((c) => h('a', { class: 'chapter', href: `#/${c.id}` },
-      h('div', { class: 'n' }, c.n === 'Q' ? 'Practice' : `Chapter ${c.n}`), h('div', { class: 'ti' }, c.title),
+      h('div', { class: 'n' }, /^\d+$/.test(c.n) ? `Chapter ${c.n}` : c.n === 'Q' ? 'Practice' : 'Tools'), h('div', { class: 'ti' }, c.title),
       KEY[c.id] ? h('div', { class: 'f' }, tex(KEY[c.id][0])) : null,
       h('p', {}, c.blurb), KEY[c.id] ? h('p', { class: 'chk' }, 'Checked: ', KEY[c.id][1]) : null))),
     h('h2', {}, 'How results are verified'),
@@ -56,8 +56,9 @@ export function home(view, chapters) {
     h('p', { class: 'hint', style: 'margin-top:20px' }, 'Source code and tests: ', h('a', { href: 'https://github.com/atahanguney/ElectroField' }, 'github.com/atahanguney/ElectroField'),
       ' · Previous version: ', h('a', { href: new URL('../../legacy/index.html', import.meta.url).href }, 'legacy page')));
 
-  (async () => {
+  const runLive = async () => {
     try {
+      live.replaceChildren(h('p', { class: 'hint', role: 'status' }, 'Computing with the Python engine…'));
       const mode = await backend();
       const r = await api('waves/solve', { f: 1e6, eps_r: 81, mu_r: 1, sigma: 4, E0: 1 }, 'home');
       const v = r.values;
@@ -69,5 +70,13 @@ export function home(view, chapters) {
     } catch (e) {
       if (!e.stale) live.replaceChildren(h('p', { class: 'error' }, e.message));
     }
-  })();
+  };
+  // With a local server the example is instant. In the browser build it first downloads the Python engine,
+  // so it starts on request (or immediately if the engine is already running) — the landing page stays light.
+  backend().then((m) => {
+    if (m === 'server' || engineReady()) return runLive();
+    live.replaceChildren(h('div', { class: 'panel' },
+      h('p', { style: 'margin:0 0 8px' }, 'The computation runs in your browser. The first run downloads the Python engine (about 30 MB, cached afterwards).'),
+      h('button', { class: 'btn primary', type: 'button', onclick: runLive }, 'Run the live example')));
+  });
 }

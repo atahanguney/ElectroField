@@ -1,5 +1,6 @@
 // Router + table of contents. Chapters register here; `load` is a lazy import.
-import { h } from './ui.js';
+import { h, a11y } from './ui.js';
+import { backend } from './api.js';
 
 const CHAPTERS = [
   { group: 'Foundations' },
@@ -15,13 +16,15 @@ const CHAPTERS = [
   { id: 'radiation', n: '8', title: 'Waveguides & antennas', blurb: 'TE/TM modes, cut-off, dipole radiation, arrays.', load: () => import('./modules/radiation.js') },
   { group: 'Practice' },
   { id: 'questions', n: 'Q', title: 'Question bank', blurb: 'Randomised problems in textbook style; answers solved and verified by the engine.', load: () => import('./modules/questions.js') },
+  { id: 'tutor', n: 'AI', title: 'EM tutor (AI)', blurb: 'Ask for a graph, a formula or an explanation; the AI plans, the engine computes and verifies.', load: () => import('./modules/tutor.js') },
+  { id: 'report', n: 'V', title: 'Verification report', blurb: 'Reference problem, theoretical result, numerical result and error for every module.', load: () => import('./modules/report.js') },
 ];
 const live = (c) => c.load;
 
 function toc(active) {
   const nav = document.getElementById('toc');
-  nav.replaceChildren(...CHAPTERS.map((c) => c.group ? h('h4', {}, c.group)
-    : live(c) ? h('a', { href: `#/${c.id}`, class: c.id === active ? 'active' : '' }, h('span', { class: 'num' }, c.n), c.title)
+  nav.replaceChildren(...CHAPTERS.map((c) => c.group ? h('div', { class: 'grp' }, c.group)
+    : live(c) ? h('a', { href: `#/${c.id}`, class: c.id === active ? 'active' : '', 'aria-current': c.id === active ? 'page' : null }, h('span', { class: 'num', 'aria-hidden': 'true' }, c.n), c.title)
       : h('span', {}, h('span', { class: 'num' }, c.n), h('span', {}, c.title, h('span', { class: 'soon' }, 'in progress')))));
 }
 
@@ -34,19 +37,33 @@ export function openChapter(id, init = {}) {
 }
 export const chapterTitle = (id) => CHAPTERS.find((c) => c.id === id)?.title || id;
 
+// Plotly (3.5 MB) is loaded only when a page with plots opens: from the local server if present, else the pinned CDN build
+let plotlyP = null;
+const plotly = () => window.Plotly ? Promise.resolve() : (plotlyP ||= backend().then((m) => new Promise((ok) => {
+  const s = document.createElement('script');
+  s.src = m === 'server' ? 'vendor/plotly.min.js' : 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js';
+  s.onload = ok; s.onerror = ok; document.head.append(s);
+})));
+
 async function route() {
-  const id = location.hash.replace(/^#\/?/, '').split('/')[0];
+  const raw = location.hash;
+  if (raw && !raw.startsWith('#/')) {   // in-page anchor such as the skip link: move focus, keep the page
+    document.getElementById(raw.slice(1))?.focus();
+    return;
+  }
+  const id = raw.replace(/^#\/?/, '').split('/')[0];
   const view = document.getElementById('view');
   cleanup && cleanup(); cleanup = null;
-  view.replaceChildren();
   toc(id);
   const ch = CHAPTERS.find((c) => c.id === id && live(c));
-  if (!ch) { (await import('./home.js')).home(view, CHAPTERS); window.scrollTo(0, 0); return; }
-  if (!window.Plotly) await new Promise((ok) => {   // static hosting where vendor/plotly.min.js is absent
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js';
-    s.onload = ok; s.onerror = ok; document.head.append(s);
-  });
+  if (!ch) {
+    view.replaceChildren();
+    document.title = 'ElectroField — applied electromagnetics, computed and verified';
+    (await import('./home.js')).home(view, CHAPTERS); window.scrollTo(0, 0); return;
+  }
+  await plotly();
+  view.replaceChildren();
+  document.title = `${ch.title} · ElectroField`;
   const mod = await ch.load();
   const init = pendingInit || {}; pendingInit = null;
   cleanup = mod.render(view, ch, init) || null;
@@ -54,4 +71,11 @@ async function route() {
 }
 window.addEventListener('hashchange', route);
 route();
+// name every control, label icon buttons, give plots an image role — for content rendered now and later
+{
+  let t = 0;
+  const run = () => { clearTimeout(t); t = setTimeout(() => a11y(document.body), 60); };
+  new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+  run();
+}
 import('./assistant.js').then((m) => m.mount());
