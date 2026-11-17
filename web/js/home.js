@@ -56,7 +56,8 @@ export function home(view, chapters) {
       h('li', {}, 'CODATA 2022 recommended values, via ', h('code', {}, 'scipy.constants'), '.'),
       h('li', {}, 'Problems in the question bank are original, written in the style of these texts; section references are for further reading.')),
     h('p', { class: 'hint', style: 'margin-top:20px' }, 'Source code and tests: ', h('a', { href: 'https://github.com/atahanguney/ElectroField' }, 'github.com/atahanguney/ElectroField'),
-      ' · Previous version: ', h('a', { href: new URL('../../legacy/index.html', import.meta.url).href }, 'legacy page')));
+      ' · Previous version: ', h('a', { href: new URL('../../legacy/index.html', import.meta.url).href }, 'legacy page')),
+    h('p', { class: 'hint' }, 'Built by ', h('a', { href: 'https://atahanguney.github.io/', rel: 'author' }, 'Atahan Güney'), ' — electrical & electronics engineering, Antalya Bilim University.'));
 
   const runLive = async () => {
     try {

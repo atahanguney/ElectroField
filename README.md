@@ -1,5 +1,7 @@
 # ElectroField
 
+Built by **[Atahan Güney](https://atahanguney.github.io/)** (Atahan Guney) — electrical & electronics engineering, Antalya Bilim University.
+
 An interactive applied-electromagnetics workbench. Every number on screen is computed by a Python engine, shown as a step-by-step derivation, and cross-checked by an independent method (complex root vs closed form, Jacobian vs finite differences, Maxwell-equation residuals, numerical integration).
 
 Notation and coverage follow Ulaby & Ravaioli, *Fundamentals of Applied Electromagnetics*, and Cheng, *Field and Wave Electromagnetics*.
