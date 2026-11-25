@@ -1820,42 +1820,251 @@ px(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "What the imaginary part of ε means"
 
 # ---------------------------------------------------------------- reflection
 T = "reflection"
-p(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Air to glass, normal incidence",
-  "A wave in air hits glass (εr = 2.25) at normal incidence. Find |Γ|.",
-  {"type": "normal", "e2": 2.25}, "rf/normal", {"f": 1e9, "eps2": 2.25}, [("|Γ|", V("Gamma_mag"), "", 1)],
-  "Γ = (η₂ − η₁)/(η₂ + η₁) with η = η₀/√εr.", "Glass reflects a fifth of the field amplitude.")
-p(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Transmitted power into glass",
-  "For the same air–glass interface, what fraction of the power is transmitted?",
-  {"type": "normal", "e2": 2.25}, "rf/normal", {"f": 1e9, "eps2": 2.25}, [("T", V("T"), "", 1)],
-  "T = 1 − |Γ|² for lossless media.", "4 % bounces back, 96 % goes through.")
-p(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Air to water",
-  "A 1 GHz wave in air hits still water (take εr = 81, lossless). Find the reflected power fraction.",
-  {"type": "normal", "e2": 81}, "rf/normal", {"f": 1e9, "eps2": 81}, [("R", V("R"), "", 1)],
-  "|Γ| = (9 − 1)/(9 + 1); R = |Γ|².", "Water reflects most of a radio wave.")
-p(T, "Ulaby & Ravaioli Sec. 8-1", "exam", "Air to sea water",
-  "A 1 MHz wave in air hits sea water (εr = 81, σ = 4 S/m). Find the reflected power fraction.",
-  {"type": "normal", "e2": 81}, "rf/normal", {"f": 1e6, "eps2": 81, "s2": 4}, [("R", V("R"), "", 1)],
-  "η₂ is complex and small (good conductor), so Γ ≈ −1.", "The sea acts almost like a mirror for low-frequency radio.")
-p(T, "Ulaby & Ravaioli Sec. 8-4", "basic", "Brewster angle",
-  "Find the Brewster angle from air into a dielectric with εr = 4.",
-  {"type": "oblique", "e1": 1, "e2": 4, "theta": 63.4}, "rf/oblique", {"eps1": 1, "eps2": 4, "theta_deg": 30}, [("θB", V("theta_B"), "°", 1)],
-  "tan θB = n₂/n₁ = 2.", "At this angle the parallel polarisation is not reflected at all.")
-p(T, "Ulaby & Ravaioli Sec. 8-3", "basic", "Critical angle",
-  "Light travels in glass (n = 1.5) toward air. Find the critical angle.",
-  {"type": "oblique", "e1": 2.25, "e2": 1, "theta": 41.8}, "rf/oblique", {"eps1": 2.25, "eps2": 1, "theta_deg": 30}, [("θc", V("theta_c"), "°", 1)],
-  "sin θc = n₂/n₁.", "Beyond this angle no light escapes — the principle of optical fibres.")
-p(T, "Ulaby & Ravaioli Sec. 8-3", "exam", "Oblique incidence, perpendicular",
-  "A TE (perpendicular) wave in air hits glass (εr = 2.25) at 45°. Find the reflected power fraction.",
-  {"type": "oblique", "e1": 1, "e2": 2.25, "theta": 45}, "rf/oblique", {"eps1": 1, "eps2": 2.25, "theta_deg": 45}, [("R⊥", V("R_perp"), "", 1)],
-  "Snell gives θt; then Γ⊥ = (η₂ cos θi − η₁ cos θt)/(η₂ cos θi + η₁ cos θt).", "At a slant, more of the TE wave reflects than at normal incidence.")
-p(T, "Ulaby & Ravaioli Sec. 8-3", "exam", "Oblique incidence, parallel",
-  "For the same 45° air–glass case, find the reflected power fraction for TM (parallel) polarisation.",
-  {"type": "oblique", "e1": 1, "e2": 2.25, "theta": 45}, "rf/oblique", {"eps1": 1, "eps2": 2.25, "theta_deg": 45}, [("R∥", V("R_par"), "", 1)],
-  "Γ∥ = (η₂ cos θt − η₁ cos θi)/(η₂ cos θt + η₁ cos θi).", "Near the Brewster angle the TM reflection becomes very small.")
-p(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Standing-wave ratio in air",
-  "A wave in air is normally incident on a lossless dielectric with εr = 9. Find the standing-wave ratio in the air.",
-  {"type": "normal", "e2": 9}, "rf/normal", {"f": 1e9, "eps2": 9}, [("S", V("S"), "", 1)],
-  "|Γ| = (3 − 1)/(3 + 1) = 0.5 ⇒ S = (1 + |Γ|)/(1 − |Γ|).", "The field in front of the interface swings between 1.5 and 0.5 of the incident value.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual.
+_re = lambda k: (lambda r, p: r["values"][k]["re"])
+_RN = {"G": _re("Gamma"), "gm": EV("Gamma_mag"), "tau": _re("tau"), "S": EV("S"), "R": lambda r, p: r["values"]["R"] * 100, "T": lambda r, p: r["values"]["T"] * 100,
+       "e1": _re("eta1"), "e2": _re("eta2"), "l1": EV("lambda1")}
+_RO = {"tt": EV("theta_t"), "tb": EV("theta_B"), "tc": EV("theta_c"), "Rp": lambda r, p: r["values"]["R_perp"] * 100, "Rl": lambda r, p: r["values"]["R_par"] * 100,
+       "Gp": _re("Gamma_perp"), "Gl": _re("Gamma_par")}
+_sw = lambda k: (lambda r, p: r["sweep"][k])
+_FRES = Series(_sw("theta"), [("R⊥ (perpendicular)", lambda r, p: [v * 100 for v in r["sweep"]["R_perp"]], "E"), ("R∥ (parallel)", lambda r, p: [v * 100 for v in r["sweep"]["R_par"]])],
+               "angle of incidence θi (°)", "reflected power (%)")
+_env1 = lambda r, p: [math.hypot(a, b) for a, b in zip(r["field"]["E1"]["re"], r["field"]["E1"]["im"])]
+
+px(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Air to glass, normal incidence",
+   "A plane wave in air hits a flat glass surface (εr = 2.25, n = 1.5) at normal incidence. Find the reflection coefficient Γ and the fractions of power reflected and transmitted.",
+   {"type": "normal", "e2": 2.25}, "rf/normal", {"f": 1e9, "eps2": 2.25}, [("|Γ|", V("Gamma_mag"), "", 1), ("T", V("T"), "%", 100)],
+   X(asked="Γ, R = |Γ|² and T = 1 − R at an air–glass boundary.",
+     idea="At normal incidence reflection depends only on the impedance mismatch, Γ = (η₂ − η₁)/(η₂ + η₁); for non-magnetic media this is (n₁ − n₂)/(n₁ + n₂).",
+     steps=[S("Intrinsic impedances.", r"\eta_1=«e1»\ \Omega,\qquad\eta_2=\frac{\eta_0}{n_2}=«e2»\ \Omega"),
+            S("Reflection coefficient; the minus sign is a 180° phase reversal of the reflected E.", r"\Gamma=\frac{\eta_2-\eta_1}{\eta_2+\eta_1}=«G»"),
+            S("Power fractions.", r"R=|\Gamma|^2=«R»\ \%,\qquad T=1-R=«T»\ \%")],
+     answer="Γ = «G», R = «R» %, T = «T» %",
+     whatif=[W("…the glass had n = 2 (εr = 4)?", lambda p: {**p, "eps2": 4}, "Γ = «G», R = «R» %.", r"R=\Big(\frac{1-2}{1+2}\Big)^2=«R»\ \%"),
+             W("…the wave went from glass into air?", lambda p: {**p, "eps1": 2.25, "eps2": 1}, "Same |Γ| but Γ = «G» (no phase reversal); R = «R} %.".replace("«R}", "«R»"), r"\Gamma=«G»")],
+     mistake="Using |Γ| instead of |Γ|² for the power fraction.",
+     vals=_RN), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Air to water",
+   "A 1 GHz radar wave in air hits a calm lake at normal incidence. Taking pure water as lossless with εr = 81, what percentage of the power is reflected?",
+   {"type": "normal", "e2": 81}, "rf/normal", {"f": 1e9, "eps2": 81}, [("R", V("R"), "%", 100)],
+   X(asked="The reflected power fraction at an air–water boundary.",
+     idea="Water's large permittivity gives a large impedance mismatch.",
+     steps=[S("Intrinsic impedance of water.", r"\eta_2=\frac{\eta_0}{\sqrt{81}}=«e2»\ \Omega"),
+            S("Reflection coefficient.", r"\Gamma=\frac{\eta_2-\eta_1}{\eta_2+\eta_1}=«G»"),
+            S("Reflected power.", r"R=|\Gamma|^2=«R»\ \%")],
+     answer="R = «R» %",
+     whatif=[W("…the water were salty, at 1 MHz (σ = 4 S/m)?", lambda p: {**p, "f": 1e6, "s2": 4}, "Sea water is then a good conductor: R = «R» %.", r"R=«R»\ \%"),
+             W("…the transmitted fraction were asked?", lambda p: p, "T = «T» %.", r"T=1-|\Gamma|^2=«T»\ \%")],
+     mistake="Using εr instead of √εr for the refractive index.",
+     vals=_RN), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-1, 7-5", "exam", "Air to sea water",
+   "A 1 MHz plane wave in air is normally incident on the sea (εr = 81, σ = 4 S/m). Find |Γ| and the fraction of power that enters the water.",
+   {"type": "normal", "e2": 81}, "rf/normal", {"f": 1e6, "eps2": 81, "s2": 4}, [("R", V("R"), "%", 100)],
+   X(asked="Reflection from a good conductor and the transmitted power.",
+     idea="At 1 MHz sea water is a good conductor with a tiny, complex intrinsic impedance, so it acts almost like a short circuit.",
+     steps=[S("Intrinsic impedance of sea water (good conductor).", r"|\eta_2|=\sqrt{\frac{\omega\mu}{\sigma}}=«e2m»\ \Omega,\qquad\angle\eta_2=45^\circ"),
+            S("Reflection coefficient: close to −1.", r"|\Gamma|=«gm»"),
+            S("Power fractions.", r"R=«R»\ \%,\qquad T=«T»\ \%")],
+     answer="|Γ| = «gm», R = «R» %, T = «T» %",
+     whatif=[W("…the frequency were 10 kHz?", lambda p: {**p, "f": 1e4}, "|η₂| shrinks further: T = «T» %.", r"T=«T»\ \%"),
+             W("…the water were fresh (σ = 0.01 S/m)?", lambda p: {**p, "s2": 0.01}, "R = «R» %.", r"R=«R»\ \%")],
+     mistake="Using εr = 81 alone and ignoring the conductivity.",
+     vals={**_RN, "e2m": lambda r, p: math.hypot(r["values"]["eta2"]["re"], r["values"]["eta2"]["im"])}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-4", "basic", "Brewster angle",
+   "A parallel-polarised wave in air is incident on a non-magnetic dielectric with εr = 4. At what angle of incidence is it transmitted completely?",
+   {"type": "oblique", "e1": 1, "e2": 4, "theta": 63}, "rf/oblique", {"eps1": 1, "eps2": 4, "theta_deg": 30}, [("θB", V("theta_B"), "°", 1)],
+   X(asked="The Brewster angle for parallel polarisation.",
+     idea="For parallel polarisation Γ∥ = 0 when the reflected and transmitted directions are perpendicular; with Snell's law this gives tan θ_B = n₂/n₁.",
+     steps=[S("Refractive indices.", r"n_1=1,\qquad n_2=\sqrt{\varepsilon_r}=2"),
+            S("Brewster condition.", r"\theta_B=\tan^{-1}\frac{n_2}{n_1}=«tb»^\circ"),
+            S("At θ_B the transmitted angle is 90° − θ_B, so θ_i + θ_t = 90°.")],
+     answer="θ_B = «tb»°",
+     whatif=[W("…the dielectric were glass (εr = 2.25)?", lambda p: {**p, "eps2": 2.25}, "θ_B = «tb»°.", r"\theta_B=\tan^{-1}1.5=«tb»^\circ"),
+             W("…the wave came from inside the dielectric towards air?", lambda p: {**p, "eps1": 4, "eps2": 1, "theta_deg": 20}, "θ_B = «tb»°, the complement of the outside value.", r"\theta_B=\tan^{-1}\tfrac12=«tb»^\circ")],
+     mistake="Looking for a Brewster angle in perpendicular polarisation; for non-magnetic media there is none.",
+     vals=_RO), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-3", "basic", "Critical angle",
+   "Light travels inside glass (n = 1.5) towards a flat glass–air surface. Find the critical angle beyond which all of it is reflected.",
+   {"type": "oblique", "e1": 2.25, "e2": 1, "theta": 30}, "rf/oblique", {"eps1": 2.25, "eps2": 1, "theta_deg": 30}, [("θc", V("theta_c"), "°", 1)],
+   X(asked="The critical angle for total internal reflection at a glass–air surface.",
+     idea="Snell's law n₁ sin θ_i = n₂ sin θ_t. Going into a lower index, θ_t reaches 90° before θ_i does; beyond that no transmitted wave can travel.",
+     steps=[S("Set θ_t = 90°.", r"\sin\theta_c=\frac{n_2}{n_1}=\frac{1}{1.5}"),
+            S("Critical angle.", r"\theta_c=«tc»^\circ"),
+            S("At the 30° in the figure, below θ_c, the light still refracts out at θ_t = «tt»°.")],
+     answer="θ_c = «tc»°",
+     whatif=[W("…the glass were diamond (n ≈ 2.42, εr ≈ 5.86)?", lambda p: {**p, "eps1": 5.86}, "θ_c = «tc»°: light is trapped much more easily, which is why diamonds sparkle.", r"\theta_c=«tc»^\circ"),
+             W("…the outside were water (n = 1.33, εr ≈ 1.77)?", lambda p: {**p, "eps2": 1.77}, "θ_c = «tc»°.", r"\theta_c=\sin^{-1}\frac{1.33}{1.5}=«tc»^\circ")],
+     mistake="Expecting total internal reflection when going from a lower to a higher index.",
+     vals=_RO), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-4", "exam", "Oblique incidence: both polarisations",
+   "A plane wave in air hits glass (εr = 2.25) at 45°. Find the transmission angle and the reflected power for perpendicular and for parallel polarisation.",
+   {"type": "oblique", "e1": 1, "e2": 2.25, "theta": 45}, "rf/oblique", {"eps1": 1, "eps2": 2.25, "theta_deg": 45},
+   [("R⊥", V("R_perp"), "%", 100), ("R∥", V("R_par"), "%", 100)],
+   X(asked="θ_t, R⊥ and R∥ at 45°.",
+     idea="Snell's law gives θ_t; the Fresnel coefficients for the two polarisations then give the reflected fields.",
+     steps=[S("Snell's law.", r"\sin\theta_t=\frac{\sin45^\circ}{1.5}\ \Rightarrow\ \theta_t=«tt»^\circ"),
+            S("Perpendicular (TE) polarisation.", r"\Gamma_\perp=\frac{\eta_2\cos\theta_i-\eta_1\cos\theta_t}{\eta_2\cos\theta_i+\eta_1\cos\theta_t}=«Gp»,\qquad R_\perp=«Rp»\ \%"),
+            S("Parallel (TM) polarisation.", r"\Gamma_\parallel=\frac{\eta_2\cos\theta_t-\eta_1\cos\theta_i}{\eta_2\cos\theta_t+\eta_1\cos\theta_i}=«Gl»,\qquad R_\parallel=«Rl»\ \%")],
+     answer="θ_t = «tt}°, R⊥ = «Rp» %, R∥ = «Rl» %".replace("«tt}", "«tt»"),
+     whatif=[W("…the angle were 70°?", lambda p: {**p, "theta_deg": 70}, "R⊥ grows to «Rp» % while R∥ = «Rl» %, having passed through zero at θ_B.", r"R_\perp=«Rp»\ \%"),
+             W("…the angle were 0°?", lambda p: {**p, "theta_deg": 0}, "Both polarisations reflect the same: «Rp» %.", r"R_\perp=R_\parallel=«Rp»\ \%")],
+     mistake="Mixing up the Γ⊥ and Γ∥ formulas (cos θ_i and cos θ_t swap places).",
+     plot=_FRES, evidence_say="Engine sweep over all angles: R∥ dips to zero at θ_B while R⊥ rises steadily.",
+     vals=_RO), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-1", "exam", "Standing-wave ratio in air",
+   "A 1 GHz plane wave in air is normally incident on a lossless dielectric with εr = 9. Find the standing-wave ratio in the air and the distance from the interface to the nearest maximum of |E|.",
+   {"type": "normal", "e2": 9}, "rf/normal", {"f": 1e9, "eps2": 9}, [("S", V("S"), "", 1)],
+   X(asked="The SWR of the standing wave in front of the dielectric and the position of the first maximum.",
+     idea="Incident and reflected waves interfere. Where they add the field is 1 + |Γ|, where they oppose it is 1 − |Γ|.",
+     steps=[S("Reflection coefficient.", r"\Gamma=\frac{\eta_2-\eta_1}{\eta_2+\eta_1}=«G»"),
+            S("Standing-wave ratio.", r"S=\frac{1+|\Gamma|}{1-|\Gamma|}=«S»"),
+            S("Γ is negative, so the interface is a minimum of |E| and the first maximum is λ/4 away.", r"l_{max}=\frac{\lambda_1}{4}=«lm»\ \text{cm}")],
+     answer="S = «S», first maximum «lm» cm from the interface",
+     whatif=[W("…εr were 81?", lambda p: {**p, "eps2": 81}, "S = «S».", r"S=«S»"),
+             W("…the second medium were a perfect match (εr = 1)?", lambda p: {**p, "eps2": 1}, "No reflection: S = «S».", r"S=1")],
+     mistake="Placing the first maximum at the interface when Γ is negative.",
+     plot=Series(lambda r, p: r["field"]["z1"], [("|E| in air", _env1, "E")], "position z (m), interface at 0", "|E| (relative)"),
+     evidence_say="Engine field in air: a standing wave with maxima 1 + |Γ| and minima 1 − |Γ|, spaced λ/2.",
+     vals={**_RN, "lm": lambda r, p: r["values"]["lambda1"] / 4 * 100}), "numeric")
+
+# ---- conceptual
+px(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Why the reflected field flips sign",
+   "When a wave in air reflects from glass, Γ is negative: the reflected electric field is inverted. When it reflects from air back into glass, it is not. Why?",
+   {"type": "normal", "e2": 2.25}, "rf/normal", {"f": 1e9, "eps2": 2.25}, [],
+   X(asked="The sign of Γ and its dependence on the direction of travel.",
+     idea="Γ = (η₂ − η₁)/(η₂ + η₁). Going into a medium of lower impedance (higher εr) makes the numerator negative.",
+     steps=[S("Air → glass: η₂ < η₁, so Γ < 0 and the reflected E is inverted.", r"\Gamma=«G»"),
+            S("Glass → air: η₂ > η₁, so Γ > 0 and there is no inversion."),
+            S("It is the same physics as a string tied to a heavier or lighter string, or a line ending in a lower or higher impedance.")],
+     answer_text="The sign comes from the impedance step. Γ = (η₂ − η₁)/(η₂ + η₁) is negative when the wave enters a medium of lower intrinsic impedance, as it does going from air into glass. "
+                 "The total tangential E must be continuous, and in a 'stiffer' (lower-η) medium the transmitted E is smaller than the incident one, so the reflected E must subtract: it is inverted. "
+                 "Going from glass into air the impedance rises, Γ is positive and there is no inversion. "
+                 "The magnetic field behaves the other way round, because H = E/η.",
+     evidence_say="Engine: Γ = «G» going from air into glass.",
+     mistake="Assuming every reflection inverts the field.",
+     vals=_RN), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-1", "exam", "Can more than 100 % be transmitted?",
+   "For a wave going from glass into air, the transmission coefficient τ = 1 + Γ is larger than 1. Does that mean more power comes out than went in?",
+   {"type": "normal", "e2": 1}, "rf/normal", {"f": 1e9, "eps1": 2.25, "eps2": 1}, [],
+   X(asked="Why τ > 1 does not violate energy conservation.",
+     idea="τ is a ratio of field amplitudes. Power also depends on the impedance of each medium.",
+     steps=[S("Transmission coefficient for the field.", r"\tau=1+\Gamma=«tau»"),
+            S("Transmitted power fraction includes the impedance ratio.", r"T=|\tau|^2\frac{\eta_1}{\eta_2}=«T»\ \%"),
+            S("The field in air is larger, but air's higher η means it carries less power per unit field: R + T = 100 %.")],
+     answer_text="No. τ compares field amplitudes, not powers. Going from glass (lower η) into air (higher η), the transmitted E is larger than the incident E, so τ > 1. "
+                 "But the power density of a wave is |E|²/(2η), and air's larger η means a given field carries less power. "
+                 "The transmitted power fraction is |τ|²η₁/η₂, which here is «T» %, and together with the reflected «R» % it adds up to exactly 100 %. "
+                 "Energy is conserved; only the field amplitude grows.",
+     evidence_say="Engine glass → air: τ = «tau», R = «R» %, T = «T» %.",
+     mistake="Using T = |τ|² without the impedance ratio.",
+     vals=_RN), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-4", "exam", "Why only parallel polarisation has a Brewster angle",
+   "Between two non-magnetic dielectrics, the parallel-polarised wave has an angle of zero reflection but the perpendicular one does not. Why? How do polarising sunglasses use this?",
+   {"type": "oblique", "e1": 1, "e2": 2.25, "theta": 56}, "rf/oblique", {"eps1": 1, "eps2": 2.25, "theta_deg": 45}, [],
+   X(asked="The physical reason for the Brewster angle and why it is polarisation-specific.",
+     idea="The reflected wave is radiated by the dipoles induced in the second medium. They cannot radiate along their own axis.",
+     steps=[S("At θ_B the transmitted direction is perpendicular to the reflected direction, θ_i + θ_t = 90°."),
+            S("For parallel polarisation the induced dipoles in medium 2 then point along the reflected direction, and a dipole does not radiate along its axis."),
+            S("For perpendicular polarisation the dipoles are perpendicular to the plane of incidence and always radiate into the reflected direction.")],
+     answer_text="The reflected wave is produced by the dipoles that the transmitted field induces in the second medium. "
+                 "A dipole radiates nothing along its own axis. For parallel polarisation the induced dipoles lie in the plane of incidence, perpendicular to the transmitted ray; "
+                 "when the reflected ray is perpendicular to the transmitted ray, which happens at θ_B, it points along the dipoles and no reflection occurs. "
+                 "For perpendicular polarisation the dipoles stick out of the plane and always radiate towards the reflected direction. "
+                 "Glare from water or roads is therefore mostly perpendicular-polarised, and sunglasses block that polarisation.",
+     evidence_say="Engine sweep air → glass: R∥ falls to zero at θ_B = «tb»° while R⊥ never does.",
+     plot=_FRES, mistake="Expecting a zero of reflection for perpendicular polarisation between ordinary dielectrics.",
+     vals=_RO), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-3", "exam", "What happens beyond the critical angle",
+   "Beyond the critical angle all the power is reflected. Is the field on the far side then exactly zero? What is the evanescent wave?",
+   {"type": "oblique", "e1": 2.25, "e2": 1, "theta": 30}, "rf/oblique", {"eps1": 2.25, "eps2": 1, "theta_deg": 30}, [],
+   X(asked="The field beyond a totally reflecting surface.",
+     idea="The boundary conditions still require a field in medium 2. For θ_i > θ_c it cannot propagate away; it decays exponentially from the surface.",
+     steps=[S("Snell's law would need sin θ_t > 1, so θ_t becomes complex.", r"\sin\theta_t=\frac{n_1}{n_2}\sin\theta_i>1"),
+            S("The field in medium 2 then travels along the surface and decays exponentially away from it, within about a wavelength."),
+            S("It carries no average power away, so |Γ| = 1, but it is not zero: bringing a third medium close lets power tunnel through.")],
+     answer_text="No, the field behind the surface is not zero. The tangential fields must still match at the boundary, so there is a wave in medium 2, "
+                 "but for θ_i > θ_c it cannot propagate away from the surface: its normal wavenumber becomes imaginary and it decays exponentially, within a distance of the order of a wavelength. "
+                 "This evanescent wave travels along the surface and carries no average power across it, so all power is reflected. "
+                 "If a second dense medium is brought within that decay distance, power tunnels across the gap, which is used in prism couplers and beam splitters.",
+     evidence_say="Engine sweep from glass into air: reflection reaches 100 % for both polarisations at θ_c = «tc»° and stays there.",
+     plot=_FRES, mistake="Thinking the field stops abruptly at a totally reflecting surface.",
+     vals=_RO), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-1", "basic", "Where the maxima of a standing wave are",
+   "In front of a reflecting dielectric the field forms a standing wave. Why are its maxima λ/2 apart, and what decides whether the interface is a maximum or a minimum?",
+   {"type": "normal", "e2": 9}, "rf/normal", {"f": 1e9, "eps2": 9}, [],
+   X(asked="The spacing of standing-wave maxima and the field at the interface.",
+     idea="Incident and reflected waves travel in opposite directions, so their relative phase changes by 2βz: it repeats every half wavelength.",
+     steps=[S("Total field in medium 1.", r"|E_1(z)|=E_0\big|e^{-j\beta z}+\Gamma e^{j\beta z}\big|"),
+            S("The relative phase 2βz returns every λ/2, so maxima (and minima) are λ/2 apart."),
+            S("At the interface the two waves add with the sign of Γ: negative Γ gives a minimum there, positive Γ a maximum.")],
+     answer_text="In front of the boundary the incident wave e^(−jβz) and the reflected wave Γe^(jβz) travel in opposite directions, so their relative phase changes by 2βz. "
+                 "It returns to the same value every time z changes by λ/2, so the maxima, and the minima, are half a wavelength apart, with maxima 1 + |Γ| and minima 1 − |Γ|. "
+                 "At the interface itself (z = 0) the two add with the sign of Γ: for a denser second medium Γ < 0 and the interface is a minimum; for a less dense one it is a maximum. "
+                 "Here S = «S».",
+     evidence_say="Engine field in air in front of εr = 9: maxima and minima spaced λ/2, with a minimum at the interface.",
+     plot=Series(lambda r, p: r["field"]["z1"], [("|E| in air", _env1, "E")], "position z (m), interface at 0", "|E| (relative)"),
+     mistake="Spacing the maxima a full wavelength apart.",
+     vals=_RN), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-1, 7-5", "basic", "Why metals are shiny",
+   "Why do metals reflect almost all of the light or radio waves that hit them, while glass reflects only a few per cent?",
+   {"type": "normal", "e2": 81}, "rf/normal", {"f": 1e6, "eps2": 1, "s2": 5.8e7}, [],
+   X(asked="The reason for near-total reflection from good conductors.",
+     idea="A good conductor has a tiny intrinsic impedance, so for an incoming wave it is almost a short circuit, Γ ≈ −1.",
+     steps=[S("Good-conductor impedance.", r"\eta_2=(1+j)\sqrt{\frac{\pi f\mu}{\sigma}}"),
+            S("Its magnitude is tiny compared with η₀, so Γ is very close to −1.", r"|\Gamma|=«gm»"),
+            S("The little power that enters is absorbed within a few skin depths.", r"T=«T»\ \%")],
+     answer_text="A metal's intrinsic impedance, η ≈ (1 + j)√(πfμ/σ), is tiny: for copper at 1 MHz it is well below an ohm, compared with 377 Ω for air. "
+                 "The impedance step is therefore almost total, Γ ≈ −1, and nearly all the incident power is reflected; the small fraction that enters is absorbed within a few skin depths. "
+                 "Glass has η = η₀/1.5, only a modest step, so it reflects about 4 %. "
+                 "At visible frequencies metals still reflect strongly, though their behaviour there needs a more detailed model of the electrons.",
+     evidence_say="Engine, copper at 1 MHz: |Γ| = «gm» and T = «T» %.",
+     mistake="Thinking a metal reflects because it is 'opaque'. Opacity and reflectivity both come from its tiny impedance.",
+     vals=_RN), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-2", "exam", "How an anti-reflection coating works",
+   "Camera lenses are coated with a thin film to cut reflection. What thickness and refractive index should the film have to cancel reflection at one wavelength for a glass of index n₃?",
+   {"type": "normal", "e2": 2.25}, "rf/normal", {"f": 1e9, "eps2": 2.25}, [],
+   X(asked="The design rules for a single-layer anti-reflection coating.",
+     idea="The two reflections, from the top and bottom of the film, must be equal in size and opposite in phase.",
+     steps=[S("Opposite phase: a quarter-wave thick film adds a half-wave of round-trip path.", r"d=\frac{\lambda_{film}}{4}"),
+            S("Equal size: the two interfaces must have the same impedance ratio.", r"n_2=\sqrt{n_1n_3}"),
+            S("This is the same as a quarter-wave transformer on a transmission line; uncoated glass reflects «R» %.")],
+     answer_text="Light reflects at both faces of the film. If the film is a quarter of a wavelength thick (measured inside the film), the wave reflected from the bottom face travels an extra half wavelength, "
+                 "so it returns in opposite phase to the one from the top face. "
+                 "To cancel completely, the two reflections must also be equally strong, which requires the film's index to be the geometric mean, n₂ = √(n₁n₃). "
+                 "For glass with n = 1.5 in air that is about 1.22; magnesium fluoride (1.38) is the usual compromise. "
+                 "The idea is exactly that of the quarter-wave transformer on a transmission line.",
+     evidence_say="Engine: uncoated air–glass at normal incidence reflects «R» %.",
+     mistake="Making the film a quarter of the free-space wavelength thick, instead of a quarter of the wavelength inside the film.",
+     vals=_RN), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-3", "exam", "Where Snell's law comes from",
+   "Snell's law n₁ sin θ_i = n₂ sin θ_t is usually quoted from optics. Derive it from the electromagnetic boundary conditions.",
+   {"type": "oblique", "e1": 1, "e2": 2.25, "theta": 45}, "rf/oblique", {"eps1": 1, "eps2": 2.25, "theta_deg": 45}, [],
+   X(asked="A derivation of Snell's law from phase matching.",
+     idea="The boundary conditions must hold at every point of the interface at once, which is possible only if all three waves vary in the same way along it.",
+     steps=[S("Each wave varies along the interface (x) as e^(−jk x sin θ)."),
+            S("Tangential E must match at every x, so the three x-variations must be identical.", r"k_1\sin\theta_i=k_1\sin\theta_r=k_2\sin\theta_t"),
+            S("This gives θ_r = θ_i and, with k = ωn/c, Snell's law: here θ_t = «tt»° for 45° into glass.")],
+     answer_text="The incident, reflected and transmitted waves vary along the interface as e^(−jkx sin θ). "
+                 "The boundary conditions, for example continuity of tangential E, must hold at every point x of the interface simultaneously, "
+                 "which is only possible if all three waves have the same variation along it: k₁ sin θ_i = k₁ sin θ_r = k₂ sin θ_t. "
+                 "The first equality is the law of reflection, θ_r = θ_i; the second, with k = ωn/c, is Snell's law. "
+                 "So Snell's law is a statement of phase matching, valid for any kind of wave, not just light.",
+     evidence_say="Engine, air to glass at 45°: θ_t = «tt»°.",
+     mistake="Thinking Snell's law depends on the polarisation or on the amplitudes. It comes from the phases alone.",
+     vals=_RO), "concept")
 
 # ---------------------------------------------------------------- transmission lines
 T = "tlines"
