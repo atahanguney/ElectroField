@@ -289,38 +289,257 @@ px(T, "Ulaby & Ravaioli Sec. 9-1, Cheng Sec. 11-2", "exam", "Is the 1/R law exac
 
 # ---------------------------------------------------------------- coordinates
 T = "coordinates"
-p(T, "Ulaby & Ravaioli Sec. 3-2.3", "basic", "Spherical volume element",
-  "At R = 2 m, θ = 30°, a small spherical volume has dR = 1 cm, dθ = dφ = 1°. Find dv.",
-  {"type": "coord", "system": "spherical"}, "coords/element", {"system": "spherical", "u1": 2, "u2": 30, "u3": 0, "d1": 0.01, "d2": 1, "d3": 1},
-  [("dv", V("dv"), "cm³", 1e6)], "dv = R² sin θ dR dθ dφ with angles in radians.", "Volume = (radial step) × (arc R dθ) × (arc R sin θ dφ).")
-p(T, "Ulaby & Ravaioli Sec. 3-2.2", "basic", "Patch on a cylinder",
-  "On a cylinder of radius 0.5 m, a patch spans dφ = 5° and dz = 2 cm. Find its area.",
-  {"type": "coord", "system": "cylindrical"}, "coords/element", {"system": "cylindrical", "u1": 0.5, "u2": 0, "u3": 0, "d1": 0.01, "d2": 5, "d3": 0.02},
-  [("ds_r", lambda r: r["values"]["ds"][0], "cm²", 1e4)], "ds_r = r dφ dz.", "Unroll the patch: width r·dφ, height dz.")
-p(T, "Ulaby & Ravaioli Sec. 3-2.3", "basic", "Arc length in θ",
-  "On a sphere of radius 3 m, how long is the arc swept when θ changes by 2°?",
-  {"type": "coord", "system": "spherical"}, "coords/element", {"system": "spherical", "u1": 3, "u2": 60, "u3": 0, "d1": 0.01, "d2": 2, "d3": 1},
-  [("R dθ", lambda r: r["values"]["dl"][1], "cm", 100)], "dl_θ = R dθ (scale factor h_θ = R).", "Arc = radius × angle in radians.")
-p(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cartesian → spherical (R)",
-  "Express the point (3, 4, 5) m in spherical coordinates. Find R.",
-  {"type": "coord", "system": "spherical", "point": [3, 4, 5]}, "coords/convert", {"src": "cartesian", "dst": "spherical", "u1": 3, "u2": 4, "u3": 5},
-  [("R", lambda r: r["values"]["point"][0], "m", 1)], "R = √(x² + y² + z²).", "Straight-line distance from the origin.")
-p(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cartesian → spherical (θ)",
-  "For the same point (3, 4, 5) m, find the polar angle θ.",
-  {"type": "coord", "system": "spherical", "point": [3, 4, 5]}, "coords/convert", {"src": "cartesian", "dst": "spherical", "u1": 3, "u2": 4, "u3": 5},
-  [("θ", lambda r: r["values"]["point"][1], "°", 1)], "θ = cos⁻¹(z/R).", "Angle down from the z-axis.")
-p(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cartesian → cylindrical",
-  "Convert (1, 1, 1) m to cylindrical coordinates. Find r and φ.",
-  {"type": "coord", "system": "cylindrical", "point": [1, 1, 1]}, "coords/convert", {"src": "cartesian", "dst": "cylindrical", "u1": 1, "u2": 1, "u3": 1},
-  [("r", lambda r: r["values"]["point"][0], "m", 1), ("φ", lambda r: r["values"]["point"][1], "°", 1)], "r = √(x² + y²), φ = atan2(y, x).", "r is the distance from the z-axis, φ the compass angle from +x.")
-p(T, "Ulaby & Ravaioli Sec. 3-3.1", "exam", "Vector components in cylindrical",
-  "At the point (1, 1, 0) m, the vector A = x̂ + 2ŷ + 3ẑ. Find its radial component A_r.",
-  {"type": "coord", "system": "cylindrical", "point": [1, 1, 0]}, "coords/convert", {"src": "cartesian", "dst": "cylindrical", "u1": 1, "u2": 1, "u3": 0, "A1": 1, "A2": 2, "A3": 3},
-  [("A_r", lambda r: r["values"]["vector"][0], "", 1)], "A_r = A·r̂ = A_x cos φ + A_y sin φ with φ = 45°.", "Project the vector on the direction pointing away from the z-axis at that point.")
-p(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cylindrical → Cartesian",
-  "A point has cylindrical coordinates (2 m, 60°, 1 m). Find its x coordinate.",
-  {"type": "coord", "system": "cylindrical", "point": [1, 1.732, 1]}, "coords/convert", {"src": "cylindrical", "dst": "cartesian", "u1": 2, "u2": 60, "u3": 1},
-  [("x", lambda r: r["values"]["point"][0], "m", 1)], "x = r cos φ.", "Go out 2 m at 60°: the shadow on the x-axis is 1 m.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual. Angles from the routes are in degrees.
+_pt = lambda i: (lambda r, p: r["values"]["point"][i])
+_vc = lambda i: (lambda r, p: r["values"]["vector"][i])
+_el = lambda k, i=None: (lambda r, p: r["values"][k] if i is None else r["values"][k][i])
+_cart_sph = lambda x, y, z, A=None: {"src": "cartesian", "dst": "spherical", "u1": x, "u2": y, "u3": z, **({"A1": A[0], "A2": A[1], "A3": A[2]} if A else {})}
+
+px(T, "Ulaby & Ravaioli Sec. 3-2.3", "basic", "Spherical volume element",
+   "Around the point R = 2 m, θ = 30°, φ = 0, a small region spans dR = 1 cm, dθ = 1° and dφ = 1°. "
+   "Find its volume with the differential volume element, and compare with the exact volume of that region.",
+   {"type": "coord", "system": "spherical"}, "coords/element", {"system": "spherical", "u1": 2, "u2": 30, "u3": 0, "d1": 0.01, "d2": 1, "d3": 1},
+   [("dv", V("dv"), "cm³", 1e6)],
+   X(asked="The volume of a small spherical region, first with dv and then exactly.",
+     idea="In spherical coordinates the three sides of a small box are dR, R dθ and R sin θ dφ. Angles must be in radians and multiplied by their scale factors.",
+     steps=[S("Scale factors at this point.", r"h_R=1,\quad h_\theta=R=«h2»\ \text{m},\quad h_\phi=R\sin\theta=«h3»\ \text{m}"),
+            S("The three edge lengths (angle steps in radians).", r"dl_R=«l1»,\quad dl_\theta=«l2»,\quad dl_\phi=«l3»\ \text{m}"),
+            S("Their product is the volume element.", r"dv=R^2\sin\theta\,dR\,d\theta\,d\phi=«dv»\ \text{cm}^3"),
+            S("The exact volume, integrated over the region, is «ex» cm³; the small difference comes from treating the region as a box.")],
+     answer="dv = «dv» cm³ (exact: «ex» cm³)",
+     whatif=[W("…the region were at the equator (θ = 90°)?", lambda p: {**p, "u2": 90}, "sin θ = 1 there, so the φ edge is longest: dv = «dv» cm³.", r"dv=«dv»\ \text{cm}^3"),
+             W("…the angle steps were 10° each?", lambda p: {**p, "d2": 10, "d3": 10}, "dv = «dv» cm³ while the exact value is «ex» cm³: the larger the steps, the worse the box approximation.", r"dv=«dv}\ \text{cm}^3".replace("«dv}", "«dv»"))],
+     mistake="Leaving dθ and dφ in degrees, which inflates dv by (180/π)².",
+     vals={"h2": _el("scale", 1), "h3": _el("scale", 2), "l1": _el("dl", 0), "l2": _el("dl", 1), "l3": _el("dl", 2),
+           "dv": lambda r, p: r["values"]["dv"] * 1e6, "ex": lambda r, p: r["values"]["exact_finite_volume"] * 1e6}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 3-2.2", "basic", "Patch on a cylinder",
+   "A curved sensor is glued to the side of a pipe of radius 0.5 m. It covers dφ = 5° around the pipe and dz = 2 cm along it. Find its area.",
+   {"type": "coord", "system": "cylindrical"}, "coords/element", {"system": "cylindrical", "u1": 0.5, "u2": 0, "u3": 0, "d1": 0.01, "d2": 5, "d3": 0.02},
+   [("ds_r", lambda r: r["values"]["ds"][0], "cm²", 1e4)],
+   X(asked="The area of a patch on the surface r = constant.",
+     idea="Unrolled, the patch is a rectangle: one side is the arc r dφ, the other the straight length dz.",
+     steps=[S("Arc length around the pipe (angle in radians).", r"dl_\phi=r\,d\phi=«l2»\ \text{m}"),
+            S("Length along the pipe.", r"dl_z=dz=«l3»\ \text{m}"),
+            S("Area of the unrolled rectangle.", r"ds_r=r\,d\phi\,dz=«ds»\ \text{cm}^2")],
+     answer="ds_r = «ds» cm²",
+     whatif=[W("…the pipe had twice the radius?", lambda p: {**p, "u1": 1.0}, "The arc doubles, so ds_r = «ds» cm².", r"ds_r=«ds»\ \text{cm}^2"),
+             W("…the patch lay on the flat end of the pipe, spanning dr = 1 cm and dφ = 5°?", lambda p: p, "Then ds_z = r dr dφ = «dsz» cm².", r"ds_z=r\,dr\,d\phi=«dsz»\ \text{cm}^2")],
+     mistake="Multiplying dφ in degrees by r.",
+     vals={"l2": _el("dl", 1), "l3": _el("dl", 2), "ds": lambda r, p: r["values"]["ds"][0] * 1e4, "dsz": lambda r, p: r["values"]["ds"][2] * 1e4}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cartesian → spherical",
+   "Express the point P = (3, 4, 5) m in spherical coordinates (R, θ, φ).",
+   {"type": "coord", "system": "spherical", "point": [3, 4, 5]}, "coords/convert", _cart_sph(3, 4, 5),
+   [("R", lambda r: r["values"]["point"][0], "m", 1), ("θ", lambda r: r["values"]["point"][1], "°", 1), ("φ", lambda r: r["values"]["point"][2], "°", 1)],
+   X(asked="The three spherical coordinates of P.",
+     idea="R is the distance from the origin, θ the angle down from +z, and φ the angle of the point's shadow on the xy-plane, measured from +x.",
+     steps=[S("Distance from the origin.", r"R=\sqrt{x^2+y^2+z^2}=«R»\ \text{m}"),
+            S("Polar angle from the z component.", r"\theta=\cos^{-1}\frac{z}{R}=«th»^\circ"),
+            S("Azimuth from x and y, with the quadrant taken into account.", r"\phi=\operatorname{atan2}(y,x)=«ph»^\circ")],
+     answer="P = («R» m, «th»°, «ph»°)",
+     whatif=[W("…the point were (−3, −4, 5)?", lambda p: {**p, "u1": -3, "u2": -4}, "R and θ do not change, but φ moves to the third quadrant: φ = «ph»°.", r"\phi=\operatorname{atan2}(-4,-3)=«ph»^\circ"),
+             W("…z were −5?", lambda p: {**p, "u3": -5}, "The point is below the xy-plane, so θ = «th}°.".replace("«th}", "«th»"), r"\theta=«th»^\circ")],
+     mistake="Computing φ as tan⁻¹(y/x) without checking the quadrant, which gives the wrong answer whenever x < 0.",
+     vals={"R": _pt(0), "th": _pt(1), "ph": _pt(2)}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cartesian → cylindrical",
+   "A sensor sits at P = (1, 1, 1) m. Give its cylindrical coordinates (r, φ, z).",
+   {"type": "coord", "system": "cylindrical", "point": [1, 1, 1]}, "coords/convert", {"src": "cartesian", "dst": "cylindrical", "u1": 1, "u2": 1, "u3": 1},
+   [("r", lambda r: r["values"]["point"][0], "m", 1), ("φ", lambda r: r["values"]["point"][1], "°", 1)],
+   X(asked="The radial distance r from the z-axis, the azimuth φ and the height z.",
+     idea="Cylindrical coordinates keep z and replace x, y by polar coordinates in the xy-plane.",
+     steps=[S("Distance from the z-axis (not from the origin).", r"r=\sqrt{x^2+y^2}=«r»\ \text{m}"),
+            S("Azimuth.", r"\phi=\operatorname{atan2}(y,x)=«ph»^\circ"),
+            S("z is unchanged: z = «z» m.")],
+     answer="P = («r» m, «ph»°, «z» m)",
+     whatif=[W("…the spherical R were asked?", lambda p: {**p, "dst": "spherical"}, "R includes z: R = «r» m (the first spherical coordinate).", r"R=\sqrt{r^2+z^2}=«r»\ \text{m}"),
+             W("…the point were (−1, 1, 1)?", lambda p: {**p, "u1": -1}, "φ moves to the second quadrant: φ = «ph»°.", r"\phi=«ph»^\circ")],
+     mistake="Taking r as the distance from the origin. That is the spherical R; cylindrical r ignores z.",
+     vals={"r": _pt(0), "ph": _pt(1), "z": _pt(2)}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3.1", "exam", "Vector components in cylindrical",
+   "At the point P = (1, 1, 0) m a field has the value A = x̂ + 2ŷ + 3ẑ. Find its cylindrical components A_r, A_φ and A_z at P.",
+   {"type": "coord", "system": "cylindrical", "point": [1, 1, 0]}, "coords/convert",
+   {"src": "cartesian", "dst": "cylindrical", "u1": 1, "u2": 1, "u3": 0, "A1": 1, "A2": 2, "A3": 3},
+   [("A_r", lambda r: r["values"]["vector"][0], "", 1), ("A_φ", lambda r: r["values"]["vector"][1], "", 1), ("A_z", lambda r: r["values"]["vector"][2], "", 1)],
+   X(asked="The components of A along r̂, φ̂ and ẑ at P.",
+     idea="A component is a projection on a unit vector. At P the unit vectors r̂ and φ̂ point in directions set by the point's azimuth φ.",
+     steps=[S("Azimuth of P.", r"\phi=«ph»^\circ"),
+            S("Unit vectors at P.", r"\hat r=\cos\phi\,\hat x+\sin\phi\,\hat y,\qquad\hat\phi=-\sin\phi\,\hat x+\cos\phi\,\hat y"),
+            S("Project A on each.", r"A_r=«ar»,\qquad A_\phi=«ap»,\qquad A_z=«az»")],
+     answer="A_r = «ar», A_φ = «ap», A_z = «az»",
+     whatif=[W("…the same A were given at P = (0, 1, 0)?", lambda p: {**p, "u1": 0}, "At φ = 90° r̂ = ŷ and φ̂ = −x̂: A_r = «ar», A_φ = «ap».", r"A_r=«ar},\ A_\phi=«ap»".replace("«ar}", "«ar»")),
+             W("…the magnitude |A| were asked?", lambda p: p, "The length does not depend on the coordinate system: |A| = «mag».", r"|\mathbf A|=\sqrt{A_r^2+A_\phi^2+A_z^2}=«mag»")],
+     mistake="Using the angle of the vector A instead of the azimuth of the point P in the unit vectors.",
+     vals={"ph": _pt(1), "ar": _vc(0), "ap": _vc(1), "az": _vc(2), "mag": lambda r, p: math.sqrt(sum(v * v for v in r["values"]["vector"]))}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3.2", "exam", "Vector components in spherical",
+   "At the point P = (3, 4, 5) m a field has the value A = x̂ + 2ŷ + 3ẑ. Find its spherical components A_R, A_θ and A_φ at P.",
+   {"type": "coord", "system": "spherical", "point": [3, 4, 5]}, "coords/convert", _cart_sph(3, 4, 5, (1, 2, 3)),
+   [("A_R", lambda r: r["values"]["vector"][0], "", 1), ("A_θ", lambda r: r["values"]["vector"][1], "", 1), ("A_φ", lambda r: r["values"]["vector"][2], "", 1)],
+   X(asked="The components of A along R̂, θ̂ and φ̂ at P.",
+     idea="Find θ and φ of the point, write the three spherical unit vectors in Cartesian form there, and project A on each.",
+     steps=[S("Angles of P.", r"\theta=«th»^\circ,\qquad\phi=«ph»^\circ"),
+            S("Spherical unit vectors at P.", r"\hat R=(\sin\theta\cos\phi,\ \sin\theta\sin\phi,\ \cos\theta),\quad\hat\theta=(\cos\theta\cos\phi,\ \cos\theta\sin\phi,\ -\sin\theta),\quad\hat\phi=(-\sin\phi,\ \cos\phi,\ 0)"),
+            S("Project A on each.", r"A_R=«ar»,\qquad A_\theta=«at»,\qquad A_\phi=«ap»")],
+     answer="A_R = «ar», A_θ = «at», A_φ = «ap»",
+     whatif=[W("…P were (3, 4, −5)?", lambda p: {**p, "u3": -5}, "θ changes, so A_R and A_θ change: A_R = «ar», A_θ = «at»; A_φ stays «ap».", r"A_R=«ar»"),
+             W("…the magnitude were asked?", lambda p: p, "|A| = «mag», the same as √(1² + 2² + 3²).", r"|\mathbf A|=«mag»")],
+     mistake="Writing θ̂ with +sin θ in the z component. θ̂ points away from the +z axis, so its z component is −sin θ.",
+     vals={"th": _pt(1), "ph": _pt(2), "ar": _vc(0), "at": _vc(1), "ap": _vc(2), "mag": lambda r, p: math.sqrt(sum(v * v for v in r["values"]["vector"]))}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Cylindrical → Cartesian",
+   "A point is given in cylindrical coordinates as (r, φ, z) = (2 m, 60°, 1 m), and a field there is A = r̂ + φ̂. "
+   "Find the point's Cartesian coordinates and the Cartesian components of A.",
+   {"type": "coord", "system": "cylindrical", "point": [1, 1.732, 1]}, "coords/convert",
+   {"src": "cylindrical", "dst": "cartesian", "u1": 2, "u2": 60, "u3": 1, "A1": 1, "A2": 1, "A3": 0},
+   [("x", lambda r: r["values"]["point"][0], "m", 1), ("A_x", lambda r: r["values"]["vector"][0], "", 1), ("A_y", lambda r: r["values"]["vector"][1], "", 1)],
+   X(asked="x, y of the point and A_x, A_y of the field.",
+     idea="The point converts with x = r cos φ, y = r sin φ. The vector converts with the same angle, through the Cartesian components of r̂ and φ̂.",
+     steps=[S("Position.", r"x=r\cos\phi=«x»\ \text{m},\qquad y=r\sin\phi=«y»\ \text{m}"),
+            S("Unit vectors at φ = 60° in Cartesian form.", r"\hat r=(\cos\phi,\sin\phi,0),\qquad\hat\phi=(-\sin\phi,\cos\phi,0)"),
+            S("Add the contributions of r̂ and φ̂.", r"A_x=\cos\phi-\sin\phi=«ax»,\qquad A_y=\sin\phi+\cos\phi=«ay»")],
+     answer="P = («x», «y», 1) m; A_x = «ax», A_y = «ay»",
+     whatif=[W("…φ were 0?", lambda p: {**p, "u2": 0}, "Then r̂ = x̂ and φ̂ = ŷ: A_x = «ax», A_y = «ay».", r"A=«ax}\,\hat x+«ay»\,\hat y".replace("«ax}", "«ax»")),
+             W("…A were only φ̂?", lambda p: {**p, "A1": 0}, "A_x = «ax», A_y = «ay»: the azimuthal direction at 60°.", r"\hat\phi=(«ax»,\ «ay»,\ 0)")],
+     mistake="Converting the point but leaving the vector components unchanged. Vectors need the unit-vector conversion too.",
+     vals={"x": _pt(0), "y": _pt(1), "ax": _vc(0), "ay": _vc(1)}), "numeric")
+
+# ---- conceptual
+_sph = {"system": "spherical", "u1": 2, "u2": 30, "u3": 0, "d1": 0.01, "d2": 1, "d3": 1}
+px(T, "Ulaby & Ravaioli Sec. 3-2", "basic", "Why angles need scale factors",
+   "In Cartesian coordinates a small step is simply dx, dy, dz. In spherical coordinates a step dθ or dφ is not a length. "
+   "Explain the factors R and R sin θ, and why the φ step shrinks near the poles.",
+   {"type": "coord", "system": "spherical"}, "coords/element", _sph, [],
+   X(asked="Why spherical length elements are dR, R dθ and R sin θ dφ.",
+     idea="An angle turns into a length only through the radius of the circle it sweeps along.",
+     steps=[S("Changing θ moves the point along a circle of radius R, so the arc is R dθ."),
+            S("Changing φ moves it along a circle of latitude, whose radius is the distance to the z-axis, R sin θ."),
+            S("Near the poles sin θ → 0: the latitude circles shrink to a point, and so does the φ step.", r"dl_\phi=R\sin\theta\,d\phi")],
+     answer_text="Only R is a length; θ and φ are angles. A small change dθ moves the point along a great circle of radius R, so the distance covered is R dθ. "
+                 "A small change dφ moves it around a circle of latitude, whose radius is the distance from the z-axis, R sin θ, so the distance is R sin θ dφ. "
+                 "These factors, h_θ = R and h_φ = R sin θ, are the scale factors. "
+                 "Near a pole the latitude circle is tiny, so the same dφ covers almost no distance; at the equator it covers the most.",
+     evidence_say="Engine runs at R = 2 m with dφ = 1°: the φ edge dl_φ grows with sin θ from the pole to the equator.",
+     plot=Sweep("u2", [5, 15, 30, 60, 90], [("dl_φ = R sin θ dφ", _el("dl", 2), "S"), ("dl_θ = R dθ", _el("dl", 1))], "polar angle θ (°)", "edge length (m)"),
+     mistake="Writing dl_φ = R dφ, forgetting sin θ.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-2.3", "exam", "When is dv = R² sin θ dR dθ dφ exact?",
+   "The spherical volume element treats a small region as a rectangular box. When does that give the exact volume, and how does the error behave as the steps grow?",
+   {"type": "coord", "system": "spherical"}, "coords/element", _sph, [],
+   X(asked="The status of dv as an approximation, and how its error depends on the step size.",
+     idea="dv is the leading term of the exact volume. The region's real sides are curved, and its edges have different lengths on the inner and outer faces.",
+     steps=[S("The exact volume of the region is an integral.", r"V=\int\!\!\int\!\!\int R^2\sin\theta\,dR\,d\theta\,d\phi"),
+            S("dv evaluates the integrand once, at the corner point, and multiplies by the steps."),
+            S("Its relative error grows with the step sizes and vanishes as they shrink, so dv is exact only in the limit.")],
+     answer_text="dv = R² sin θ dR dθ dφ is exact only in the limit of infinitesimal steps. For finite steps the region is a curved wedge, "
+                 "not a box: the outer face is larger than the inner one and sin θ changes across the region. "
+                 "dv evaluates the integrand at one corner, so its relative error grows roughly in proportion to the steps. "
+                 "That is why integrals over volumes are computed by summing many small elements, or analytically, rather than with one large dv.",
+     evidence_say="Engine: dv (box formula) against the exact integrated volume as the angle steps grow from 1° to 20°.",
+     plot=Sweep("d2", [1, 5, 10, 20], [("box formula dv", lambda r, p: r["values"]["dv"] * 1e6), ("exact volume", lambda r, p: r["values"]["exact_finite_volume"] * 1e6, "S")],
+                "angle step dθ (°)", "volume (cm³)"),
+     mistake="Using one large volume element for a finite region and calling the result exact.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3.1", "exam", "Unit vectors that change direction",
+   "In Cartesian coordinates x̂ is the same everywhere, but in cylindrical coordinates r̂ is not. "
+   "Why does this matter when you add two vectors given at different points, or when you integrate a vector field?",
+   {"type": "coord", "system": "cylindrical"}, "coords/convert", {"src": "cylindrical", "dst": "cartesian", "u1": 1, "u2": 0, "u3": 0, "A1": 1, "A2": 0, "A3": 0}, [],
+   X(asked="The consequence of position-dependent unit vectors for adding and integrating vectors.",
+     idea="r̂ and φ̂ point in directions that depend on φ. Components along them at different points refer to different directions.",
+     steps=[S("At azimuth φ the radial unit vector is r̂ = cos φ x̂ + sin φ ŷ.", r"\hat r(\phi=0)=\hat x,\qquad\hat r(\phi=90^\circ)=\hat y"),
+            S("So 'A_r = 1' at two points describes two different vectors."),
+            S("Before adding or integrating, convert to Cartesian components, whose unit vectors are constant.")],
+     answer_text="The cylindrical and spherical unit vectors rotate with the point. A radial unit vector at φ = 0 is x̂, at φ = 90° it is ŷ. "
+                 "Adding r-components taken at two different points therefore adds lengths along two different directions, which is meaningless. "
+                 "The same trap appears in integrals: ∫ r̂ dφ around a circle is zero, not 2π r̂. "
+                 "The safe method is to express the vectors in Cartesian components (or another fixed basis) before adding or integrating, and convert back afterwards if needed.",
+     evidence_say="Engine runs of r̂ in Cartesian components as φ goes from 0° to 90°: its x part falls as cos φ while its y part rises as sin φ.",
+     plot=Sweep("u2", [0, 15, 30, 45, 60, 75, 90], [("x component of r̂", _vc(0)), ("y component of r̂", _vc(1), "S")], "azimuth φ (°)", "component of r̂"),
+     mistake="Pulling r̂ or φ̂ outside an integral over φ as if they were constant.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Why θ stops at 180° but φ goes to 360°",
+   "In spherical coordinates θ runs from 0 to 180° while φ runs from 0 to 360°. Why not both to 360°?",
+   {"type": "coord", "system": "spherical", "point": [1, 1, -1]}, "coords/convert", _cart_sph(1, 1, -1), [],
+   X(asked="Why the ranges of θ and φ differ.",
+     idea="Each point in space must get one set of coordinates. φ already sweeps a full circle around the z-axis, so θ only needs to go from the top to the bottom.",
+     steps=[S("φ turns the half-plane containing the z-axis through a full turn, 0 to 360°."),
+            S("Within that half-plane, θ from 0 (along +z) to 180° (along −z) already reaches every direction."),
+            S("Letting θ go beyond 180° would describe the same points twice, with φ shifted by 180°.")],
+     answer_text="Spherical coordinates must label every point once. The azimuth φ rotates a half-plane bounded by the z-axis through a full turn, which takes 360°. "
+                 "Inside each half-plane, θ measured from +z reaches straight down to −z at 180°, so every direction is already covered. "
+                 "A θ of 200° would point into the opposite half-plane, which is the same as θ = 160° with φ increased by 180°: a duplicate label. "
+                 "For example, (1, 1, −1) has θ = «th»°, above 90° because it lies below the xy-plane, and φ = «ph»°.",
+     evidence_say="Engine conversion of (1, 1, −1): θ = «th»°, φ = «ph»°.",
+     mistake="Measuring θ from the xy-plane (that is latitude or elevation) instead of from the +z axis.",
+     vals={"th": _pt(1), "ph": _pt(2)}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-3", "basic", "Does the length of a vector depend on the coordinates?",
+   "The field A = x̂ + 2ŷ + 3ẑ has very different-looking components in spherical coordinates at the point (3, 4, 5). Is its magnitude different there? Why or why not?",
+   {"type": "coord", "system": "spherical", "point": [3, 4, 5]}, "coords/convert", _cart_sph(3, 4, 5, (1, 2, 3)), [],
+   X(asked="Whether a change of coordinate system can change a vector's length.",
+     idea="A coordinate system only describes the vector; it does not change it. All three systems use orthonormal unit vectors, and a rotation between orthonormal bases preserves length.",
+     steps=[S("The spherical unit vectors at a point are orthonormal, like x̂, ŷ, ẑ."),
+            S("The conversion is a rotation matrix, which keeps lengths and angles."),
+            S("So |A| from spherical components equals √(1² + 2² + 3²): here «mag».", r"\sqrt{A_R^2+A_\theta^2+A_\phi^2}=«mag»")],
+     answer_text="No. The vector is a physical quantity; the coordinate system is only a way of writing it down. "
+                 "At any point the spherical unit vectors R̂, θ̂, φ̂ are mutually perpendicular and of unit length, just like x̂, ŷ, ẑ, so converting between them is a rotation. "
+                 "Rotations preserve lengths and angles, so √(A_R² + A_θ² + A_φ²) equals √(A_x² + A_y² + A_z²). "
+                 "The individual components change because they measure projections on different directions; the length and the direction in space do not.",
+     evidence_say="Engine: the spherical components give |A| = «mag»; its check confirms that the unit vectors at the point are orthonormal.",
+     mistake="Adding components from different systems, e.g. A_x + A_R, which mixes projections on different directions.",
+     vals={"mag": lambda r, p: math.sqrt(sum(v * v for v in r["values"]["vector"]))}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-2", "basic", "Cylindrical r versus spherical R",
+   "Both cylindrical and spherical coordinates have a 'radial' coordinate. For the point (3, 4, 5) m, what is the difference between the cylindrical r and the spherical R?",
+   {"type": "coord", "system": "spherical", "point": [3, 4, 5]}, "coords/convert", _cart_sph(3, 4, 5), [],
+   X(asked="The meaning of r and R, and their values at (3, 4, 5).",
+     idea="Cylindrical r is the distance from the z-axis. Spherical R is the distance from the origin. They differ whenever z ≠ 0.",
+     steps=[S("Spherical R: straight-line distance from the origin.", r"R=\sqrt{x^2+y^2+z^2}=«R»\ \text{m}"),
+            S("Cylindrical r: distance from the z-axis, ignoring z.", r"r=\sqrt{x^2+y^2}=R\sin\theta=«r»\ \text{m}"),
+            S("They are equal only in the xy-plane (θ = 90°).")],
+     answer_text="Cylindrical r measures how far the point is from the z-axis; spherical R measures how far it is from the origin. "
+                 "They are related by r = R sin θ, and R = √(r² + z²). For (3, 4, 5) m the point is «r» m from the z-axis and «R» m from the origin. "
+                 "The difference matters in formulas: the field of a line charge falls as 1/r, the field of a point charge as 1/R². "
+                 "Mixing them up is one of the commonest sources of wrong answers.",
+     evidence_say="Engine: R = «R» m and θ = «th»°, so r = R sin θ = «r» m.",
+     mistake="Using R where r is meant (or the reverse) in field formulas.",
+     vals={"R": _pt(0), "th": _pt(1), "r": lambda r, p: r["values"]["point"][0] * math.sin(math.radians(r["values"]["point"][1]))}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-2.3", "exam", "Why the sphere's surface integrates to 4πa²",
+   "Show that integrating the surface element ds_R = R² sin θ dθ dφ over a sphere of radius a gives 4πa², and explain where the sin θ comes from.",
+   {"type": "coord", "system": "spherical"}, "coords/element", {"system": "spherical", "u1": 1, "u2": 60, "u3": 0, "d1": 0.01, "d2": 1, "d3": 1}, [],
+   X(asked="A derivation of the surface area of a sphere from ds_R.",
+     idea="The surface element is the product of the two tangential edges, R dθ and R sin θ dφ. Integrating over all θ and φ adds up every patch.",
+     steps=[S("Surface element on R = a.", r"ds_R=(a\,d\theta)(a\sin\theta\,d\phi)=a^2\sin\theta\,d\theta\,d\phi"),
+            S("Integrate φ over a full turn and θ from pole to pole.", r"\oint ds_R=a^2\int_0^{2\pi}\!d\phi\int_0^{\pi}\sin\theta\,d\theta=a^2\cdot2\pi\cdot2=4\pi a^2"),
+            S("sin θ is there because patches near the poles are narrower: their φ edge is a sin θ dφ.")],
+     answer_text="On the sphere R = a, a small patch has sides a dθ (along a meridian) and a sin θ dφ (along a circle of latitude), so ds_R = a² sin θ dθ dφ. "
+                 "Integrating φ from 0 to 2π gives 2π, and integrating sin θ from 0 to π gives 2, so the total is 4πa². "
+                 "The sin θ is essential: without it the integral would be 2π²a², because patches near the poles would be counted as wide as those at the equator.",
+     evidence_say="Engine check: summing ds_R numerically over a sphere reproduces 4πa².",
+     mistake="Dropping sin θ, or integrating θ from 0 to 2π, which counts the sphere twice.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 3-2", "exam", "Why the order R̂, θ̂, φ̂ matters",
+   "The spherical unit vectors are always listed as (R̂, θ̂, φ̂), with R̂ × θ̂ = φ̂. What would go wrong if you used the order (R̂, φ̂, θ̂) in a cross product or a curl?",
+   {"type": "coord", "system": "spherical"}, "coords/element", _sph, [],
+   X(asked="The role of right-handedness in the order of the unit vectors.",
+     idea="Cross products and curls are defined for right-handed bases. Swapping two basis vectors makes the basis left-handed and flips the sign of every cross product.",
+     steps=[S("In a right-handed basis the first two vectors cross to the third.", r"\hat R\times\hat\theta=\hat\phi,\quad\hat\theta\times\hat\phi=\hat R,\quad\hat\phi\times\hat R=\hat\theta"),
+            S("With the order (R̂, φ̂, θ̂) the same determinant formula would give R̂ × φ̂ = θ̂, but in fact R̂ × φ̂ = −θ̂."),
+            S("Every cross product, curl and therefore every B from Biot–Savart or force F = qv × B would come out with the wrong sign.")],
+     answer_text="The order is chosen so that the basis is right-handed, like (x̂, ŷ, ẑ): R̂ × θ̂ = φ̂ and its cyclic versions. "
+                 "Cross products and curls computed with the usual determinant formulas assume this. "
+                 "Listing the vectors as (R̂, φ̂, θ̂) makes the basis left-handed, and the same formulas then give every cross product with the wrong sign. "
+                 "Magnetic fields from Biot–Savart, the Lorentz force and the direction of the Poynting vector would all point the wrong way.",
+     evidence_say="Engine check: R̂ × θ̂ = φ̂ holds at the point used here, confirming a right-handed basis.",
+     mistake="Writing the spherical components in the order (R, φ, θ) and then using the standard curl formula.",
+     vals={}), "concept")
 
 # ---------------------------------------------------------------- electrostatics
 T = "electrostatics"
