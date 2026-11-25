@@ -7,11 +7,10 @@ checks shown on the page are the engine's — and lists the requested answers.
 """
 import math
 
-from .constants import C0
+from .constants import C0, EPS0
 from . import routes
 import numpy as np
 
-from .constants import EPS0
 from .explain import render, X, S, W, Sweep, Series, V as EV
 
 P = []
@@ -38,42 +37,255 @@ _sens = lambda ch, d: (lambda r: next(s for s in r["sensitivity"] if s["change"]
 
 # ---------------------------------------------------------------- 1-D / 2-D / 3-D
 T = "dimensions"
-p(T, "Ulaby & Ravaioli Sec. 9-1", "basic", "Point source: doubling the distance",
-  "A small Wi-Fi antenna radiates at 2.4 GHz in free space. By how many decibels does the field level change when you move from 10 m to 20 m away (far field, no loss)?",
-  {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 2.4e9, "r_max_lambda": 10}, [("Δ level", _sens("double the distance", "3D"), "dB", 1)],
-  "A point source produces a spherical wave; power spreads over 4πR², so |E| ∝ 1/R and the level changes by 20 log₁₀(1/2).",
-  "Twice as far means the same power is spread over a sphere with four times the area: the field halves, which is −6 dB.")
-p(T, "Cheng Sec. 10-1 (line sources)", "basic", "Line source: doubling the distance",
-  "A very long straight current filament radiates a cylindrical wave in lossless air. In the far zone, how much does the field level change when the distance is doubled?",
-  {"type": "dims", "dim": "2D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 20}, [("Δ level", _sens("double the distance", "2D"), "dB", 1)],
-  "A line source spreads power over a cylinder of area 2πρℓ, so |E| ∝ 1/√ρ (Hankel-function asymptote) and Δ = 10 log₁₀(1/2).",
-  "Power spreads over a circle instead of a sphere, so it thins out more slowly: about −3 dB per doubling.")
-p(T, "Ulaby & Ravaioli Sec. 2-2", "basic", "Lossless line: doubling the distance",
-  "A signal travels along a lossless coaxial cable. How does its amplitude at 200 m compare with that at 100 m?",
-  {"type": "dims", "dim": "1D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 10}, [("Δ level", _sens("double the distance", "1D"), "dB", 1)],
-  "A TEM wave on a lossless line is one-dimensional: e^{−jβz} has constant magnitude.",
-  "Nothing spreads out inside a cable, so without loss the signal is just as strong further along.")
-p(T, "Ulaby & Ravaioli Sec. 1-4", "basic", "Free-space wavelength",
-  "Find the wavelength of a 900 MHz GSM signal in free space.",
-  {"type": "dims", "dim": "1D"}, "dim/compare", {"f": 9e8}, [("λ", V("wavelength"), "m", 1)],
-  "λ = c/f with c = 299 792 458 m/s.", "Wavelength = speed ÷ frequency.")
-p(T, "Ulaby & Ravaioli Sec. 7-2", "basic", "Wavelength in a dielectric",
-  "What is the wavelength of a 1 GHz wave inside a lossless dielectric with εr = 4?",
-  {"type": "dims", "dim": "1D"}, "dim/compare", {"f": 1e9, "eps_r": 4}, [("λ", V("wavelength"), "m", 1)],
-  "In a lossless medium u = c/√(εrμr), so λ = c/(f√εr).", "The wave slows down by √εr = 2, so its wavelength halves.")
-p(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Attenuation in wet soil",
-  "A 100 MHz wave propagates in wet soil with εr = 20 and σ = 0.05 S/m. Find the attenuation constant α.",
-  {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e8, "eps_r": 20, "sigma": 0.05}, [("α", V("alpha"), "Np/m", 1)],
-  "γ = jω√(μεc) with εc = ε − jσ/ω; here σ/ωε ≈ 0.45 so neither limit applies and the exact form is used.",
-  "Soil absorbs energy; α tells how quickly the amplitude dies out per metre.")
-p(T, "Ulaby & Ravaioli Sec. 9-1", "exam", "Spreading over ten wavelengths",
-  "Relative to its value at λ/2 from a point source, what is the field level at 10λ in free space?",
-  {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 10}, [("level", V("level_3D"), "dB", 1)],
-  "|E| ∝ 1/R ⇒ level = 20 log₁₀((λ/2)/(10λ)) = 20 log₁₀(1/20).", "Twenty times further, twenty times weaker field: −26 dB.")
-p(T, "Ulaby & Ravaioli Sec. 7-2", "basic", "Doubling the frequency",
-  "A 1 GHz wave travels in free space. What becomes its wavelength if the frequency is doubled?",
-  {"type": "dims", "dim": "1D"}, "dim/compare", {"f": 1e9}, [("new λ", lambda r: next(s for s in r["sensitivity"] if s["change"] == "double the frequency")["lambda"], "m", 1)],
-  "λ = u/f: doubling f halves λ when u is fixed.", "Faster oscillation, same speed ⇒ shorter waves.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual. Levels are 20 log10 of |ψ| ratios from the engine.
+_sens3 = lambda ch, d: (lambda r, p: next(s for s in r["sensitivity"] if s["change"] == ch)[d])
+_prof = lambda d: (lambda r, p: r["profiles"][d]["mag"])
+_PROFILES = Series(lambda r, p: r["r"], [("1-D (plane wave)", _prof("1D")), ("2-D (line source)", _prof("2D"), "S"), ("3-D (point source)", _prof("3D"), "E")],
+                   "distance r (m)", "relative amplitude |ψ|", logx=True, logy=True)
+_DV = {"lam": EV("wavelength"), "b": EV("beta"), "a": EV("alpha"), "ro": EV("r_obs"), "l1": EV("level_1D"), "l2": EV("level_2D"), "l3": EV("level_3D")}
+
+px(T, "Ulaby & Ravaioli Sec. 9-1", "basic", "Point source: doubling the distance",
+   "A small Wi-Fi antenna radiates at 2.4 GHz in free space. You stand 10 m away and then step back to 20 m. "
+   "Treating the antenna as a point source and ignoring reflections, by how many decibels does the field level change?",
+   {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 2.4e9, "r_max_lambda": 10}, [("Δ level", _sens("double the distance", "3D"), "dB", 1)],
+   X(asked="The change in field level, in dB, when the distance from a point source doubles.",
+     idea="A point source spreads its power over spheres of area 4πR². The same power through a larger sphere means a weaker field, with |E| ∝ 1/R.",
+     steps=[S("Ratio of field amplitudes at 2R and R.", r"\frac{|E(2R)|}{|E(R)|}=\frac{R}{2R}=\frac12"),
+            S("Convert to decibels with 20 log₁₀ because E is a field quantity.", r"\Delta L=20\log_{10}\tfrac12=«d»\ \text{dB}"),
+            S("The frequency does not enter: 1/R spreading is the same at any frequency in a lossless medium.")],
+     answer="ΔL = «d» dB (the field halves, the power density drops to a quarter)",
+     whatif=[W("…the source were a long line (cylindrical wave)?", lambda p: p, "Power then spreads over 2πρℓ, so |E| ∝ 1/√ρ: ΔL = «d2» dB.", r"\Delta L=20\log_{10}\tfrac{1}{\sqrt2}=«d2»\ \text{dB}"),
+             W("…the signal travelled along a lossless cable instead?", lambda p: p, "A guided TEM wave does not spread: ΔL = «d1» dB.", r"\Delta L=«d1»\ \text{dB}")],
+     mistake="Writing −3 dB. That is the change in power for a factor 2, but here the power density changes by a factor 4.",
+     vals={"d": _sens3("double the distance", "3D"), "d2": _sens3("double the distance", "2D"), "d1": _sens3("double the distance", "1D")}), "numeric")
+
+px(T, "Cheng Sec. 10-1 (line sources)", "basic", "Line source: doubling the distance",
+   "A long straight wire carrying an RF current acts as a line source and radiates a cylindrical wave into lossless air at 1 GHz. "
+   "In the far zone, by how much does the field level change when the distance from the wire doubles?",
+   {"type": "dims", "dim": "2D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 20}, [("Δ level", _sens("double the distance", "2D"), "dB", 1)],
+   X(asked="The level change for a cylindrical wave when ρ doubles.",
+     idea="A line source spreads its power over a cylinder of area 2πρℓ, which grows only linearly with ρ. The power density falls as 1/ρ and the field as 1/√ρ.",
+     steps=[S("Exact solution of the 2-D wave equation and its far-zone form.", r"\psi=H_0^{(2)}(k\rho)\ \xrightarrow{k\rho\gg1}\ \sqrt{\tfrac{2}{\pi k\rho}}\,e^{-j(k\rho-\pi/4)}"),
+            S("Amplitude ratio for ρ → 2ρ.", r"\frac{|\psi(2\rho)|}{|\psi(\rho)|}=\frac{1}{\sqrt2}"),
+            S("In decibels.", r"\Delta L=20\log_{10}\tfrac{1}{\sqrt2}=«d»\ \text{dB}")],
+     answer="ΔL = «d» dB",
+     whatif=[W("…the same question were asked for a point source?", lambda p: p, "Spherical spreading is faster: ΔL = «d3» dB.", r"\Delta L=«d3»\ \text{dB}"),
+             W("…the frequency were 100 MHz?", lambda p: {**p, "f": 1e8}, "Far-zone spreading does not depend on frequency: ΔL = «d» dB.", r"\Delta L=«d»\ \text{dB}")],
+     mistake="Using 1/ρ for a line source. The field of a static line charge falls as 1/ρ, but the radiated field falls as 1/√ρ.",
+     vals={"d": _sens3("double the distance", "2D"), "d3": _sens3("double the distance", "3D")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-2, 9-1", "exam", "Three geometries at ten wavelengths",
+   "A 1 GHz wave travels in lossless free space. Compare three cases: a plane wave (1-D), a cylindrical wave from a line source (2-D) and a spherical wave from a point source (3-D). "
+   "For each, find the field level at 10λ relative to its level at λ/2.",
+   {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 10},
+   [("1-D", V("level_1D"), "dB", 1), ("2-D", V("level_2D"), "dB", 1), ("3-D", V("level_3D"), "dB", 1)],
+   X(asked="Three levels: 20 log₁₀ |ψ(10λ)/ψ(λ/2)| for plane, cylindrical and spherical waves.",
+     idea="The same wavenumber governs all three; only the geometry of spreading differs. The distance ratio is 20, so each answer is 20 log₁₀ of 20 to the power 0, ½ or 1.",
+     steps=[S("Plane wave: nothing spreads, so the amplitude is constant.", r"L_{1D}=«l1»\ \text{dB}"),
+            S("Cylindrical wave: |ψ| ∝ 1/√ρ in the far zone; the engine uses the exact Hankel function because λ/2 is not yet far from the source.", r"L_{2D}=20\log_{10}\Big|\frac{H_0^{(2)}(k\cdot10\lambda)}{H_0^{(2)}(k\lambda/2)}\Big|=«l2»\ \text{dB}"),
+            S("Spherical wave: |ψ| ∝ 1/R exactly.", r"L_{3D}=20\log_{10}\frac{\lambda/2}{10\lambda}=«l3»\ \text{dB}")],
+     answer="1-D: «l1» dB, 2-D: «l2» dB, 3-D: «l3» dB",
+     whatif=[W("…the medium absorbed (εr = 4, σ = 0.01 S/m)?", lambda p: {**p, "eps_r": 4, "sigma": 0.01}, "All three lose the same extra dB per metre: 1-D «l1», 2-D «l2», 3-D «l3» dB.", r"L=L_{spread}-20\log_{10}(e)\,\alpha\,\Delta r"),
+             W("…the observation point were at 20λ?", lambda p: {**p, "r_max_lambda": 20}, "Spreading grows only logarithmically: 2-D «l2» dB, 3-D «l3» dB.", r"L_{3D}=«l3»\ \text{dB}")],
+     mistake="Assuming every wave falls as 1/R. Only a point source does; how a wave weakens depends on the shape of its wavefronts.",
+     plot=_PROFILES, evidence_say="Engine profiles on log–log axes: slopes 0, −½ and −1.", vals=_DV), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-2", "basic", "Wavelength in a dielectric",
+   "A 1 GHz signal passes from air into a large block of lossless plastic with εr = 4. Find its wavelength inside the plastic, and compare it with the free-space wavelength.",
+   {"type": "dims", "dim": "1D"}, "dim/compare", {"f": 1e9, "eps_r": 4}, [("λ", V("wavelength"), "m", 1)],
+   X(asked="The wavelength in the dielectric, and how it compares with λ₀.",
+     idea="The source fixes the frequency. The medium sets the speed, u = c/√εr, so the wavelength λ = u/f shrinks by √εr.",
+     steps=[S("Phase constant in the dielectric.", r"\beta=\frac{\omega\sqrt{\varepsilon_r}}{c}=«b»\ \text{rad/m}"),
+            S("Wavelength.", r"\lambda=\frac{2\pi}{\beta}=\frac{c}{f\sqrt{\varepsilon_r}}=«lam»\ \text{m}"),
+            S("In free space it would be «l0» m, so the plastic shortens it by √εr = 2.")],
+     answer="λ = «lam» m (free space: «l0» m)",
+     whatif=[W("…the frequency were doubled?", lambda p: {**p, "f": 2e9}, "λ halves to «lam» m.", r"\lambda=«lam»\ \text{m}"),
+             W("…the block were glass (εr = 6.25)?", lambda p: {**p, "eps_r": 6.25}, "√εr = 2.5, so λ = «lam» m.", r"\lambda=«lam»\ \text{m}")],
+     mistake="Dividing by εr instead of √εr, or changing the frequency instead of the wavelength at the boundary.",
+     vals={"b": EV("beta"), "lam": EV("wavelength"), "l0": lambda r, p: C0 / p["f"]}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Attenuation in wet soil",
+   "A 100 MHz ground-penetrating signal travels in wet soil with εr = 20 and σ = 0.05 S/m (typical values). "
+   "Find the attenuation constant α, and the loss in dB for every metre travelled.",
+   {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e8, "eps_r": 20, "sigma": 0.05}, [("α", V("alpha"), "Np/m", 1)],
+   X(asked="α in Np/m and the same attenuation in dB/m.",
+     idea="The loss tangent σ/ωε decides which formula applies. Here it is close to 0.5, so neither the low-loss nor the good-conductor shortcut is safe and the exact formula is needed.",
+     steps=[S("Loss tangent.", r"\frac{\sigma}{\omega\varepsilon}=\frac{0.05}{2\pi\cdot10^8\cdot20\varepsilon_0}=«lt»"),
+            S("Exact attenuation constant.", r"\alpha=\omega\sqrt{\frac{\mu\varepsilon}{2}\Big[\sqrt{1+\big(\tfrac{\sigma}{\omega\varepsilon}\big)^2}-1\Big]}=«a»\ \text{Np/m}"),
+            S("In decibels, 1 Np = 20 log₁₀ e dB.", r"\alpha_{dB}=«adb»\ \text{dB/m}")],
+     answer="α = «a» Np/m = «adb» dB/m",
+     whatif=[W("…the soil dried out to σ = 0.005 S/m?", lambda p: {**p, "sigma": 0.005}, "Now σ/ωε ≪ 1 and the low-loss formula works: α = «a» Np/m.", r"\alpha\approx\frac{\sigma}{2}\sqrt{\frac{\mu}{\varepsilon}}=«a»\ \text{Np/m}"),
+             W("…the frequency were 1 GHz?", lambda p: {**p, "f": 1e9}, "α = «a» Np/m: higher frequencies penetrate less.", r"\alpha=«a»\ \text{Np/m}")],
+     mistake="Using the low-loss approximation α ≈ (σ/2)√(μ/ε) when σ/ωε is not small. Here it would be noticeably off.",
+     vals={"a": EV("alpha"), "adb": lambda r, p: r["values"]["alpha"] * 20 * math.log10(math.e), "lt": lambda r, p: p["sigma"] / (2 * math.pi * p["f"] * p["eps_r"] * EPS0)}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4, 9-1", "exam", "Spreading plus absorption",
+   "A point source radiates at 1 GHz inside a large lossy medium with εr = 4 and σ = 0.01 S/m. "
+   "Find the field level at 10 wavelengths from the source relative to its level at half a wavelength, and say how much of it is due to absorption.",
+   {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e9, "eps_r": 4, "sigma": 0.01, "r_max_lambda": 10}, [("level", V("level_3D"), "dB", 1)],
+   X(asked="The total level drop over 10λ for a point source in a lossy medium, split into spreading and absorption.",
+     idea="The spherical-wave solution is ψ = e^(−jkR)/R with a complex k = β − jα. The 1/R part is spreading and the e^(−αR) part is absorption; in dB they add.",
+     steps=[S("Wavenumber in the medium.", r"\beta=«b»\ \text{rad/m},\qquad\alpha=«a»\ \text{Np/m},\qquad\lambda=«lam»\ \text{m}"),
+            S("Total level from the exact solution.", r"L=20\log_{10}\frac{|\psi(10\lambda)|}{|\psi(\lambda/2)|}=«l3»\ \text{dB}"),
+            S("The plane-wave (1-D) level contains only the absorption part.", r"L_{abs}=-20\log_{10}(e)\,\alpha\,(9.5\lambda)=«l1»\ \text{dB}"),
+            S("The rest is spherical spreading, the same as in a lossless medium.", r"L_{spread}=L-L_{abs}=«ls»\ \text{dB}")],
+     answer="L = «l3» dB, of which «l1» dB is absorption",
+     whatif=[W("…the medium were lossless?", lambda p: {**p, "sigma": 0}, "Only spreading remains: L = «l3» dB.", r"L=20\log_{10}\tfrac{1}{20}=«l3»\ \text{dB}"),
+             W("…the observation point were at 20λ?", lambda p: {**p, "r_max_lambda": 20}, "Absorption doubles roughly in dB while spreading adds only 6 dB: L = «l3» dB.", r"L=«l3»\ \text{dB}")],
+     mistake="Adding the two effects as amplitude ratios. They multiply as ratios, so they add in dB.",
+     vals={**_DV, "ls": lambda r, p: r["values"]["level_3D"] - r["values"]["level_1D"]}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4", "basic", "Plane wave in a lossy medium",
+   "A 300 MHz plane wave travels through a slightly conducting material with εr = 9 and σ = 0.005 S/m. "
+   "How many dB weaker is the field after travelling from half a wavelength to ten wavelengths?",
+   {"type": "dims", "dim": "1D"}, "dim/compare", {"f": 3e8, "eps_r": 9, "sigma": 0.005, "r_max_lambda": 10}, [("level", V("level_1D"), "dB", 1)],
+   X(asked="The attenuation of a plane wave over 9.5 wavelengths in a lossy medium.",
+     idea="A plane wave does not spread, so all of its weakening comes from absorption, |ψ| = e^(−αz).",
+     steps=[S("Attenuation constant and wavelength.", r"\alpha=«a»\ \text{Np/m},\qquad\lambda=«lam»\ \text{m}"),
+            S("Path length between the two points.", r"\Delta z=10\lambda-\lambda/2=«dz»\ \text{m}"),
+            S("Loss in dB.", r"L=-20\log_{10}(e)\,\alpha\,\Delta z=«l1»\ \text{dB}")],
+     answer="L = «l1» dB",
+     whatif=[W("…the material were lossless?", lambda p: {**p, "sigma": 0}, "No absorption and no spreading: L = «l1» dB.", r"L=0"),
+             W("…the conductivity were doubled?", lambda p: {**p, "sigma": 0.01}, "In this low-loss regime α ∝ σ, so the loss roughly doubles: «l1» dB.", r"L=«l1»\ \text{dB}")],
+     mistake="Applying 1/R spreading to a plane wave. A plane wave has flat wavefronts that do not grow.",
+     vals={**_DV, "dz": lambda r, p: 9.5 * r["values"]["wavelength"]}), "numeric")
+
+# ---- conceptual
+_fs = {"f": 1e9, "r_max_lambda": 10}
+px(T, "Ulaby & Ravaioli Sec. 7-2", "basic", "Why a plane wave does not weaken",
+   "In a lossless medium a uniform plane wave keeps the same amplitude however far it travels, while the wave from a lamp clearly gets weaker with distance. "
+   "Explain the difference in terms of energy.",
+   {"type": "dims", "dim": "1D"}, "dim/compare", _fs, [],
+   X(asked="Why a plane wave's amplitude is constant while a real source's field falls off.",
+     idea="Energy flows along the direction of travel. Whether the field weakens depends on whether the cross-section that carries this energy grows.",
+     steps=[S("A plane wave has flat, infinite wavefronts: the area that carries a given share of power never grows."),
+            S("With no loss, the power through any wavefront is the same, so the power density and the field stay the same."),
+            S("A lamp is a small source: its wavefronts are spheres whose area grows as R², so the same power is spread ever thinner.")],
+     answer_text="Energy conservation fixes the answer. In a lossless medium the power crossing each wavefront is the same at every distance. "
+                 "A uniform plane wave has flat wavefronts of unlimited extent, so a tube of rays keeps its cross-section and the power density, hence the field amplitude, stays constant. "
+                 "A lamp is effectively a point source: its wavefronts are spheres of area 4πR², so the power density falls as 1/R² and the field as 1/R. "
+                 "A plane wave is the far-zone limit of such a wave over a region small compared with R, where the 1/R change is negligible.",
+     evidence_say="Engine amplitude profiles from λ/20 to 10λ: the 1-D curve is flat, the 3-D curve falls with slope −1.",
+     plot=_PROFILES, mistake="Treating a plane wave as a real, finite beam. It is a model for a small patch of a wavefront far from the source.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 9-1", "basic", "Why a point source falls off as 1/R",
+   "Starting from energy conservation, show why the field of a point source in a lossless medium is proportional to 1/R, and why its power density is proportional to 1/R².",
+   {"type": "dims", "dim": "3D"}, "dim/compare", _fs, [],
+   X(asked="A derivation of the 1/R law for a point source from energy conservation.",
+     idea="All radiated power must cross every sphere centred on the source, and power density is proportional to |E|².",
+     steps=[S("The same power P passes through every sphere.", r"P=S(R)\cdot4\pi R^2=\text{const}"),
+            S("So the power density falls as 1/R², and since S ∝ |E|², the field falls as 1/R.", r"S\propto\frac{1}{R^2},\qquad|E|\propto\frac1R"),
+            S("The exact solution of the 3-D wave equation, ψ = e^(−jkR)/R, has the same 1/R amplitude.")],
+     answer_text="The power P leaving the source has nowhere to go but outwards, so the same P crosses every sphere of radius R. "
+                 "Spread over the area 4πR², the power density is S = P/(4πR²), which falls as 1/R². "
+                 "Power density is proportional to the square of the field, S = |E|²/2η in a plane-wave-like far zone, so |E| falls as 1/R. "
+                 "The spherical solution of the Helmholtz equation, e^(−jkR)/R, shows the same 1/R amplitude directly.",
+     evidence_say="Engine check: the 3-D profile has a log–log slope of −1, and the power through spheres of different radius is the same.",
+     plot=_PROFILES, mistake="Mixing up the 1/R field law with the 1/R² law for power density or for the static Coulomb field.",
+     vals={}), "concept")
+
+px(T, "Cheng Sec. 10-1 (line sources)", "exam", "Why a line source falls off as 1/√ρ",
+   "A very long wire radiates a cylindrical wave. Why does its far field fall off as 1/√ρ and not as 1/ρ like the static field of a line charge?",
+   {"type": "dims", "dim": "2D"}, "dim/compare", _fs, [],
+   X(asked="The reason for 1/√ρ for a radiating line source, and why it differs from a static line charge.",
+     idea="Radiated power must cross every coaxial cylinder; a static field carries no power and obeys Gauss's law instead.",
+     steps=[S("Radiated power per unit length crosses every cylinder of radius ρ.", r"P'=S(\rho)\cdot2\pi\rho=\text{const}\ \Rightarrow\ S\propto\frac1\rho"),
+            S("Field amplitude goes as the square root of power density.", r"|E|\propto\frac{1}{\sqrt\rho}"),
+            S("A static line charge obeys Gauss's law, ∮D·ds = Q, which fixes D·2πρ and gives 1/ρ: a different law for a different kind of field.")],
+     answer_text="For radiation the conserved quantity is power. Per unit length of wire, the same power crosses every coaxial cylinder of area 2πρ, "
+                 "so the power density falls as 1/ρ and the field, which goes as its square root, falls as 1/√ρ. "
+                 "The exact solution is the Hankel function H₀⁽²⁾(kρ), which approaches √(2/πkρ)·e^(−jkρ) once kρ ≫ 1. "
+                 "The static field of a line charge carries no power; Gauss's law conserves flux of D instead, which gives E ∝ 1/ρ.",
+     evidence_say="Engine check: the 2-D profile approaches slope −½ on log–log axes, and its independent check compares H₀⁽²⁾ with the asymptote.",
+     plot=_PROFILES, mistake="Carrying a static result (E ∝ 1/ρ) over to a radiated wave.",
+     vals={}), "concept")
+
+px(T, "Cheng Sec. 10-1", "exam", "What 'far zone' means for a line source",
+   "The 1/√ρ law for a cylindrical wave is called a far-zone result. What exactly must be large for it to hold, and what happens closer in?",
+   {"type": "dims", "dim": "2D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 3}, [],
+   X(asked="The condition behind the far-zone law, and the behaviour near the source.",
+     idea="The exact field is a Hankel function. Its simple asymptotic form needs kρ ≫ 1, which means ρ much larger than λ/2π.",
+     steps=[S("Exact cylindrical solution and its large-argument form.", r"H_0^{(2)}(k\rho)\approx\sqrt{\frac{2}{\pi k\rho}}\,e^{-j(k\rho-\pi/4)}\qquad(k\rho\gg1)"),
+            S("The condition is on kρ = 2πρ/λ, so 'far' is measured in wavelengths, not metres."),
+            S("Close to the wire, H₀⁽²⁾ grows like a logarithm instead of 1/√ρ, and the field is mostly reactive (stored, not radiated).")],
+     answer_text="The asymptotic form of H₀⁽²⁾(kρ) is accurate when kρ ≫ 1, that is when the distance is much larger than λ/2π. "
+                 "So 'far' is relative to the wavelength: a few wavelengths at 1 GHz is a few tens of centimetres, at 1 MHz it is hundreds of metres. "
+                 "Closer in, the exact Hankel function departs from the 1/√ρ law: its magnitude grows logarithmically towards the wire and part of the field is stored energy rather than radiation. "
+                 "Results such as −3 dB per doubling of distance should only be used in the far zone.",
+     evidence_say="Engine profile within the first three wavelengths: near the wire the 2-D curve is not yet a straight line of slope −½.",
+     plot=Series(lambda r, p: r["r"], [("2-D (line source)", _prof("2D"), "S")], "distance ρ (m)", "relative amplitude |ψ|", logx=True, logy=True),
+     mistake="Using the far-zone law at a fixed number of metres without checking it against the wavelength.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 1-6", "basic", "Why 20 log₁₀ for fields and 10 log₁₀ for power",
+   "Doubling the distance from a point source is said to cost '6 dB'. Explain why the same change is 6 dB whether you talk about the field or the power density, "
+   "and why the formulas look different (20 log₁₀ versus 10 log₁₀).",
+   {"type": "dims", "dim": "3D"}, "dim/compare", _fs, [],
+   X(asked="Why decibels of fields use 20 log₁₀ and decibels of power use 10 log₁₀, giving the same number.",
+     idea="The decibel is defined for power ratios. Power goes as the square of the field, and the logarithm turns that square into a factor 2.",
+     steps=[S("Definition for power.", r"L=10\log_{10}\frac{S_2}{S_1}"),
+            S("With S ∝ |E|², the square comes out of the logarithm as a factor 2.", r"L=10\log_{10}\frac{|E_2|^2}{|E_1|^2}=20\log_{10}\frac{|E_2|}{|E_1|}"),
+            S("For a point source and a doubled distance both forms give «d» dB.")],
+     answer_text="A decibel is defined as 10 log₁₀ of a power ratio. Power density is proportional to the square of the field, "
+                 "so 10 log₁₀(|E₂|²/|E₁|²) = 20 log₁₀(|E₂|/|E₁|). Both formulas describe the same physical change and give the same number of decibels. "
+                 "Doubling the distance from a point source halves the field (20 log₁₀ ½) and quarters the power density (10 log₁₀ ¼): both are about −6 dB. "
+                 "Using 10 log₁₀ on a field ratio would wrongly give −3 dB.",
+     evidence_say="Engine: the level change for doubling the distance from a point source is «d» dB.",
+     mistake="Using 10 log₁₀ on voltages or fields, which halves every decibel figure.",
+     vals={"d": _sens3("double the distance", "3D")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4, 9-1", "exam", "Far away: spreading or absorption?",
+   "In a slightly lossy medium a point source loses field strength both by spreading and by absorption. "
+   "Which of the two dominates close to the source, which far away, and why?",
+   {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e9, "eps_r": 4, "sigma": 0.01, "r_max_lambda": 50}, [],
+   X(asked="How the balance between spreading loss and absorption changes with distance.",
+     idea="In decibels, spreading grows with the logarithm of distance, while absorption grows in proportion to distance.",
+     steps=[S("Spreading: 20 log₁₀(R₁/R₂), which adds a fixed 6 dB for every doubling of R."),
+            S("Absorption: 20 log₁₀(e)·α·R, which adds the same number of dB for every metre."),
+            S("A logarithm always loses to a straight line in the end, so absorption dominates far from the source; here α = «a» Np/m.")],
+     answer_text="Near the source the distance doubles over very short paths, and each doubling costs 6 dB of spreading, while the path is too short for much absorption. "
+                 "Far from the source a doubling of distance still costs only 6 dB of spreading, but the absorbed dB grow in proportion to the extra path length. "
+                 "Since α·R eventually outgrows any logarithm, absorption dominates at large distances, however small α is. "
+                 "This is why a lossy medium has a practical range limit, while in a lossless one a sensitive enough receiver can always detect the signal.",
+     evidence_say="Engine profiles out to 50λ in εr = 4, σ = 0.01 S/m: the 1-D curve, which has no spreading, shows the absorption alone; it becomes steeper than the 3-D spreading slope at large distance.",
+     plot=_PROFILES, mistake="Assuming the two effects scale the same way with distance.",
+     vals={"a": EV("alpha")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-1, 7-2", "basic", "Why a coaxial cable carries a 1-D wave",
+   "Inside a coaxial cable the field pattern between the conductors looks like that of a line source, yet the signal travelling along the cable does not weaken with distance (ignoring loss). "
+   "Why does it behave like a one-dimensional plane wave?",
+   {"type": "dims", "dim": "1D"}, "dim/compare", _fs, [],
+   X(asked="Why a TEM wave on a coax does not spread, even though its cross-sectional field looks like a line source's.",
+     idea="What matters for spreading is the direction of power flow. On the cable, power flows along the axis, through a cross-section of fixed size.",
+     steps=[S("The transverse fields fall as 1/r across the gap, but that is the shape of the field in each cross-section, not spreading along the path."),
+            S("The power travels along z, confined between the conductors, through an annulus whose area does not change with z."),
+            S("So the wave is one-dimensional in z, ψ = e^(−jkz), with constant amplitude in a lossless line.")],
+     answer_text="The 1/r shape across the gap describes how the field is distributed within one cross-section; it does not change as the wave moves along the cable. "
+                 "Power flows along the axis and is trapped between the conductors, so it always crosses the same annular area. "
+                 "With no loss, the same power through the same area means the same field amplitude at every distance: the wave is effectively one-dimensional, "
+                 "described by e^(−jβz). Real cables lose a little power in the conductors and dielectric, which gives the familiar dB-per-metre cable loss.",
+     evidence_say="Engine: the 1-D level stays at «l1» dB from λ/2 to 10λ.",
+     mistake="Confusing the transverse field profile (1/r across the gap) with spreading along the direction of travel.",
+     vals={"l1": EV("level_1D")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 9-1, Cheng Sec. 11-2", "exam", "Is the 1/R law exact near a point source?",
+   "For the idealised point source used here the field is ψ = e^(−jkR)/R at every distance. Real antennas, such as a short dipole, have additional terms close in. "
+   "What are they, and why does the simple model not show them?",
+   {"type": "dims", "dim": "3D"}, "dim/compare", {"f": 1e9, "r_max_lambda": 3}, [],
+   X(asked="Whether 1/R holds at all distances, and what near-field terms a real antenna adds.",
+     idea="A scalar point source has only one solution of the 3-D Helmholtz equation with spherical symmetry. A real antenna radiates a vector field with an angular pattern, which brings in higher powers of 1/R.",
+     steps=[S("For a spherically symmetric scalar wave, e^(−jkR)/R solves the Helmholtz equation exactly at every R > 0.", r"\nabla^2\psi+k^2\psi=0,\qquad\psi=\frac{e^{-jkR}}{R}"),
+            S("A short dipole's fields contain 1/R, 1/R² and 1/R³ terms: only the 1/R term carries power to infinity."),
+            S("The extra terms dominate for kR ≪ 1, inside about λ/2π, and are negligible for kR ≫ 1.")],
+     answer_text="For the scalar, spherically symmetric source used here, e^(−jkR)/R is an exact solution at every distance, so 1/R holds even close to it. "
+                 "Real antennas radiate vector fields with direction-dependent patterns, and their exact fields contain higher powers: a short dipole's E-field has 1/R, 1/R² and 1/R³ terms. "
+                 "Within roughly λ/2π the 1/R³ term (quasi-static, stored energy) dominates; only the 1/R term carries net power away. "
+                 "That is why far-field results such as 6 dB per doubling of distance should be applied a few wavelengths or more from a real antenna.",
+     evidence_say="Engine check: the 3-D profile keeps a log–log slope of −1 right down to λ/20 for this scalar source.",
+     plot=Series(lambda r, p: r["r"], [("3-D (point source)", _prof("3D"), "E")], "distance R (m)", "relative amplitude |ψ|", logx=True, logy=True),
+     mistake="Applying far-field formulas to measurements taken within a wavelength of a real antenna.",
+     vals={}), "concept")
 
 # ---------------------------------------------------------------- coordinates
 T = "coordinates"

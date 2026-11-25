@@ -137,3 +137,26 @@ def test_wording_fixes_from_review():
 def test_transformer_problems_draw_a_tilted_loop():
     for t in ("EMF in a tilted loop", "Which way"):
         assert next(p for p in MAX if p["title"].startswith(t))["fig"]["type"] == "tloop"
+
+
+# ---------------------------------------------------------------- every explained topic: 15 problems, 8 conceptual + 7 numerical
+DONE = ["maxwell", "dimensions"]
+
+
+@pytest.mark.parametrize("topic", DONE)
+def test_topic_has_15_problems_8_concept_7_numeric(topic):
+    kinds = [p["kind"] for p in worked.P if p["topic"] == topic]
+    assert len(kinds) == 15 and kinds.count("concept") == 8 and kinds.count("numeric") == 7, kinds
+
+
+@pytest.mark.parametrize("pid", [p["id"] for p in worked.P if p.get("x")])
+def test_every_explanation_is_complete(pid):
+    prob = next(p for p in worked.P if p["id"] == pid)
+    ex = worked.solve(pid)["explain"]
+    assert ex["verified"] and "«" not in json.dumps(ex, ensure_ascii=False)
+    assert ex["asked"] and ex["idea"] and 1 <= len(ex["steps"]) <= 6
+    assert all(_sentences(s["say"]) <= 2 for s in ex["steps"]), [s["say"] for s in ex["steps"]]
+    if prob["kind"] == "numeric":
+        assert ex["answer"] and len(ex["whatif"]) >= 2
+    else:
+        assert ex["answer_text"] and len(ex["answer_text"].split()) <= 120, len(ex["answer_text"].split())
