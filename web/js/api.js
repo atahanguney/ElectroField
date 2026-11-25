@@ -52,7 +52,14 @@ function python() {
       await py.loadPackage(['numpy', 'scipy', 'contourpy']);
       banner('Loading the ElectroField engine…');
       py.FS.mkdirTree('/home/pyodide/engine');
-      await Promise.all(ENGINE_FILES.map(async (f) => {
+      // the file list is read fresh from engine/manifest.json, like the files themselves, so a cached api.js
+      // can never miss a newly added engine module; ENGINE_FILES is only the fallback
+      let files = ENGINE_FILES;
+      try {
+        const m = await fetch(ENGINE_BASE + 'manifest.json', { cache: 'no-cache' });
+        if (m.ok) files = (await m.json()).files;
+      } catch { /* keep the fallback list */ }
+      await Promise.all(files.map(async (f) => {
         const r = await fetch(ENGINE_BASE + f, { cache: 'no-cache' });
         if (!r.ok) throw new Error(`engine file ${f}: HTTP ${r.status}`);
         py.FS.writeFile(`/home/pyodide/engine/${f}`, await r.text());

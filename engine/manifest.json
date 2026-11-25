@@ -1,0 +1,23 @@
+{
+ "files": [
+  "__init__.py",
+  "biot.py",
+  "constants.py",
+  "coordinates.py",
+  "derivation.py",
+  "dimensions.py",
+  "electrostatics.py",
+  "explain.py",
+  "images.py",
+  "magnetostatics.py",
+  "maxwell.py",
+  "questions.py",
+  "radiation.py",
+  "reflection.py",
+  "report.py",
+  "routes.py",
+  "tlines.py",
+  "waves.py",
+  "worked.py"
+ ]
+}
