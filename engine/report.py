@@ -60,9 +60,17 @@ case("Magnetostatics", "Coax a = 0.45 mm, b = 1.47 mm: external inductance per m
 case("Maxwell & boundaries", "E at 40° from normal, εr 1 → 4, no surface charge: θ₂", r"\tan^{-1}\!\left(\frac{\varepsilon_2}{\varepsilon_1}\tan\theta_1\right)",
      math.degrees(math.atan(4 * math.tan(math.radians(40)))), "mx/boundary", {"kind": "E", "eps1": 1, "eps2": 4, "F1": 10, "theta1_deg": 40}, lambda r: r["values"]["theta2_deg"], "°", 1e-9, "Ulaby §4-8")
 case("Maxwell & boundaries", "Generator: 100 turns, 0.1 × 0.2 m, 0.5 T, 50 rev/s: peak EMF", r"NBA\omega",
-     100 * 0.5 * 0.02 * 2 * PI * 50, "mx/faraday", {"mode": "motional", "N": 100, "B0": 0.5, "w": 0.1, "l": 0.2, "f": 50}, lambda r: r["values"]["V_peak"], "V", 0.02, "Ulaby §6-3")
+     100 * 0.5 * 0.02 * 2 * PI * 50, "mx/faraday", {"mode": "motional", "N": 100, "B0": 0.5, "w": 0.1, "l": 0.2, "f": 50}, lambda r: r["values"]["V_peak"], "V", 0.02, "Ulaby §6-5")
 case("Maxwell & boundaries", "Sea water (εr 81, σ 4 S/m): |Jc| = |Jd| frequency", r"\frac{\sigma}{2\pi\varepsilon}",
      4 / (2 * PI * 81 * EPS0), "mx/currents", {"eps_r": 81, "sigma": 4, "f": 1e6}, lambda r: r["values"]["fc"], "Hz", 1e-9, "Ulaby §6-7")
+# inverse (design) questions: the engine root-finds on its forward model; theory solves the closed form for the unknown.
+# Givens are those of question-bank seed 1 (c4-ratio-freq, c4-gen-speed, c4-rhos).
+case("Maxwell & boundaries", "Inverse: εr 10, σ 3.3 S/m — frequency where |Jc|/|Jd| = 10", r"\frac{\sigma}{2\pi\varepsilon k}",
+     3.3 / (2 * PI * 10 * EPS0 * 10) / 1e6, "qb/check", {"id": "c4-ratio-freq", "seed": 1}, lambda r: r["answer"], "MHz", 1e-6, "Ulaby §6-7")
+case("Maxwell & boundaries", "Inverse: 50 turns, 0.086 × 0.29 m, 0.95 T — speed for 372 V peak", r"\frac{\hat V}{2\pi NBA}",
+     372 / (2 * PI * 50 * 0.95 * 0.086 * 0.29), "qb/check", {"id": "c4-gen-speed", "seed": 1}, lambda r: r["answer"], "rev/s", 0.01, "Ulaby §6-5")
+case("Maxwell & boundaries", "Inverse: εr 1 → 5, E₁ 1560 V/m at 58°, E₂n = 233.1 V/m — surface charge", r"\varepsilon_1E_{1n}-\varepsilon_2E_{2n}",
+     EPS0 * (1560 * math.cos(math.radians(58)) - 5 * 233.1) * 1e9, "qb/check", {"id": "c4-rhos", "seed": 1}, lambda r: r["answer"], "nC/m²", 1e-6, "Ulaby §4-8")
 
 # ---- 5 · plane waves
 case("Plane waves", "Free space, 1 GHz: wavelength", r"c/f", C0 / 1e9, "waves/solve", {"f": 1e9}, lambda r: r["values"]["wavelength"], "m", 1e-9, "Ulaby §7-2")
@@ -119,7 +127,7 @@ def run():
             ok = err <= 1e-9
         rows.append({"module": c["module"], "problem": c["problem"], "formula": c["formula"], "theory": th, "numeric": num,
                      "unit": c["unit"], "error_pct": err if th != 0 else None, "abs_error": None if th != 0 else err,
-                     "tol_pct": c["tol_pct"], "passed": bool(ok), "engine_checks_passed": bool(r.get("all_passed", True)),
+                     "tol_pct": c["tol_pct"], "passed": bool(ok), "engine_checks_passed": bool(r.get("all_passed", r.get("verified", True))),
                      "ref": c["ref"], "route": c["route"]})
     mods = []
     for m in dict.fromkeys(x["module"] for x in rows):
