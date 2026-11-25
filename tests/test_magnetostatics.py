@@ -46,3 +46,9 @@ def test_coax_inductance_value():
     # RG-58-like: μ0/2π ln(1.47/0.45) ≈ 0.237 µH/m
     L = ms.inductance("coax", a=0.45e-3, b=1.47e-3, length=1)["values"]["L"]
     assert L == pytest.approx(2e-7 * np.log(1.47 / 0.45), rel=1e-6)
+
+
+@pytest.mark.parametrize("ratio", [11.6, 50, 300])
+def test_coax_inductance_checks_hold_for_wide_ratios(ratio):
+    from engine import magnetostatics as ms
+    assert ms.inductance(kind="coax", a=1.2e-3, b=1.2e-3 * ratio, length=1.0)["all_passed"]

@@ -322,9 +322,11 @@ def inductance(kind, I=1.0, N=100, a=0.01, b=0.02, length=0.1, h=0.01, d=0.1, mu
         D.step("Coax (external)", rf"L=\frac{{\mu\ell}}{{2\pi}}\ln\frac{{b}}{{a}}={fmt(L)}", L, "H",
                note=f"{L / length:.4g} H/m; internal inductance μ/8π per metre of a solid inner conductor is not included")
         Bf = lambda s: mu * I / (2 * np.pi * s)
-        Wn = integrate.quad(lambda s: Bf(s) ** 2 / (2 * mu) * 2 * np.pi * s * length, a, b, epsrel=1e-12)[0]
-        flux = integrate.quad(Bf, a, b, epsrel=1e-12)[0] * length
-        D.check(r"\Lambda=\int_a^bB\,\ell\,dr", L * I, flux, 1e-10, "flux through the dielectric")
+        # integrate in u = ln r (dr = r du): the 1/r integrands become smooth, so quad stays accurate for any b/a
+        lr = lambda g: integrate.quad(lambda u: g(np.exp(u)) * np.exp(u), np.log(a), np.log(b), epsrel=1e-13)[0]
+        Wn = lr(lambda s: Bf(s) ** 2 / (2 * mu) * 2 * np.pi * s * length)
+        flux = lr(Bf) * length
+        D.check(r"\Lambda=\int_a^bB\,\ell\,dr", L * I, flux, 1e-10, "flux through the dielectric (quad in ln r)")
     elif kind == "toroid":
         if b <= a or h <= 0:
             raise ValueError("need b > a and h > 0")
