@@ -104,3 +104,36 @@ def test_maxwell_known_answers():
     assert get("Generator driving a load", 0) == pytest.approx(V, rel=2e-4)
     assert get("Generator driving a load", 1) == pytest.approx(V ** 2 / 20, rel=4e-4)
     assert get("Charge relaxation: copper vs distilled water") == pytest.approx(EPS0 / 5.8e7, rel=1e-12)
+
+
+def _ex(title):
+    return worked.solve(next(p["id"] for p in MAX if p["title"].startswith(title)))["explain"]
+
+
+def test_sea_water_uses_engine_crossover_and_ulaby_labels():
+    ex = _ex("Sea water")
+    fc = worked.solve(next(p["id"] for p in MAX if p["title"].startswith("Sea water")))
+    assert "near 1 GHz" not in ex["answer_text"]
+    assert "low-loss dielectric" in ex["answer_text"]
+    assert "lossy dielectric at 100 GHz" not in next(p["text"] for p in MAX if p["title"].startswith("Sea water"))
+
+
+def test_wet_soil_at_1ghz_is_quasi_conductor():
+    assert "quasi-conductor" in _ex("Wet soil")["whatif"][0]["say"]
+
+
+def test_relaxation_question_asks_only_what_it_answers():
+    p = next(p for p in MAX if p["title"].startswith("Charge relaxation"))
+    assert "Compare" not in p["text"]
+
+
+def test_wording_fixes_from_review():
+    assert "unless it is exactly normal" not in _ex("Why H in iron")["answer_text"]
+    assert "long sides" not in _ex("Zero flux")["answer_text"]
+    assert "which may be along B" not in _ex("Which way")["mistake"]
+    assert "εr from 1 to 4" not in _ex("What a surface charge")["evidence_say"]
+
+
+def test_transformer_problems_draw_a_tilted_loop():
+    for t in ("EMF in a tilted loop", "Which way"):
+        assert next(p for p in MAX if p["title"].startswith(t))["fig"]["type"] == "tloop"

@@ -29,6 +29,11 @@ def _i(rng, lo, hi):
     return int(rng.integers(lo, hi + 1))
 
 
+def _minus(x):
+    """Given data as written, with a typographic minus."""
+    return f"{x:g}".replace("-", "−")
+
+
 def _pick(rng, xs):
     return xs[int(rng.integers(0, len(xs)))]
 
@@ -198,22 +203,22 @@ q(id="c4-ratio-freq", chapter="maxwell", level=2, ref="Ulaby §6-7", unit="MHz",
 q(id="c4-rhos", chapter="maxwell", level=3, ref="Ulaby §4-8", unit="nC/m²", scale=1e9,
   gen=lambda r: _rhos_gen(r),
   text=lambda p: f"Medium 1 (εr = {p['e1']}) lies above medium 2 (εr = {p['e2']}). Just above the flat interface E₁ = {p['E']} V/m, pointing away from it at "
-                 f"{p['th']}° from the normal. A probe just below the interface measures the normal component E₂n = {p['E2n']:g} V/m "
+                 f"{p['th']}° from the normal. A probe just below the interface measures the normal component E₂n = {_minus(p['E2n'])} V/m "
                  f"(positive = pointing from medium 2 toward medium 1). What free surface charge density ρs is on the interface?",
   fig=lambda p: _ifig(p["e1"], p["e2"], p["th"]),
   solve=lambda p: _rhos(p),
   x=X(asked="The free surface charge ρs implied by the field measured on both sides of the interface.",
       idea="Gauss's law on a thin pill-box: the normal component of D jumps by exactly the free surface charge, D₁n − D₂n = ρs, "
            "with the normal pointing from medium 2 into medium 1.",
-      steps=[S("Normal D just above the interface.", r"D_{1n}=\varepsilon_0\varepsilon_{r1}E_1\cos\theta_1=«D1»\ \text{C/m}^2"),
-             S("Normal D just below, from the measured E₂n.", r"D_{2n}=\varepsilon_0\varepsilon_{r2}E_{2n}=«D2»\ \text{C/m}^2"),
+      steps=[S("Normal D just above the interface.", r"D_{1n}=\varepsilon_0\varepsilon_{r1}E_1\cos\theta_1=«D1»\ \text{nC/m}^2"),
+             S("Normal D just below, from the measured E₂n.", r"D_{2n}=\varepsilon_0\varepsilon_{r2}E_{2n}=«D2»\ \text{nC/m}^2"),
              S("The difference is the surface charge.", r"\rho_s=D_{1n}-D_{2n}=«rs»\ \text{nC/m}^2"),
              S("The engine also solves the forward problem for ρs by root finding and confirms it reproduces the measured E₂n.")],
       answer="ρs = «rs» nC/m²",
       whatif=[W("…the tangential field below the interface were asked?", lambda p: p, "ρs does not affect it: E₂t = E₁t = «t» V/m.", r"E_{2t}=E_1\sin\theta_1=«t»\ \text{V/m}"),
               W("…|E₂| and its angle were asked?", lambda p: p, "|E₂| = «F» V/m at θ₂ = «th2»° from the normal.", r"|E_2|=\sqrt{E_{2t}^2+E_{2n}^2}=«F»\ \text{V/m}")],
       mistake="Using ε₀ on both sides, or dropping the sign of E₂n. D, not E, carries the jump.",
-      vals={"D1": EV("flux", 0), "D2": EV("flux", 1), "rs": lambda r, p: r["values"]["source"] * 1e9, "t": EV("F2", 0), "F": EV("F2_mag"), "th2": EV("theta2_deg")}))
+      vals={"D1": lambda r, p: r["values"]["flux"][0] * 1e9, "D2": lambda r, p: r["values"]["flux"][1] * 1e9, "rs": lambda r, p: r["values"]["source"] * 1e9, "t": EV("F2", 0), "F": EV("F2_mag"), "th2": EV("theta2_deg")}))
 q(id="c4-slab", chapter="maxwell", level=3, ref="Ulaby §4-8", unit="°", abs_tol=0.2,
   gen=lambda r: {"e2": _pick(r, [2, 4, 10]), "e3": _pick(r, [3, 6, 9]), "th": _i(r, 10, 50), "E": _i(r, 50, 500)},
   text=lambda p: f"A static field E₁ = {p['E']} V/m in air makes θ₁ = {p['th']}° with the normal of a flat dielectric slab (εr = {p['e2']}) with parallel faces. "

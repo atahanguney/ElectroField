@@ -29,11 +29,13 @@ def W(q, change, say, tex=None):
 def Sweep(param, values, y, xlabel, ylabel, logx=False, logy=False):
     """Evidence plot: one engine run per value of `param`; y = extractor or [(name, extractor), …]."""
     ys = [(ylabel, y)] if callable(y) else list(y)
+    ys = [(t[0], t[1], t[2] if len(t) > 2 else None) for t in ys]   # (name, extractor, colour key: "E" | "H" | "S" | None)
     return {"sweep": param, "values": list(values), "ys": ys, "xlabel": xlabel, "ylabel": ylabel, "logx": logx, "logy": logy}
 
 
 def Series(x, ys, xlabel, ylabel, logx=False, logy=False):
     """Evidence plot from arrays of the base run; ys = [(name, extractor), …]."""
+    ys = [(t[0], t[1], t[2] if len(t) > 2 else None) for t in ys]
     return {"x": x, "ys": ys, "xlabel": xlabel, "ylabel": ylabel, "logx": logx, "logy": logy}
 
 
@@ -55,8 +57,10 @@ def P(key):
 def plain(x, sig=4):
     """Prose number: 78.95, 104.0, 1.234 × 10⁻³ (Unicode minus)."""
     x = float(x)
-    if not math.isfinite(x):
-        return "∞"
+    if math.isnan(x):
+        raise ValueError("cannot print NaN")
+    if math.isinf(x):
+        return "−∞" if x < 0 else "∞"
     if x == 0:
         return "0"
     sgn, a = ("−" if x < 0 else ""), abs(x)
@@ -84,6 +88,8 @@ def _exact(a, sig):
 
 
 def _tex(v):
+    if math.isinf(v):
+        return r"-\infty" if v < 0 else r"\infty"
     short = _exact(abs(v), 4)
     if short is not None and 1e-2 <= abs(v) < 1e6:
         return ("-" if v < 0 else "") + short
@@ -93,6 +99,8 @@ def _tex(v):
 def _scalar(v, name):
     if isinstance(v, (bool, np.bool_)) or not isinstance(v, (int, float, np.integer, np.floating)):
         raise TypeError(f"placeholder «{name}» must be a real number, got {type(v).__name__}")
+    if math.isnan(v):
+        raise ValueError(f"placeholder «{name}» is NaN")   # never print a plausible-looking ∞ for 0/0
     return float(v)
 
 
@@ -119,7 +127,7 @@ def render(x, run, params, result):
            "mistake": f(x["mistake"]), "whatif": [], "plot": None, "fig": None}
     for w in x["whatif"]:
         p2 = w["change"](dict(params))
-        r2 = run(p2)
+        r2 = result if p2 == params else run(p2)     # same question, different quantity: no re-run
         good = bool(r2.get("all_passed", True))
         ok = ok and good
         out["whatif"].append({"q": f(w["q"]), "say": f(w["say"], r2, p2), "tex": f(w["tex"], r2, p2, True), "verified": good})
@@ -130,12 +138,12 @@ def render(x, run, params, result):
             p2 = {**params, pl["sweep"]: v}
             r2 = run(p2)
             ok = ok and bool(r2.get("all_passed", True))
-            for col, (n, g) in zip(ys, pl["ys"]):
+            for col, (n, g, _) in zip(ys, pl["ys"]):
                 col.append(_scalar(g(r2, p2), n))
-        out["plot"] = {"x": num(pl["values"]), "ys": [{"name": n, "y": y} for (n, _), y in zip(pl["ys"], ys)],
+        out["plot"] = {"x": num(pl["values"]), "ys": [{"name": n, "y": y, "color": c} for (n, _, c), y in zip(pl["ys"], ys)],
                        **{k: pl[k] for k in ("xlabel", "ylabel", "logx", "logy")}}
     elif pl:
-        out["plot"] = {"x": num(pl["x"](result, params)), "ys": [{"name": n, "y": num(g(result, params))} for n, g in pl["ys"]],
+        out["plot"] = {"x": num(pl["x"](result, params)), "ys": [{"name": n, "y": num(g(result, params)), "color": c} for n, g, c in pl["ys"]],
                        **{k: pl[k] for k in ("xlabel", "ylabel", "logx", "logy")}}
     if x["fig"]:
         out["fig"] = {k: num(v) for k, v in x["fig"](result, params).items()}

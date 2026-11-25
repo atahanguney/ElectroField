@@ -328,7 +328,7 @@ px(T, U + "6-5", "basic", "Generator driving a load",
 px(T, U + "6-2", "basic", "EMF in a tilted loop",
    "A stationary 10-turn square loop, 10 cm on a side, sits in a uniform field B(t) = 0.05 cos(2π·1000 t) T. "
    "The field direction makes 30° with the loop's normal. Find the peak induced EMF.",
-   {"type": "generator", "N": 10}, "mx/faraday", {"mode": "transformer", "N": 10, "B0": 0.05, "w": 0.1, "l": 0.1, "f": 1000, "alpha_deg": 30},
+   {"type": "tloop", "N": 10, "alpha": 30}, "mx/faraday", {"mode": "transformer", "N": 10, "B0": 0.05, "w": 0.1, "l": 0.1, "f": 1000, "alpha_deg": 30},
    [("V̂", V("V_peak"), "V", 1)],
    X(asked="The amplitude of the EMF induced in a loop that does not move.",
      idea="Only the component of B along the loop's normal threads the loop. "
@@ -355,7 +355,7 @@ px(T, U + "6-7", "basic", "Wet soil: conductor or dielectric?",
             S("Set the ratio to 1 and solve for f.", r"f_c=\frac{\sigma}{2\pi\varepsilon_0\varepsilon_r}=«fc»\ \text{MHz}"),
             S("Below f_c the ratio is larger than 1, so conduction current dominates and the soil acts as a poor conductor.")],
      answer="f_c = «fc» MHz; below it conduction current dominates.",
-     whatif=[W("…the ratio at 1 GHz were asked?", lambda p: {**p, "f": 1e9}, "|J_c|/|J_d| = «ratio»: displacement current dominates and the soil behaves as a lossy dielectric.",
+     whatif=[W("…the ratio at 1 GHz were asked?", lambda p: {**p, "f": 1e9}, "|J_c|/|J_d| = «ratio»: displacement current is now the larger one, but neither is negligible, so the soil is a quasi-conductor (0.01 < σ/ωε < 100 in Ulaby's classification).",
                r"\frac{\sigma}{\omega\varepsilon}=«ratio»"),
              W("…the soil dried out to σ = 0.001 S/m?", lambda p: {**p, "sigma": 1e-3}, "f_c is proportional to σ and falls to «fc» MHz.", r"f_c\propto\sigma")],
      mistake="Calling a material a conductor or a dielectric without saying at which frequency.",
@@ -363,8 +363,7 @@ px(T, U + "6-7", "basic", "Wet soil: conductor or dielectric?",
 
 px(T, U + "6-10", "basic", "Charge relaxation: copper vs distilled water",
    "Excess free charge is placed inside a block of copper (σ = 5.8 × 10⁷ S/m, εr = 1). "
-   "How long does it take for the charge density inside to fall to 1/e of its initial value? "
-   "Compare with distilled water (εr = 81, σ = 2 × 10⁻⁴ S/m).",
+   "How long does it take for the charge density inside to fall to 1/e of its initial value?",
    {"type": "medium", "label": "copper"}, "mx/currents", {"eps_r": 1, "sigma": 5.8e7, "f": 1e6},
    [("τ_r", V("tau"), "s", 1)],
    X(asked="The relaxation time τ_r after which the interior charge density has dropped to 1/e.",
@@ -376,7 +375,7 @@ px(T, U + "6-10", "basic", "Charge relaxation: copper vs distilled water",
             S("This time is far shorter than the interval between electron collisions in the metal, so the real decay is slower than the model says. "
               "It is still instantaneous for any practical purpose.")],
      answer="τ_r = «tau» s for copper.",
-     whatif=[W("…distilled water were asked?", lambda p: {**p, "eps_r": 81, "sigma": 2e-4}, "τ_r = «tau» s: many orders of magnitude slower than copper, yet still very short.",
+     whatif=[W("…distilled water (εr = 81, σ = 2 × 10⁻⁴ S/m) were asked?", lambda p: {**p, "eps_r": 81, "sigma": 2e-4}, "τ_r = «tau» s: many orders of magnitude slower than copper, yet still very short.",
                r"\tau_r=\frac{81\,\varepsilon_0}{2\times10^{-4}}=«tau»\ \text{s}"),
              W("…sea water (εr = 81, σ = 4 S/m) were asked?", lambda p: {**p, "eps_r": 81, "sigma": 4}, "τ_r = «tau» s.", r"\tau_r=\varepsilon/\sigma=«tau»\ \text{s}")],
      mistake="Thinking the charge leaves the conductor. It moves to the surface and stays there.",
@@ -398,7 +397,7 @@ px(T, U + "4-8", "basic", "Why tangential E cannot jump",
                  "The normal component is governed by Gauss's law, which constrains D = εE rather than E. With different permittivities E_n therefore jumps; "
                  "without surface charge it changes by the factor ε₁/ε₂.",
      evidence_say="Engine runs with E₁ = 100 V/m at 40° from the normal: E₂t stays at «t» V/m for every εr₂ in the plot, while E₂n falls as 1/εr₂.",
-     plot=Sweep("eps2", [1, 2, 4, 8, 16], [("tangential E₂t", EV("F2", 0)), ("normal E₂n", EV("F2", 1))], "relative permittivity of medium 2, εr₂", "field in medium 2 (V/m)", logx=True),
+     plot=Sweep("eps2", [1, 2, 4, 8, 16], [("tangential E₂t", EV("F2", 0), "E"), ("normal E₂n", EV("F2", 1))], "relative permittivity of medium 2, εr₂", "field in medium 2 (V/m)", logx=True),
      mistake="Assuming E_n is continuous too. Without surface charge it is D_n that is continuous.",
      vals={"t": EV("F2", 0)}), "concept")
 
@@ -415,8 +414,8 @@ px(T, U + "4-8", "exam", "What a surface charge does to D",
                  "Tangential E is unaffected, because the loop argument still applies. "
                  "The jump is independent of ε₁ and ε₂ because D is defined so that its flux counts free charge only; the bound polarisation charge of each dielectric is already built into ε. "
                  "The normal E, by contrast, jumps by an amount that does depend on the materials.",
-     evidence_say="Engine runs (E₁ = 100 V/m at 40°, εr from 1 to 4): D₁n stays fixed while D₂n falls one-for-one with ρs, so the gap between the curves is always ρs.",
-     plot=Sweep("source", [0, 2e-10, 4e-10, 6e-10], [("D₁n above the sheet", EV("flux", 0)), ("D₂n below the sheet", EV("flux", 1))],
+     evidence_say="Engine runs (E₁ = 100 V/m at 40°, εr₁ = 1, εr₂ = 4): D₁n stays fixed while D₂n falls one-for-one with ρs, so the gap between the curves is always ρs.",
+     plot=Sweep("source", [0, 2e-10, 4e-10, 6e-10], [("D₁n above the sheet", EV("flux", 0), "E"), ("D₂n below the sheet", EV("flux", 1))],
                 "surface charge ρs (C/m²)", "normal D (C/m²)"),
      mistake="Putting ρs into a condition on E with ε₀. The clean statement is for D.",
      vals={}), "concept")
@@ -430,13 +429,13 @@ px(T, U + "5-6", "exam", "Why H in iron hugs the surface",
      steps=[S("Tangential H is continuous and normal B = μH is continuous."),
             S("Dividing the two conditions gives the refraction law.", r"\frac{\tan\theta_2}{\tan\theta_1}=\frac{\mu_2}{\mu_1}"),
             S("For μ₂/μ₁ in the thousands tan θ₂ is huge, so θ₂ is close to 90°: H runs almost parallel to the surface.")],
-     answer_text="Inside the high-μ material H and B bend toward the surface and run almost parallel to it, whatever the angle outside, unless it is exactly normal. "
+     answer_text="Inside the high-μ material H and B bend toward the surface and run almost parallel to it, for any outside angle except those within a tiny fraction of a degree of the normal (θ₂ ≈ 90° needs μr tan θ₁ ≫ 1). "
                  "Field lines therefore prefer to travel inside the material, along its walls. "
                  "A closed box of such material collects the flux and guides it around the enclosed space, so the field inside the box is much weaker. "
                  "This is magnetic shielding with mu-metal or soft iron.",
      evidence_say="Engine runs with H₁ at 30° from the normal: θ₂ climbs toward 90° as μr₂ grows (at μr₂ = 1000 it is «th»°).",
-     plot=Sweep("mu2", [1, 3, 10, 30, 100, 300, 1000], EV("theta2_deg"), "relative permeability of medium 2, μr₂", "angle of H₂ from the normal, θ₂ (°)", logx=True),
-     mistake="Thinking H goes straight into the iron. That happens only at exactly normal incidence.",
+     plot=Sweep("mu2", [1, 3, 10, 30, 100, 300, 1000], [("θ₂ of H₂", EV("theta2_deg"), "H")], "relative permeability of medium 2, μr₂", "angle of H₂ from the normal, θ₂ (°)", logx=True),
+     mistake="Thinking H goes straight into the iron. That happens only at, or extremely close to, normal incidence.",
      vals={"th": EV("theta2_deg")}), "concept")
 
 _gen = {"mode": "motional", "N": 50, "B0": 0.3, "w": 0.2, "l": 0.2, "f": 60, "R": 10}
@@ -450,11 +449,11 @@ px(T, U + "6-5", "exam", "Zero flux, maximum EMF",
             S("The flux is zero where cos Ωt = 0, and there sin Ωt = ±1."),
             S("So the EMF is at its peak, «V» V, at the very instant the flux is zero.")],
      answer_text="No, it is at its maximum. With the coil's plane parallel to B the flux through it is zero, but it is changing fastest: "
-                 "the long sides of the coil cut across the field lines at full speed. "
+                 "the two sides parallel to the rotation axis cut across the field lines at full speed. "
                  "Faraday's law depends on dΦ/dt, and for Φ ∝ cos Ωt the slope is steepest where Φ crosses zero. "
                  "Conversely, when the coil faces the field squarely the flux is largest but momentarily not changing, and the EMF is zero.",
      evidence_say="Engine curves over two revolutions: every zero of the flux lines up with a peak of the EMF.",
-     plot=Series(lambda r, p: r["t"], [("flux NΦ", _norm("Phi")), ("EMF", _norm("emf"))], "time t (s)", "normalised (peak = 1)"),
+     plot=Series(lambda r, p: r["t"], [("flux NΦ", _norm("Phi"), "H"), ("EMF", _norm("emf"))], "time t (s)", "normalised (peak = 1)"),
      mistake="Linking the EMF to the flux itself rather than to its rate of change.",
      vals={"V": EV("V_peak")}), "concept")
 
@@ -462,7 +461,7 @@ px(T, U + "6-1", "basic", "Which way does the induced current flow?",
    "A fixed loop sits in a uniform field B(t) = B₀ cos ωt directed along the loop's normal. "
    "While the flux through the loop is increasing, does the induced current create a field that adds to B or opposes it? "
    "What would go wrong if it were the other way round?",
-   {"type": "generator", "N": 1}, "mx/faraday", {"mode": "transformer", "N": 1, "B0": 0.05, "w": 0.1, "l": 0.1, "f": 1000}, [],
+   {"type": "tloop", "N": 1, "alpha": 0}, "mx/faraday", {"mode": "transformer", "N": 1, "B0": 0.05, "w": 0.1, "l": 0.1, "f": 1000}, [],
    X(asked="The direction of the induced field relative to B while the flux grows, and why it must be so.",
      idea="Faraday's law carries a minus sign, V_emf = −N dΦ/dt. That sign is Lenz's law.",
      steps=[S("A positive EMF drives current in the sense that, by the right-hand rule, makes flux along the chosen normal."),
@@ -472,8 +471,8 @@ px(T, U + "6-1", "basic", "Which way does the induced current flow?",
                  "while the flux is decreasing, the induced field points along B. This is Lenz's law, the minus sign in Faraday's law. "
                  "If it were the other way, a small increase in flux would induce a current that increases the flux further, a runaway that would create energy from nothing.",
      evidence_say="Engine curves: wherever the flux curve rises, the EMF curve is negative, and wherever it falls, the EMF is positive.",
-     plot=Series(lambda r, p: r["t"], [("flux NΦ", _norm("Phi")), ("EMF", _norm("emf"))], "time t (s)", "normalised (peak = 1)"),
-     mistake="Saying the induced field always opposes B. It opposes the change in flux, which may be along B.",
+     plot=Series(lambda r, p: r["t"], [("flux NΦ", _norm("Phi"), "H"), ("EMF", _norm("emf"))], "time t (s)", "normalised (peak = 1)"),
+     mistake="Saying the induced field always opposes B. It opposes the change in flux, so while the flux is falling the induced field points along B.",
      vals={}), "concept")
 
 px(T, U + "6-7", "exam", "Why Ampère's law needs displacement current",
@@ -498,7 +497,7 @@ px(T, U + "6-7", "exam", "Why Ampère's law needs displacement current",
      vals={"Jd": EV("Jd")}), "concept")
 
 px(T, U + "6-7, 7-4", "exam", "Sea water: conductor at 1 kHz, dielectric at 100 GHz?",
-   "Sea water has σ ≈ 4 S/m and εr ≈ 81. In the constant-εr model it is a good conductor at 1 kHz but a lossy dielectric at 100 GHz. "
+   "Sea water has σ ≈ 4 S/m and εr ≈ 81. In the constant-εr model it is a good conductor at 1 kHz but a low-loss dielectric at 100 GHz. "
    "Explain the change, and say what this simple model leaves out at the high-frequency end.",
    {"type": "medium", "label": "sea water"}, "mx/currents", {"eps_r": 81, "sigma": 4, "f": 1e3}, [],
    X(asked="Why the same material is a conductor at low frequency and a dielectric at high frequency, and where the model fails.",
@@ -509,7 +508,7 @@ px(T, U + "6-7, 7-4", "exam", "Sea water: conductor at 1 kHz, dielectric at 100 
               r"f_c=\frac{\sigma}{2\pi\varepsilon}=«fc»\ \text{GHz}")],
      answer_text="The conduction term σE does not change with frequency, while the displacement term ωεE rises in proportion to it. "
                  "Their ratio is enormous at 1 kHz, so sea water acts as a conductor and radio barely penetrates it. "
-                 "The ratio passes through 1 near 1 GHz and is well below 1 at 100 GHz, where the model calls the water a lossy dielectric. "
+                 "The ratio passes through 1 at f_c = «fc» GHz, and at 100 GHz it is below 0.01, Ulaby's threshold for a low-loss dielectric. "
                  "The model leaves out that water's own permittivity is not constant: the dipole relaxation of water molecules, centred near 20 GHz, "
                  "lowers εr to under 10 at 100 GHz and adds a large loss of its own (Meissner & Wentz, 2004). Real sea water at 100 GHz is therefore far lossier than σ alone predicts.",
      evidence_say="Engine runs of σ/ωε from 1 kHz to 100 GHz: a straight line on log–log axes with slope −1, crossing 1 at f_c.",

@@ -100,3 +100,16 @@ def test_question_figure_shows_givens_only():
     assert g["fig"]["type"] == "interface" and "theta2" not in g["fig"]
     assert qb.generate(qid="c5-skin", seed=3)["fig"] is None
 
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_rhos_uses_one_unit_and_unicode_minus(seed):
+    out = qb.check("c4-rhos", seed)
+    assert all("C/m" not in s["tex"] or "nC/m" in s["tex"] for s in out["explain"]["steps"] if s["tex"])
+    g = qb.generate(qid="c4-rhos", seed=seed)
+    assert "= -" not in g["text"]
+
+
+def test_rhos_negative_measurement_prints_unicode_minus():
+    seed = next(s for s in range(400) if qb.BY_ID["c4-rhos"]["gen"](np.random.default_rng(s))["E2n"] < 0)
+    assert "E₂n = −" in qb.generate(qid="c4-rhos", seed=seed)["text"]

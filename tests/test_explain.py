@@ -87,3 +87,28 @@ def test_sweep_with_several_traces():
     assert [y["name"] for y in ys] == ["E₂t", "E₂n"]
     n1 = 132 * math.cos(math.radians(52))
     assert ys[1]["y"] == pytest.approx([n1, n1 / 4], rel=1e-12)
+
+
+def test_nan_raises_instead_of_printing_infinity():
+    with pytest.raises(ValueError):
+        _go(X(asked="«f»", idea="", steps=[], vals={"f": lambda r, p: float("nan")}))
+
+
+def test_negative_infinity_keeps_sign():
+    assert plain(float("-inf")) == "−∞" and plain(float("inf")) == "∞"
+
+
+def test_identity_whatif_reuses_base_run():
+    calls = []
+    def counted(q):
+        calls.append(q)
+        return mx.boundary(**q)
+    x = X(asked="", idea="", steps=[], vals={"th": V("theta2_deg")}, whatif=[W("same?", lambda p: p, "«th»")])
+    render(x, counted, BASE, mx.boundary(**BASE))
+    assert calls == []
+
+
+def test_trace_colour_key_passes_through():
+    x = X(asked="", idea="", steps=[], plot=Sweep("eps2", [1, 4], [("E₂t", V("F2", 0), "E"), ("E₂n", V("F2", 1))], "εr₂", "E (V/m)"))
+    ys = _go(x)["plot"]["ys"]
+    assert ys[0]["color"] == "E" and ys[1]["color"] is None
