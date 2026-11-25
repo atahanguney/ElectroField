@@ -4,7 +4,7 @@ Interactive applied-electromagnetics workbench (Ulaby & Ravaioli / Cheng notatio
 
 ## Architecture
 - `engine/` — all physics (NumPy/SciPy). Every solver returns `Derivation.out(...)`: `values`, `steps` (TeX), `checks` (independent verification), `all_passed`.
-- `engine/routes.py` — the same routes without FastAPI; GitHub Pages runs it in the browser via Pyodide (`web/js/api.js` picks server or Pyodide). New route ⇒ add it to both `server/main.py` and `ROUTES`, and a case in `tests/test_routes.py` (parity test). New engine file ⇒ add it to `ENGINE_FILES` in `web/js/api.js`. Test the static build locally with `/?backend=pyodide`.
+- `engine/routes.py` — the same routes without FastAPI; GitHub Pages runs it in the browser via Pyodide (`web/js/api.js` picks server or Pyodide). New route ⇒ add it to both `server/main.py` and `ROUTES`, and a case in `tests/test_routes.py` (parity test). New engine file ⇒ add it to `engine/manifest.json` (Pyodide reads the list from there, fresh) and to the fallback `ENGINE_FILES` in `web/js/api.js`; `tests/test_engine_manifest.py` checks both. Test the static build locally with `/?backend=pyodide`.
 - `server/main.py` — FastAPI, thin `/api/*` wrappers; also serves `web/` and `/vendor/plotly.min.js` from the plotly pip package.
 - `web/` — vanilla ES modules, Plotly, KaTeX (CDN). `js/app.js` = router + chapter list; one file per chapter in `js/modules/`; shared helpers in `js/ui.js`. The frontend never computes physics (only Re{phasor·e^{jωt}} for animation and drawing aids).
 - `tests/` — pytest against textbook closed forms and limits. `python -m pytest -q -p no:anyio tests`
