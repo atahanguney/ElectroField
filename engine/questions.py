@@ -10,7 +10,7 @@ import numpy as np
 from . import dimensions as dm
 from . import coordinates as co, electrostatics as es, magnetostatics as ms, maxwell as mx
 from . import radiation as ra, reflection as rf, tlines as tl, waves as wv
-from .constants import C0
+from .constants import C0, EPS0
 from .explain import X, S, W, V as EV, P, render, invert
 
 
@@ -314,6 +314,289 @@ q(id="c8-array-steer", chapter="radiation", level=2, ref="Ulaby §10-4", unit="�
   text=lambda p: f"A uniform linear array of {p['N']} elements spaced {p['d']}λ apart is fed with a progressive phase δ = {p['dl']}°. "
                  f"At what angle from the array axis does the main beam point?",
   solve=lambda p: _arr(p))
+
+
+# ---------------- level 2–3 templates for chapters 0–3 and 5–8 (design / inverse / combined problems)
+q(id="c0-lossy-spread", chapter="dimensions", level=3, ref="Ulaby §7-4, §9-1", unit="dB", abs_tol=0.1,
+  gen=lambda r: {"f": _pick(r, [10, 30, 100]), "s": _pick(r, [0.005, 0.01, 0.03]), "r1": _pick(r, [2, 3, 5]), "k": _pick(r, [2, 3])},
+  text=lambda p: f"A small antenna buried in moist soil (εr = 20, σ = {p['s']} S/m, both taken as constant) radiates at {p['f']} MHz. "
+                 f"Treating it as a point source, by how many dB does the field level change between {p['r1']} m and {p['k'] * p['r1']} m from it?",
+  fig=lambda p: {"type": "dims", "dim": "3D"},
+  solve=lambda p: _lossy(p),
+  x=X(asked="The total change in field level between the two distances, spreading and absorption together.",
+      idea="Two effects multiply: spherical spreading makes |E| ∝ 1/R, and the lossy soil adds e^(−αR). In decibels the two simply add.",
+      steps=[S("Attenuation constant of the soil at this frequency (exact formula, since σ/ωε is neither small nor large).", r"\alpha=\omega\sqrt{\tfrac{\mu\varepsilon}{2}\Big[\sqrt{1+(\sigma/\omega\varepsilon)^2}-1\Big]}=«a»\ \text{Np/m}"),
+             S("Spreading loss between the two distances.", r"\Delta L_{spread}=20\log_{10}\frac{R_1}{R_2}=«ls»\ \text{dB}"),
+             S("Absorption over the extra path, with 1 Np = 20 log₁₀ e dB.", r"\Delta L_{abs}=-20\log_{10}(e)\,\alpha\,(R_2-R_1)=«la»\ \text{dB}"),
+             S("Add the two.", r"\Delta L=\Delta L_{spread}+\Delta L_{abs}=«dl»\ \text{dB}")],
+      answer="ΔL = «dl» dB",
+      whatif=[W("…the soil were lossless?", lambda p: {**p, "s": 1e-12}, "Only spreading is left: ΔL = «dl» dB.", r"\Delta L=20\log_{10}(R_1/R_2)=«dl»\ \text{dB}"),
+              W("…the frequency were ten times higher?", lambda p: {**p, "f": 10 * p["f"]}, "α grows with frequency, so ΔL = «dl» dB.", r"\Delta L=«dl»\ \text{dB}")],
+      mistake="Adding the spreading and absorption as amplitude ratios. Multiply the ratios, or add them in dB.",
+      vals={"a": EV("alpha"), "ls": EV("dl_spread"), "la": EV("dl_abs"), "dl": EV("dlevel")}))
+
+q(id="c1-vec-theta", chapter="coordinates", level=3, ref="Ulaby §3-3.3", unit="", abs_tol=0.01,
+  gen=lambda r: (lambda x, y: {"x": x, "y": y, "z": _i(r, -4, 4), "Ax": _i(r, -4, 4), "Ay": _i(r, -4, 4), "Az": _pick(r, [-3, -2, 1, 2, 3])})(_pick(r, [-3, -2, -1, 1, 2, 3]), _i(r, -3, 3)),
+  text=lambda p: f"At the point P = ({p['x']}, {p['y']}, {p['z']}) m a vector field has the value A = {p['Ax']} x̂ + {p['Ay']} ŷ + {p['Az']} ẑ "
+                 f"(any unit). Find its spherical component A_θ at P.".replace("+ -", "− "),
+  fig=lambda p: {"type": "coord", "system": "spherical", "point": [p["x"], p["y"], p["z"]]},
+  solve=lambda p: _vec(p),
+  x=X(asked="The θ-component of A at P, i.e. the projection of A on the unit vector θ̂ at that point.",
+      idea="Spherical unit vectors change from point to point. Find θ and φ of P first, write θ̂ in Cartesian components there, and take the dot product.",
+      steps=[S("Angles of the point.", r"\theta=\cos^{-1}\frac{z}{R}=«th»^\circ,\qquad\phi=\operatorname{atan2}(y,x)=«ph»^\circ"),
+             S("Unit vector θ̂ at P in Cartesian components.", r"\hat\theta=\cos\theta\cos\phi\,\hat x+\cos\theta\sin\phi\,\hat y-\sin\theta\,\hat z"),
+             S("Project A on θ̂.", r"A_\theta=\mathbf A\cdot\hat\theta=«at»")],
+      answer="A_θ = «at»",
+      whatif=[W("…A_R were asked?", lambda p: p, "A_R = A·R̂ = «ar».", r"A_R=\mathbf A\cdot\hat R=«ar»"),
+              W("…A_φ were asked?", lambda p: p, "A_φ = A·φ̂ = «ap»; it has no z part because φ̂ is horizontal.", r"A_\phi=-A_x\sin\phi+A_y\cos\phi=«ap»")],
+      mistake="Using the unit vectors at a different point, or the angles of A instead of the angles of P.",
+      vals={"th": lambda r, p: math.degrees(r["values"]["point"][1]), "ph": lambda r, p: math.degrees(r["values"]["point"][2]),
+            "ar": EV("vector", 0), "at": EV("vector", 1), "ap": EV("vector", 2)}))
+
+q(id="c2-coax-opt", chapter="electrostatics", level=3, ref="Ulaby §4-9, §4-10", unit="mm", scale=1e3, tol=0.005,
+  gen=lambda r: {"b": _pick(r, [2, 3, 5, 8]), "Ebd": _pick(r, [3, 20, 60])},
+  text=lambda p: f"A coaxial cable must fit inside an outer conductor of radius b = {p['b']} mm and is insulated with a dielectric of strength {p['Ebd']} MV/m. "
+                 f"Which inner-conductor radius a lets the cable hold the highest voltage before breakdown?",
+  fig=lambda p: {"type": "coax", "a": p["b"] / 4, "b": p["b"], "label": f"b = {p['b']} mm, a = ?"},
+  solve=lambda p: _coax_opt(p),
+  x=X(asked="The inner radius a that maximises the breakdown voltage for a fixed outer radius b.",
+      idea="The field is strongest at the inner conductor, so breakdown starts there. A thin wire concentrates the field; a fat one leaves too thin a gap. The best a sits in between.",
+      steps=[S("Field at the inner conductor for a voltage V.", r"E_{max}=\frac{V}{a\ln(b/a)}"),
+               S("Breakdown voltage as a function of a.", r"V_{bd}(a)=E_{bd}\,a\ln\frac{b}{a}"),
+               S("Set dV_bd/da = 0: ln(b/a) − 1 = 0, so a = b/e.", r"a_{opt}=\frac{b}{e}=«a»\ \text{mm}"),
+               S("The engine finds the same a by maximising its own V_bd(a) numerically.", r"V_{max}=E_{bd}\,a_{opt}=«V»\ \text{kV}")],
+      answer="a = «a» mm (b/a = e)",
+      whatif=[W("…the highest voltage itself were asked?", lambda p: p, "V_max = E_bd b/e = «V» kV.", r"V_{max}=\frac{E_{bd}b}{e}=«V»\ \text{kV}"),
+              W("…the dielectric were twice as strong?", lambda p: {**p, "Ebd": 2 * p["Ebd"]}, "The optimum radius does not move («a» mm); only V_max doubles to «V» kV.", r"a_{opt}=b/e=«a»\ \text{mm}")],
+      mistake="Making the inner conductor as thin as possible. The field at its surface then grows without bound and breakdown comes early.",
+      vals={"a": lambda r, p: r["values"]["a_opt"] * 1e3, "V": lambda r, p: r["values"]["V_max"] / 1e3}))
+
+q(id="c2-null-point", chapter="electrostatics", level=2, ref="Ulaby §4-3", unit="cm", scale=100,
+  gen=lambda r: {"q1": _pick(r, [1, 2, 3]), "q2": _pick(r, [4, 5, 8, 9]), "d": _pick(r, [20, 30, 50])},
+  text=lambda p: f"Point charges q₁ = {p['q1']} nC at the origin and q₂ = {p['q2']} nC at x = {p['d']} cm lie in free space. "
+                 f"At what point between them is the electric field zero? Give its distance from q₁.",
+  fig=lambda p: {"type": "charges", "charges": [[p["q1"], 0, 0], [p["q2"], p["d"] / 100, 0]]},
+  solve=lambda p: _null(p),
+  x=X(asked="The position on the segment between the charges where the two fields cancel.",
+      idea="Between two charges of the same sign their fields point in opposite directions, so they cancel where their magnitudes are equal. That point is closer to the smaller charge.",
+      steps=[S("Equal magnitudes at distance x from q₁.", r"\frac{q_1}{x^2}=\frac{q_2}{(d-x)^2}"),
+             S("Take the square root (both sides positive between the charges) and solve.", r"x=\frac{d}{1+\sqrt{q_2/q_1}}=«x»\ \text{cm}"),
+             S("The engine finds the same point by searching for E_x = 0 along the axis; the residual field there is «res» V/m.")],
+      answer="x = «x» cm from q₁",
+      whatif=[W("…the two charges were equal?", lambda p: {**p, "q2": p["q1"]}, "By symmetry the null is at the midpoint: x = «x» cm.", r"x=d/2=«x»\ \text{cm}"),
+              W("…q₂ were four times q₁?", lambda p: {**p, "q2": 4 * p["q1"]}, "√4 = 2, so x = d/3 = «x» cm.", r"x=\frac{d}{1+2}=«x»\ \text{cm}")],
+      mistake="Looking for the null between charges of opposite sign. Then the fields add there, and any null lies outside, beyond the smaller charge.",
+      vals={"x": lambda r, p: r["values"]["x0"] * 100, "res": EV("E", 0)}))
+
+q(id="c3-loop-half", chapter="magnetostatics", level=3, ref="Ulaby §5-2.2", unit="cm", scale=100, tol=0.005,
+  gen=lambda r: {"a": _pick(r, [5, 8, 10, 15, 20]), "I": _pick(r, [1, 2, 5])},
+  text=lambda p: f"A circular loop of radius {p['a']} cm carries {p['I']} A. How far from its centre, along its axis, has the magnetic flux density dropped to half its value at the centre?",
+  fig=lambda p: {"type": "loop", "z": 1},
+  solve=lambda p: _half(p),
+  x=X(asked="The distance z along the axis where B(z) = B(0)/2.",
+      idea="On the axis every element of the loop contributes the same axial component, which gives a closed form for B(z). Divide it by the centre value and solve.",
+      steps=[S("Field on the axis of a loop.", r"B(z)=\frac{\mu_0Ia^2}{2(a^2+z^2)^{3/2}},\qquad B(0)=\frac{\mu_0I}{2a}=«b0»\ \mu\text{T}"),
+             S("Set the ratio to one half.", r"\Big(1+\frac{z^2}{a^2}\Big)^{3/2}=2"),
+             S("Solve for z; the current cancels.", r"z=a\sqrt{2^{2/3}-1}=«z»\ \text{cm}")],
+      answer="z = «z» cm",
+      whatif=[W("…the current were doubled?", lambda p: {**p, "I": 2 * p["I"]}, "Both B(z) and B(0) double, so z is unchanged: «z» cm.", r"z=«z»\ \text{cm}"),
+              W("…the loop radius were doubled?", lambda p: {**p, "a": 2 * p["a"]}, "z scales with a: «z» cm.", r"z\propto a")],
+      mistake="Using the far-field dipole law B ∝ 1/z³ so close to the loop; it only holds for z ≫ a.",
+      vals={"z": lambda r, p: r["values"]["z_half"] * 100, "b0": lambda r, p: r["values"]["B_center"] * 1e6}))
+
+q(id="c5-depth-freq", chapter="waves", level=3, ref="Ulaby §7-4", unit="kHz", scale=1e-3, tol=0.01,
+  gen=lambda r: {"d": _pick(r, [5, 10, 20, 50]), "L": _pick(r, [20, 40, 60])},
+  text=lambda p: f"A submarine at a depth of {p['d']} m receives a signal from just above the sea surface. Sea water has εr = 81 and σ = 4 S/m. "
+                 f"If at most {p['L']} dB of attenuation through the water can be tolerated, what is the highest usable frequency?",
+  fig=lambda p: {"type": "slab", "label": "sea water"},
+  solve=lambda p: _depth_f(p),
+  x=X(asked="The frequency at which the attenuation over the given depth equals the allowed loss.",
+      idea="Attenuation in a good conductor grows as √f, so the allowed loss fixes α and α fixes f. Check afterwards that sea water really is a good conductor at that frequency.",
+      steps=[S("Allowed attenuation per metre.", r"\alpha_{dB}=\frac{L}{d}=«adb»\ \text{dB/m},\qquad\alpha=\frac{\alpha_{dB}}{20\log_{10}e}=«a»\ \text{Np/m}"),
+             S("Good-conductor law solved for f.", r"\alpha=\sqrt{\pi f\mu\sigma}\ \Rightarrow\ f=\frac{\alpha^2}{\pi\mu_0\sigma}=«f»\ \text{kHz}"),
+             S("Check: at this frequency σ/ωε = «lt», far above 1, so the good-conductor law was justified.")],
+      answer="f_max = «f» kHz",
+      whatif=[W("…the submarine went twice as deep?", lambda p: {**p, "d": 2 * p["d"]}, "f ∝ 1/d², so the limit drops to a quarter: «f» kHz.", r"f=«f»\ \text{kHz}"),
+              W("…twice the loss were allowed?", lambda p: {**p, "L": 2 * p["L"]}, "f ∝ L², so it quadruples: «f» kHz.", r"f=«f»\ \text{kHz}")],
+      mistake="Treating the loss as linear in f. In a good conductor α ∝ √f, so the usable frequency scales with the square of the allowed loss.",
+      vals={"adb": EV("alpha_dB"), "a": EV("alpha"), "f": lambda r, p: r["values"]["f"] / 1e3, "lt": EV("loss_tangent")}))
+
+q(id="c6-angle-R", chapter="reflection", level=3, ref="Ulaby §8-4", unit="°", abs_tol=0.3,
+  gen=lambda r: _angR_gen(r),
+  text=lambda p: f"A perpendicularly polarised plane wave in air is incident on a non-magnetic dielectric half-space with εr = {p['er']}. "
+                 f"At what angle of incidence is {p['R']:g} % of the incident power reflected?",
+  fig=lambda p: {"type": "oblique", "e1": 1, "e2": p["er"], "theta": 50},
+  solve=lambda p: _angR(p),
+  x=X(asked="The angle of incidence at which the perpendicular-polarisation reflectivity equals the given value.",
+      idea="R⊥ rises steadily from its normal-incidence value to 100 % at grazing incidence, so exactly one angle gives the target. The Fresnel formula has no closed-form inverse, so it is solved numerically.",
+      steps=[S("Fresnel coefficient for perpendicular polarisation, with Snell's law for θ_t.", r"\Gamma_\perp=\frac{\eta_2\cos\theta_i-\eta_1\cos\theta_t}{\eta_2\cos\theta_i+\eta_1\cos\theta_t},\qquad\sin\theta_t=\frac{\sin\theta_i}{\sqrt{\varepsilon_r}}"),
+             S("At normal incidence R⊥ = «r0» %, below the target, so the answer is oblique.", None),
+             S("Solve R⊥(θ_i) = |Γ⊥|² for θ_i by root finding.", r"\theta_i=«th»^\circ,\qquad\theta_t=«tt»^\circ")],
+      answer="θ_i = «th»°",
+      whatif=[W("…the wave were parallel-polarised at that angle?", lambda p: p, "R∥ = «rp» %, lower, because it passes through zero at the Brewster angle.", r"R_\parallel=«rp»\ \%"),
+              W("…the transmitted power fraction were asked?", lambda p: p, "T⊥ = 1 − R⊥ = «tp» %.", r"T_\perp=«tp»\ \%")],
+      mistake="Using the normal-incidence formula ((n₂ − n₁)/(n₂ + n₁))² at an oblique angle.",
+      vals={"r0": lambda r, p: r["values"]["R0"] * 100, "th": EV("theta_i"), "tt": EV("theta_t"),
+            "rp": lambda r, p: r["values"]["R_par"] * 100, "tp": lambda r, p: r["values"]["T_perp"] * 100}))
+
+q(id="c7-stub", chapter="tlines", level=3, ref="Ulaby §2-11", unit="λ", abs_tol=0.002,
+  gen=lambda r: {"Z0": 50, "R": _pick(r, [25, 35, 75, 100, 150]), "X": _pick(r, [-50, -30, 20, 40, 60])},
+  text=lambda p: f"A {p['Z0']} Ω lossless line feeds a load Z_L = {p['R']} {'+' if p['X'] >= 0 else '−'} j{abs(p['X'])} Ω. "
+                 f"It is to be matched with a single short-circuited shunt stub of the same line. Find the shortest distance d from the load to the stub, in wavelengths.",
+  fig=lambda p: {"type": "tline", "Z0": f"{p['Z0']} Ω", "ZL": f"{p['R']} {'+' if p['X'] >= 0 else '−'} j{abs(p['X'])} Ω", "stub": True},
+  solve=lambda p: _stub(p),
+  x=X(asked="The shortest distance from the load to the point where a shunt stub can complete the match.",
+      idea="Moving away from the load rotates the normalised admittance around a circle of constant |Γ|. At the right distance its real part is exactly 1; the stub then cancels the leftover susceptance.",
+      steps=[S("Load reflection coefficient.", r"\Gamma_L=\frac{Z_L-Z_0}{Z_L+Z_0},\qquad|\Gamma_L|=«gm»"),
+             S("Walk towards the generator until the normalised admittance is y = 1 + jb.", r"d=«d»\,\lambda,\qquad b=«b»"),
+             S("A short-circuited stub of length ℓ supplies −jb and leaves y = 1.", r"\ell=«l»\,\lambda")],
+      answer="d = «d» λ (stub length «l» λ)",
+      whatif=[W("…the stub length were asked?", lambda p: p, "ℓ = «l» λ for this solution.", r"\ell=«l}\,\lambda".replace("«l}", "«l»")),
+              W("…the load were purely resistive (X = 0)?", lambda p: {**p, "X": 0}, "d = «d» λ.", r"d=«d»\,\lambda")],
+      mistake="Matching impedances instead of admittances. A shunt stub adds admittance, so the walk must reach g = 1, not r = 1.",
+      vals={"gm": EV("Gamma_mag"), "d": EV("d_lambda"), "b": EV("b_stub"), "l": EV("l_lambda")}))
+
+q(id="c8-wg-band", chapter="radiation", level=3, ref="Ulaby §8-10", unit="GHz", scale=1e-9, tol=0.005,
+  gen=lambda r: {"a": _pick(r, [22.86, 15.8, 34.85]), "ba": _pick(r, [0.3, 0.45, 0.6, 0.7])},
+  text=lambda p: f"An air-filled rectangular waveguide has a = {p['a']} mm and b = {_nice(p['a'] * p['ba'], 4)} mm. "
+                 f"Only the TE₁₀ mode may propagate. What is the highest frequency at which this is still true?",
+  fig=lambda p: {"type": "waveguide", "a": p["a"], "b": _nice(p["a"] * p["ba"], 4)},
+  solve=lambda p: _band(p),
+  x=X(asked="The upper edge of the single-mode band: the cut-off of the second mode.",
+      idea="Each mode starts at its own cut-off, f_mn = (c/2)√((m/a)² + (n/b)²). TE₁₀ is first; the band ends at whichever of TE₂₀ or TE₀₁ comes next.",
+      steps=[S("Dominant mode.", r"f_{10}=\frac{c}{2a}=«f10»\ \text{GHz}"),
+             S("The two candidates for the second mode.", r"f_{20}=\frac{c}{a}=«f20»\ \text{GHz},\qquad f_{01}=\frac{c}{2b}=«f01»\ \text{GHz}"),
+             S("The lower of the two ends the single-mode band.", r"f_{max}=\min(f_{20},f_{01})=«fm»\ \text{GHz}")],
+      answer="f_max = «fm» GHz (single-mode band «f10»–«fm» GHz)",
+      whatif=[W("…b were exactly a/2?", lambda p: {**p, "ba": 0.5}, "TE₂₀ and TE₀₁ start together at «fm» GHz, giving the widest single-mode band.", r"f_{20}=f_{01}=«fm»\ \text{GHz}"),
+              W("…the guide were filled with εr = 2.1?", lambda p: {**p, "er": 2.1}, "Every cut-off drops by √εr: f_max = «fm» GHz.", r"f_{max}=«fm»\ \text{GHz}")],
+      mistake="Forgetting TE₀₁. When b > a/2 it starts before TE₂₀ and sets the limit.",
+      vals={"f10": lambda r, p: r["values"]["f10"] / 1e9, "f20": lambda r, p: r["values"]["f20"] / 1e9, "f01": lambda r, p: r["values"]["f01"] / 1e9,
+            "fm": lambda r, p: r["values"]["fmax"] / 1e9}))
+
+q(id="c8-array-delta", chapter="radiation", level=3, ref="Ulaby §10-4", unit="°", abs_tol=0.5,
+  gen=lambda r: {"N": _pick(r, [4, 8, 16]), "d": _pick(r, [0.25, 0.4, 0.5]), "t": _pick(r, [45, 60, 75, 105, 120, 135])},
+  text=lambda p: f"A uniform linear array of {p['N']} elements spaced {p['d']}λ apart must point its main beam at θ₀ = {p['t']}° from the array axis. "
+                 f"What progressive phase shift δ between neighbouring elements is required?",
+  fig=lambda p: {"type": "array", "N": p["N"], "d": p["d"]},
+  solve=lambda p: _delta(p),
+  x=X(asked="The phase step δ that steers the beam to the required angle.",
+      idea="The beam points where the waves from neighbouring elements arrive in phase: the path phase kd cos θ₀ must cancel δ.",
+      steps=[S("Main-beam condition.", r"kd\cos\theta_0+\delta=0"),
+             S("Solve for δ, with kd = 2πd/λ.", r"\delta=-kd\cos\theta_0=«dl»^\circ"),
+             S("The engine finds the same δ by steering its own array factor until the peak sits at θ₀.")],
+      answer="δ = «dl»°",
+      whatif=[W("…the beam were to point broadside (90°)?", lambda p: {**p, "t": 90}, "No phase step is needed: δ = «dl»°.", r"\delta=0"),
+              W("…the directivity at this setting were asked?", lambda p: p, "D = «D» («Ddb» dBi).", r"D=«D»")],
+      mistake="Getting the sign wrong. A positive δ delays the elements further along the axis and tilts the beam towards θ > 90°.",
+      vals={"dl": EV("delta"), "D": EV("D"), "Ddb": EV("D_dBi")}))
+
+
+def _lossy(p):
+    f = p["f"] * 1e6
+    r = dm.compare(f, eps_r=20, sigma=p["s"], r_max_lambda=5)
+    k = dm._k(f, 20, 1, p["s"])[0]
+    R1, R2 = float(p["r1"]), float(p["k"] * p["r1"])
+    tot = 20 * math.log10(abs(dm.psi("3D", k, np.array(R2))) / abs(dm.psi("3D", k, np.array(R1))))
+    k0 = complex(k.real, 0.0)
+    spread = 20 * math.log10(abs(dm.psi("3D", k0, np.array(R2))) / abs(dm.psi("3D", k0, np.array(R1))))
+    return _with(r, dlevel=tot, dl_spread=spread, dl_abs=tot - spread), tot, {"chapter": "dimensions", "params": {"f": f, "eps_r": 20, "sigma": p["s"]}}
+
+
+def _vec(p):
+    r = co.convert("cartesian", "spherical", [p["x"], p["y"], p["z"]], [p["Ax"], p["Ay"], p["Az"]])
+    return r, r["values"]["vector"][1], {"chapter": "coordinates", "params": {"system": "spherical"}}
+
+
+def _coax_opt(p):
+    from scipy.optimize import minimize_scalar
+    b, E = p["b"] * 1e-3, p["Ebd"] * 1e6
+    Vbd = lambda a: es.capacitor("coax", a=a, b=b, E_bd=E, length=1.0)["values"]["V_bd"]
+    res = minimize_scalar(lambda a: -Vbd(a), bounds=(b / 60, b * 0.98), method="bounded", options={"xatol": 1e-12 * b})
+    r = es.capacitor("coax", a=res.x, b=b, E_bd=E, length=1.0)
+    err = abs(res.x - b / math.e) / (b / math.e)
+    r = {**r, "checks": r["checks"] + [{"label": r"a_{opt}=b/e\quad(dV_{bd}/da=0)", "method": "bounded numerical maximisation of the engine's V_bd(a)",
+                                        "reference": b / math.e, "computed": res.x, "rel_error": err, "tol": 1e-5, "passed": bool(err <= 1e-5)}]}
+    r["all_passed"] = all(c["passed"] for c in r["checks"])
+    return _with(r, a_opt=res.x, V_max=r["values"]["V_bd"]), res.x, {"chapter": "electrostatics", "params": {"tab": "capacitor", "capacitor": {"kind": "coax", "a": res.x, "b": b, "E_bd": E}}}
+
+
+def _null(p):
+    q1, q2, d = p["q1"] * 1e-9, p["q2"] * 1e-9, p["d"] / 100
+    Q = np.array([[q1, 0.0, 0.0, 0.0], [q2, d, 0.0, 0.0]])    # rows (q, x, y, z)
+    # search with the engine's Coulomb field (cheap); the full solver runs once at the root, then the residual is checked
+    fast = lambda x0: {"values": {"E": [float(es.field_at(Q, np.array([[x0, 0.0, 0.0]]))[0][0][0])]}, "checks": [], "all_passed": True}
+    _, x0 = invert(fast, {}, "x0", lambda r: r["values"]["E"][0], 0.0, 0.01 * d, 0.99 * d)
+    r = es.point_charges([{"q": q1, "x": 0.0, "y": 0.0}, {"q": q2, "x": d, "y": 0.0}], False, (x0, 0.0), n=21)
+    scale = q1 / (4 * math.pi * EPS0 * x0 ** 2)
+    res = abs(r["values"]["E"][0]) / scale
+    r = {**r, "checks": r["checks"] + [{"label": r"E_x(x_0)=0", "method": "full solver re-run at the root (Brent's method)", "reference": 0.0,
+                                        "computed": r["values"]["E"][0], "rel_error": res, "tol": 1e-9, "passed": bool(res <= 1e-9)}]}
+    r["all_passed"] = all(c["passed"] for c in r["checks"])
+    ch = {"q": [[p["q1"], 0, 0], [p["q2"], d, 0]], "ground": False, "probe": [x0, 0]}
+    return _with(r, x0=x0), x0, {"chapter": "electrostatics", "params": {"tab": "charges", "charges": ch}}
+
+
+def _half(p):
+    a = p["a"] / 100
+    b0 = ms.loops("loop", I=p["I"], a=a, probe=(0.0, 0.0), n=21)["values"]["B_center"]
+    fn = lambda z: ms.loops("loop", I=p["I"], a=a, probe=(0.0, z), n=21)
+    r, z = invert(fn, {}, "z", lambda r: r["values"]["B"][1], b0 / 2, 1e-6 * a, 5 * a)
+    return _with(r, z_half=z), z, {"chapter": "magnetostatics", "params": {"tab": "loops", "loops": {"kind": "loop", "I": p["I"], "a": a}}}
+
+
+def _depth_f(p):
+    fn = lambda f: wv.solve(f, 81, 1, 4)
+    r, f = invert(fn, {}, "f", "alpha_dB", p["L"] / p["d"], 1e-3, 1e9, log=True)
+    return _with(r, f=f), f, {"chapter": "waves", "params": {"f": f, "eps_r": 81, "mu_r": 1, "sigma": 4}}
+
+
+def _angR_gen(rng):
+    er = _pick(rng, [2.25, 4, 9, 16])
+    th = _pick(rng, [45, 55, 65, 75, 82])
+    return {"er": er, "R": _nice(rf.oblique(eps1=1, eps2=er, theta_deg=th)["values"]["R_perp"] * 100, 3)}
+
+
+def _angR(p):
+    r0 = rf.oblique(eps1=1, eps2=p["er"], theta_deg=0.0)["values"]["R_perp"]
+    fn = lambda th: rf.oblique(eps1=1, eps2=p["er"], theta_deg=th)
+    r, th = invert(fn, {}, "th", "R_perp", p["R"] / 100, 0.0, 89.99)
+    return _with(r, theta_i=th, R0=r0), th, {"chapter": "reflection", "params": {"tab": "oblique", "oblique": {"eps1": 1, "eps2": p["er"], "theta_deg": th}}}
+
+
+def _stub(p):
+    kw = {"Z0": p["Z0"], "RL": p["R"], "XL": p["X"]}
+    r = tl.line(**kw)
+    lam = r["values"]["lambda_"]
+    s = min(r["match"]["stub"], key=lambda s: s["d"])
+    # independent check: the line admittance at d, plus the stub's, must be exactly Y0
+    bd = 2 * math.pi * s["d"] / lam
+    ZL = complex(p["R"], p["X"])
+    Zd = p["Z0"] * (ZL + 1j * p["Z0"] * math.tan(bd)) / (p["Z0"] + 1j * ZL * math.tan(bd))
+    ys = 1 / (1j * p["Z0"] * math.tan(2 * math.pi * s["l_stub"] / lam))
+    yt = (1 / Zd + ys) * p["Z0"]
+    err = abs(yt - 1)
+    r = {**r, "checks": r["checks"] + [{"label": r"y(d)+y_{stub}=1", "method": "lossless-line input impedance at d plus short-circuited stub",
+                                        "reference": 1.0, "computed": float(yt.real), "rel_error": err, "tol": 1e-9, "passed": bool(err <= 1e-9)}]}
+    r["all_passed"] = all(c["passed"] for c in r["checks"])
+    return _with(r, d_lambda=s["d"] / lam, l_lambda=s["l_stub"] / lam, b_stub=s["B"]), s["d"] / lam, {"chapter": "tlines", "params": kw}
+
+
+def _band(p):
+    a, b, er = p["a"] * 1e-3, _nice(p["a"] * p["ba"], 4) * 1e-3, p.get("er", 1)
+    fc = lambda m, n: ra.waveguide(a=a, b=b, eps_r=er, f=1e10, mode="TE", m=m, n=n)
+    r10, r20, r01 = fc(1, 0), fc(2, 0), fc(0, 1)
+    fmax = min(r20["values"]["fc"], r01["values"]["fc"])
+    r = {**r10, "checks": r10["checks"] + r20["checks"] + r01["checks"], "all_passed": r10["all_passed"] and r20["all_passed"] and r01["all_passed"]}
+    r = _with(r, f10=r10["values"]["fc"], f20=r20["values"]["fc"], f01=r01["values"]["fc"], fmax=fmax)
+    return r, fmax, {"chapter": "radiation", "params": {"tab": "waveguide", "waveguide": {"a": a, "b": b, "eps_r": er, "f": fmax * 0.99, "mode": "TE", "m": 1, "n": 0}}}
+
+
+def _delta(p):
+    kd = 360 * p["d"]
+    fn = lambda dl: ra.array(N=p["N"], d_lambda=p["d"], delta_deg=dl)
+    r, dl = invert(fn, {}, "dl", "theta0", p["t"], -0.999 * kd, 0.999 * kd)
+    return _with(r, delta=dl), dl, {"chapter": "radiation", "params": {"tab": "array", "array": {"N": p["N"], "d_lambda": p["d"], "delta_deg": dl}}}
 
 
 # ---------------- written explanations for chapters 0–3 and 5–8 (Maxwell's are inline above)

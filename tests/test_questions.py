@@ -118,3 +118,56 @@ def test_rhos_negative_measurement_prints_unicode_minus():
 def test_every_template_has_explanation_and_figure():
     assert [t["id"] for t in qb.T if not t["x"]] == []
     assert [t["id"] for t in qb.T if not t["fig"]] == []
+
+
+# ---------------------------------------------------------------- level 2–3 templates in every chapter
+from engine.constants import EPS0 as _E0, MU0 as _M0, C0 as _C0
+_g = lambda qid, s: qb.BY_ID[qid]["gen"](np.random.default_rng(s))
+_a = lambda qid, s: qb.check(qid, s)["answer"]
+
+
+def test_every_chapter_has_a_level_3_template():
+    assert {t["chapter"] for t in qb.T if t["level"] == 3} == {t["chapter"] for t in qb.T}
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_closed_forms_of_new_templates(seed):
+    p = _g("c2-coax-opt", seed)
+    assert _a("c2-coax-opt", seed) == pytest.approx(p["b"] / math.e, rel=1e-5)
+    p = _g("c2-null-point", seed)
+    assert _a("c2-null-point", seed) == pytest.approx(p["d"] / (1 + math.sqrt(p["q2"] / p["q1"])), rel=1e-6)
+    p = _g("c3-loop-half", seed)
+    assert _a("c3-loop-half", seed) == pytest.approx(p["a"] * math.sqrt(2 ** (2 / 3) - 1), rel=1e-6)
+    p = _g("c5-depth-freq", seed)
+    al = p["L"] / p["d"] / (20 * math.log10(math.e))
+    assert _a("c5-depth-freq", seed) == pytest.approx(al ** 2 / (math.pi * _M0 * 4) / 1e3, rel=2e-3)   # good-conductor limit
+    p = _g("c8-array-delta", seed)
+    assert _a("c8-array-delta", seed) == pytest.approx(-360 * p["d"] * math.cos(math.radians(p["t"])), abs=1e-6)
+    p = _g("c8-wg-band", seed)
+    a, b = p["a"] * 1e-3, qb._nice(p["a"] * p["ba"], 4) * 1e-3
+    assert _a("c8-wg-band", seed) == pytest.approx(min(_C0 / a, _C0 / (2 * b)) / 1e9, rel=1e-9)
+    p = _g("c1-vec-theta", seed)
+    R = math.sqrt(p["x"] ** 2 + p["y"] ** 2 + p["z"] ** 2); th = math.acos(p["z"] / R); ph = math.atan2(p["y"], p["x"])
+    want = p["Ax"] * math.cos(th) * math.cos(ph) + p["Ay"] * math.cos(th) * math.sin(ph) - p["Az"] * math.sin(th)
+    assert _a("c1-vec-theta", seed) == pytest.approx(want, abs=1e-9)
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_lossy_spread_is_spreading_plus_absorption(seed):
+    p = _g("c0-lossy-spread", seed)
+    w, eps = 2 * math.pi * p["f"] * 1e6, 20 * _E0
+    alpha = w * math.sqrt(_M0 * eps / 2 * (math.sqrt(1 + (p["s"] / (w * eps)) ** 2) - 1))
+    R1, R2 = p["r1"], p["k"] * p["r1"]
+    want = 20 * math.log10(R1 / R2) - 20 * math.log10(math.e) * alpha * (R2 - R1)
+    assert _a("c0-lossy-spread", seed) == pytest.approx(want, abs=1e-6)
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_stub_and_angle_templates_verify(seed):
+    for qid in ("c7-stub", "c6-angle-R"):
+        out = qb.check(qid, seed)
+        assert out["verified"], [c["label"] for c in out["checks"] if not c["passed"]]
+    p = _g("c6-angle-R", seed)
+    th = _a("c6-angle-R", seed)
+    ct = math.sqrt(1 - math.sin(math.radians(th)) ** 2 / p["er"]); ci = math.cos(math.radians(th)); n2 = math.sqrt(p["er"])
+    assert ((ci - n2 * ct) / (ci + n2 * ct)) ** 2 * 100 == pytest.approx(p["R"], rel=1e-6)
