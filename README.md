@@ -59,18 +59,20 @@ The "Ask the assistant" panel uses Claude (`claude-opus-5-5`) with tool use: the
 
 ### Question bank
 
-27 original problem templates (2–4 per chapter) in the style of Ulaby/Cheng end-of-chapter exercises. Numbers are drawn from a seeded generator, so `id/seed` reproduces a problem. Answers are computed by the engine and accepted only when the solver's own checks pass; the full derivation is shown and the chapter opens with the same values.
+28 original problem templates (2–4 per chapter) in the style of Ulaby/Cheng end-of-chapter exercises. Numbers are drawn from a seeded generator, so `id/seed` reproduces a problem. Answers are computed by the engine and accepted only when the solver's own checks pass; the full derivation is shown and the chapter opens with the same values.
 
 ## Layout
 
 ```
-engine/     physics + derivations + checks (NumPy/SciPy)
-server/     FastAPI API, serves web/; assistant.py = Claude tool-use loop over the engine
-web/        frontend (ES modules, Plotly, KaTeX)
-tests/      pytest verification against textbook results
-engine/routes.py  server-free dispatcher used by the browser build
-legacy/     previous single-file WebGL workbench (legacy/index.html) and desktop solver
-index.html  GitHub Pages entry point → web/
+engine/      physics + derivations + checks (NumPy/SciPy)
+             routes.py = server-free dispatcher used by the browser (Pyodide) build
+server/      FastAPI API, serves web/; assistant.py = Claude tool-use loop over the engine
+web/         frontend (ES modules, Plotly, KaTeX)
+tests/       pytest verification against textbook results
+index.html   GitHub Pages entry point (copy of web/index.html with web/ paths)
+run.py, Start_ElectroField.bat   start the local server (current version)
+legacy/      old single-file WebGL workbench and desktop solver, reference only;
+             legacy/Start_ElectroField.bat starts that old version, not this one
 ```
 
 ## License

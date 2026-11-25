@@ -1,5 +1,6 @@
 numpy>=1.26
 scipy>=1.11
+contourpy>=1.2
 fastapi>=0.110
 uvicorn>=0.29
 plotly>=5.20
