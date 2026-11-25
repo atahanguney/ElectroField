@@ -1026,42 +1026,245 @@ px(T, "Cheng Sec. 4-4", "exam", "Images for a grounded sphere",
 
 # ---------------------------------------------------------------- magnetostatics & Biot–Savart
 T = "magnetostatics"
-p(T, "Ulaby & Ravaioli Sec. 5-2", "basic", "Long straight wire",
-  "A long wire carries 15 A. Find B at 5 cm.",
-  {"type": "wires", "wires": [[15, 0, 0]], "probe": [0.05, 0]}, "ms/wires", {"currents": [{"I": 15, "x": 0, "y": 0}], "probe": [0.05, 0]},
-  [("B", V("B_mag"), "µT", 1e6)], "B = μ₀I/(2πr).", "The field circles the wire and weakens as 1/r.")
-p(T, "Ulaby & Ravaioli Sec. 5-2.3", "basic", "Force between wires",
-  "Parallel wires 10 cm apart carry 20 A and 30 A in the same direction. Find the force per metre.",
-  {"type": "wires", "wires": [[20, -0.05, 0], [30, 0.05, 0]]}, "ms/wires", {"currents": [{"I": 20, "x": -0.05, "y": 0}, {"I": 30, "x": 0.05, "y": 0}], "probe": [0, 0.1]},
-  [("F′", lambda r: math.hypot(*r["forces"][0]), "mN/m", 1e3)], "F′ = μ₀I₁I₂/(2πd); same direction ⇒ attraction.", "Currents in the same direction pull together.")
-p(T, "Ulaby & Ravaioli Sec. 5-2.1", "exam", "Finite wire (Biot–Savart)",
-  "A straight wire 40 cm long carries 3 A. Find H at a point 10 cm from its midpoint, on the perpendicular bisector.",
-  {"type": "segment", "L": 0.4, "r": 0.1}, "bs/segment", {"I": 3, "z1": -0.2, "z2": 0.2, "r": 0.1, "N": 400},
-  [("H", V("H_closed"), "A/m", 1)], "H = I(cos θ₁ − cos θ₂)/(4πr) with cos θ₁ = −cos θ₂ = 0.2/√(0.2² + 0.1²).", "A finite wire gives less than the infinite-wire value I/2πr because the far parts are missing.")
-p(T, "Ulaby & Ravaioli Sec. 5-2", "exam", "Square loop",
-  "A square loop of side 20 cm carries 1 A. Find H at its centre.",
-  {"type": "square", "a": 0.2}, "bs/square", {"I": 1, "a": 0.2, "N": 200}, [("H", V("H_closed"), "A/m", 1)],
-  "Four finite wires seen from r = a/2 with θ = 45°, 135°: H = 2√2 I/(πa).", "Add four equal pieces, one per side.")
-p(T, "Ulaby & Ravaioli Sec. 5-2.2", "basic", "Centre of a loop",
-  "A circular loop of radius 5 cm carries 2 A. Find H at its centre.",
-  {"type": "loop", "a": 0.05, "z": 0}, "bs/loop", {"I": 2, "a": 0.05, "z": 0}, [("H", V("H_closed"), "A/m", 1)],
-  "On the axis H = Ia²/(2(a² + z²)^{3/2}); at z = 0, H = I/(2a).", "Every piece of the loop is the same distance away and all add in the same direction.")
-p(T, "Ulaby & Ravaioli Sec. 5-2.2", "exam", "On the axis of a loop",
-  "A loop of radius 10 cm carries 1 A. Find H on its axis 10 cm from the centre.",
-  {"type": "loop", "a": 0.1, "z": 0.1}, "bs/loop", {"I": 1, "a": 0.1, "z": 0.1}, [("H", V("H_closed"), "A/m", 1)],
-  "Only the axial components survive: H = Ia²/(2(a² + z²)^{3/2}).", "Off the centre the side pieces partly cancel; what remains points along the axis.")
-p(T, "Ulaby & Ravaioli Sec. 5-4", "basic", "Toroid",
-  "A toroid of 500 turns, inner radius 4 cm, outer radius 6 cm, carries 0.5 A. Find B at r = 5 cm.",
-  {"type": "toroid", "a": 4, "b": 6}, "ms/ampere", {"kind": "toroid", "I": 0.5, "N": 500, "a": 0.04, "b": 0.06, "r": 0.05},
-  [("B", V("B"), "mT", 1e3)], "Ampère around a circle of radius r inside the core: H·2πr = NI.", "All the field stays inside the doughnut and goes round with the windings.")
-p(T, "Ulaby & Ravaioli Sec. 5-7", "basic", "Solenoid inductance",
-  "A 10 cm long air solenoid of radius 1 cm has 200 turns. Find its inductance.",
-  {"type": "solenoid", "a": 1, "l": 10}, "ms/inductance", {"kind": "solenoid", "N": 200, "a": 0.01, "length": 0.1},
-  [("L", V("L"), "µH", 1e6)], "L = μN²A/ℓ for a long solenoid.", "Inductance grows with the square of the number of turns.")
-p(T, "Ulaby & Ravaioli Sec. 5-7", "basic", "Coax inductance",
-  "Find the external inductance per metre of a coax with a = 0.5 mm and b = 2 mm.",
-  {"type": "coax", "a": 0.5, "b": 2}, "ms/inductance", {"kind": "coax", "a": 5e-4, "b": 2e-3, "length": 1},
-  [("L′", V("L"), "nH/m", 1e9)], "L′ = (μ/2π) ln(b/a).", "Same ln(b/a) as the capacitance — and L′C′ = με.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual.
+_wires2 = {"currents": [{"I": 20, "x": -0.05, "y": 0}, {"I": 30, "x": 0.05, "y": 0}], "probe": [0, 0.1]}
+_ax = lambda k: (lambda r, p: r["axis"][k])
+_pf = lambda k: (lambda r, p: r["profile"][k])
+
+px(T, "Ulaby & Ravaioli Sec. 5-2", "basic", "Long straight wire",
+   "A long straight cable carries a steady 15 A. Find the magnetic flux density 5 cm from its axis, and compare it with the Earth's field of about 50 µT.",
+   {"type": "wires", "wires": [[15, 0, 0]]}, "ms/wires", {"currents": [{"I": 15, "x": 0, "y": 0}], "probe": [0.05, 0]}, [("B", V("B_mag"), "µT", 1e6)],
+   X(asked="|B| at 5 cm from a long wire carrying 15 A.",
+     idea="By symmetry the field circles the wire with constant size on any circle around it, so Ampère's law gives it directly.",
+     steps=[S("Ampère's law on a circle of radius r around the wire.", r"\oint\mathbf H\cdot d\mathbf l=H\,2\pi r=I"),
+            S("Flux density in air.", r"B=\frac{\mu_0I}{2\pi r}=«B»\ \mu\text{T}"),
+            S("This is comparable to the Earth's field, which is why a current-carrying cable can deflect a nearby compass.")],
+     answer="B = «B» µT",
+     whatif=[W("…the distance were 50 cm?", lambda p: {**p, "probe": [0.5, 0]}, "B ∝ 1/r: «B» µT, well below the Earth's field.", r"B=«B»\ \mu\text{T}"),
+             W("…the cable carried a return conductor 1 cm away (equal and opposite current)?", lambda p: {**p, "currents": [{"I": 15, "x": 0, "y": 0}, {"I": -15, "x": 0.01, "y": 0}]},
+               "The two fields nearly cancel: B = «B» µT. This is why supply and return wires are run together.", r"B=«B»\ \mu\text{T}")],
+     mistake="Using μ₀I/(2r), the field at the centre of a loop, for a straight wire.",
+     vals={"B": lambda r, p: r["values"]["B_mag"] * 1e6}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.3", "basic", "Force between wires",
+   "Two long parallel wires 10 cm apart carry 20 A and 30 A in the same direction. Find the force per metre between them, and say whether they attract or repel.",
+   {"type": "wires", "wires": [[20, -0.05, 0], [30, 0.05, 0]]}, "ms/wires", _wires2, [("F′", lambda r: abs(r["forces"][0][0]), "mN/m", 1e3)],
+   X(asked="The magnitude and sense of the force per unit length.",
+     idea="Each wire sits in the other's field, B = μ₀I/(2πd), and feels I × B per metre. Currents in the same direction attract.",
+     steps=[S("Field of wire 1 at wire 2.", r"B_1=\frac{\mu_0I_1}{2\pi d}"),
+            S("Force per metre on wire 2.", r"F'=I_2B_1=\frac{\mu_0I_1I_2}{2\pi d}=«F»\ \text{mN/m}"),
+            S("The force on the left wire points towards the right wire: the currents attract.")],
+     answer="F′ = «F» mN/m, attractive",
+     whatif=[W("…the second current were reversed?", lambda p: {**p, "currents": [{"I": 20, "x": -0.05, "y": 0}, {"I": -30, "x": 0.05, "y": 0}]}, "Same magnitude, «F» mN/m, now repulsive.", r"F'=«F»\ \text{mN/m}"),
+             W("…the wires were 20 cm apart?", lambda p: {**p, "currents": [{"I": 20, "x": -0.1, "y": 0}, {"I": 30, "x": 0.1, "y": 0}]}, "F′ ∝ 1/d: «F» mN/m.", r"F'=«F»\ \text{mN/m}")],
+     mistake="Getting the direction backwards: unlike charges, like currents attract.",
+     vals={"F": lambda r, p: abs(r["forces"][0][0]) * 1e3}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.1", "exam", "Finite wire (Biot–Savart)",
+   "A straight wire segment 40 cm long carries 3 A. Find H at a point 10 cm from the wire, opposite its midpoint, and compare with an infinitely long wire.",
+   {"type": "segment", "L": 0.4}, "bs/segment", {"I": 3, "z1": -0.2, "z2": 0.2, "r": 0.1, "N": 400}, [("H", V("H"), "A/m", 1)],
+   X(asked="H from a finite segment, by Biot–Savart, and its ratio to the infinite-wire value.",
+     idea="Ampère's law needs an infinitely long wire. For a finite segment, integrate Biot–Savart along it; the result depends on the angles the segment's ends subtend.",
+     steps=[S("Biot–Savart for a straight segment.", r"H=\frac{I}{4\pi r}(\sin\theta_2-\sin\theta_1)"),
+            S("Here the ends subtend equal and opposite angles, so the result is", r"H=«Hc»\ \text{A/m}\ \text{(closed form)},\qquad H=«H»\ \text{A/m}\ \text{(engine, 400 elements)}"),
+            S("An infinite wire would give I/(2πr) = «Hi» A/m; the segment gives «ratio» of that.")],
+     answer="H = «H» A/m («ratio» of the infinite-wire value)",
+     whatif=[W("…the segment were 2 m long?", lambda p: {**p, "z1": -1, "z2": 1}, "Now it looks almost infinite from 10 cm: H = «H» A/m, ratio «ratio».", r"H=«H»\ \text{A/m}"),
+             W("…the point were 1 m away?", lambda p: {**p, "r": 1.0}, "From far away the segment looks short: H = «H» A/m, ratio «ratio».", r"H=«H»\ \text{A/m}")],
+     mistake="Using I/(2πr) for a short wire. It holds only when the wire is much longer than the distance r.",
+     vals={"H": EV("H"), "Hc": EV("H_closed"), "Hi": EV("H_infinite"), "ratio": EV("ratio_to_infinite")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2", "exam", "Square loop",
+   "A square loop of side 20 cm carries 1 A. Find H at its centre, and compare it with a circular loop that fits just inside the square.",
+   {"type": "square", "a": 0.2}, "bs/square", {"I": 1, "a": 0.2, "N": 200}, [("H", V("H"), "A/m", 1)],
+   X(asked="H at the centre of a square loop, and the comparison with the inscribed circle.",
+     idea="The four sides are identical finite segments, each at distance a/2 from the centre and subtending ±45°. Their fields add along the axis.",
+     steps=[S("One side, by the finite-segment formula with θ = ±45°.", r"H_1=\frac{I}{4\pi(a/2)}\,2\sin45^\circ"),
+            S("Four sides.", r"H=4H_1=\frac{2\sqrt2\,I}{\pi a}=«H»\ \text{A/m}"),
+            S("A circle of radius a/2 would give I/a = «Hc» A/m, a little more: its wire is everywhere as close as the square's nearest points.")],
+     answer="H = «H» A/m (inscribed circle: «Hc» A/m)",
+     whatif=[W("…the side were halved?", lambda p: {**p, "a": 0.1}, "H ∝ 1/a: «H» A/m.", r"H=«H»\ \text{A/m}"),
+             W("…the current were 5 A?", lambda p: {**p, "I": 5}, "H = «H» A/m.", r"H=«H»\ \text{A/m}")],
+     mistake="Treating each side as an infinite wire, which overestimates the field.",
+     vals={"H": EV("H"), "Hc": EV("H_inscribed_circle")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.2", "basic", "Centre of a loop",
+   "A circular loop of radius 5 cm carries 2 A. Find H and B at its centre.",
+   {"type": "loop"}, "bs/loop", {"I": 2, "a": 0.05, "z": 0}, [("H", V("H"), "A/m", 1)],
+   X(asked="H and B at the centre of a circular loop.",
+     idea="Every element of the loop is the same distance a from the centre and perpendicular to the line joining them, so all contributions add along the axis.",
+     steps=[S("Biot–Savart for one element.", r"dH=\frac{I\,dl}{4\pi a^2}"),
+            S("Add around the circumference 2πa.", r"H=\frac{I}{2a}=«H»\ \text{A/m}"),
+            S("In air B = μ₀H.", r"B=«B»\ \mu\text{T}")],
+     answer="H = «H» A/m, B = «B» µT",
+     whatif=[W("…the radius were doubled?", lambda p: {**p, "a": 0.1}, "H ∝ 1/a: «H» A/m.", r"H=«H»\ \text{A/m}"),
+             W("…the point were 5 cm along the axis?", lambda p: {**p, "z": 0.05}, "H = «H» A/m, smaller by (1 + z²/a²)^(3/2).", r"H=\frac{Ia^2}{2(a^2+z^2)^{3/2}}=«H»\ \text{A/m}")],
+     mistake="Using I/(2πa), the straight-wire result.",
+     vals={"H": EV("H"), "B": lambda r, p: r["values"]["B"] * 1e6}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.2", "exam", "On the axis of a loop",
+   "A loop of radius 10 cm carries 1 A. Find H on its axis 10 cm from the centre.",
+   {"type": "loop", "z": 1}, "bs/loop", {"I": 1, "a": 0.1, "z": 0.1}, [("H", V("H"), "A/m", 1)],
+   X(asked="The axial field of a loop at z = a.",
+     idea="On the axis the radial parts of opposite elements cancel by symmetry; only the axial parts add.",
+     steps=[S("Each element is at distance √(a² + z²); only the fraction a/√(a² + z²) of its field is axial.", r"dH_z=\frac{I\,dl}{4\pi(a^2+z^2)}\cdot\frac{a}{\sqrt{a^2+z^2}}"),
+            S("Integrate around the loop.", r"H_z=\frac{Ia^2}{2(a^2+z^2)^{3/2}}=«H»\ \text{A/m}"),
+            S("At z = a this is 1/(2√2) times the centre value, about 35 %.")],
+     answer="H = «H» A/m",
+     whatif=[W("…the point were at the centre?", lambda p: {**p, "z": 0}, "H = I/(2a) = «H» A/m.", r"H=«H»\ \text{A/m}"),
+             W("…the point were ten radii away (z = 1 m)?", lambda p: {**p, "z": 1.0}, "Far away the loop is a magnetic dipole and H ∝ 1/z³: «H» A/m.", r"H\approx\frac{Ia^2}{2z^3}=«H»\ \text{A/m}")],
+     mistake="Forgetting that only the axial component survives, and adding the full magnitudes.",
+     plot=Series(_ax("z"), [("H on the axis", _ax("H"), "H")], "distance along the axis z (m)", "H (A/m)"),
+     evidence_say="Engine axial profile: peaked at the centre and falling off symmetrically.",
+     vals={"H": EV("H")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 5-4", "basic", "Toroid",
+   "A toroid of 500 turns has inner radius 4 cm and outer radius 6 cm and an air core. It carries 0.5 A. Find B at the mean radius.",
+   {"type": "toroid", "a": 4, "b": 6}, "ms/ampere", {"kind": "toroid", "I": 0.5, "N": 500, "a": 0.04, "b": 0.06, "r": 0.05}, [("B", V("B"), "mT", 1e3)],
+   X(asked="B inside the toroid at r = 5 cm.",
+     idea="H circles inside the core with the same size on every concentric circle; such a circle links the total current NI.",
+     steps=[S("Ampère's law on a circle of radius r inside the core.", r"H\,2\pi r=NI\ \Rightarrow\ H=«H»\ \text{A/m}"),
+            S("Air core.", r"B=\mu_0H=«B»\ \text{mT}"),
+            S("B varies as 1/r across the core: it is strongest at the inner radius.")],
+     answer="B = «B» mT",
+     whatif=[W("…the core were iron with μr = 1000?", lambda p: {**p, "mu_r": 1000}, "H is the same; B = «B» mT.", r"B=\mu_0\mu_rH=«B»\ \text{mT}"),
+             W("…B at the inner radius were asked?", lambda p: {**p, "r": 0.04}, "B = «B» mT, the largest value in the core.", r"B=«B»\ \text{mT}")],
+     mistake="Using the straight-solenoid formula with an arbitrary length.",
+     vals={"H": EV("H"), "B": lambda r, p: r["values"]["B"] * 1e3}), "numeric")
+
+# ---- conceptual
+px(T, "Ulaby & Ravaioli Sec. 5-2.3", "basic", "Why like currents attract",
+   "Like electric charges repel, yet two wires carrying current in the same direction attract. Explain the direction of the force using B and the force on a current.",
+   {"type": "wires", "wires": [[20, -0.05, 0], [30, 0.05, 0]]}, "ms/wires", _wires2, [],
+   X(asked="The direction of the magnetic force between parallel currents.",
+     idea="The force on a current element is I dl × B. Find the direction of the other wire's B with the right-hand rule, then of the cross product.",
+     steps=[S("Wire 1's field circles it; at wire 2 it points perpendicular to the plane of the wires."),
+            S("The force on wire 2 is I₂ dl × B₁, which points back towards wire 1 when the currents are parallel."),
+            S("Reversing one current reverses the cross product, so opposite currents repel.")],
+     answer_text="Magnetic forces act on moving charges, F = I dl × B, not between static charges. "
+                 "Wire 1's field circles it, so at wire 2 it is perpendicular to the plane of the two wires. "
+                 "With both currents in the same direction, the cross product I₂ dl × B₁ points towards wire 1, so the wires attract; "
+                 "reversing one current flips the direction and they repel. "
+                 "The rule is the opposite of electrostatics because the force comes from a cross product, not from a radial Coulomb law.",
+     evidence_say="Engine: the force on the left wire is «fx» mN/m along +x, i.e. towards the right wire.",
+     mistake="Carrying 'like repels like' over from charges to currents.",
+     vals={"fx": lambda r, p: r["forces"][0][0] * 1e3}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.1", "exam", "Why a short wire gives a weaker field",
+   "Ampère's law gives H = I/(2πr) for a wire. Why does a 40 cm segment give a noticeably smaller field at 10 cm, even though Ampère's law is always true?",
+   {"type": "segment", "L": 0.4}, "bs/segment", {"I": 3, "z1": -0.2, "z2": 0.2, "r": 0.1, "N": 400}, [],
+   X(asked="Why Ampère's law cannot be used for a finite segment.",
+     idea="Ampère's law gives H only when symmetry makes H constant around the loop. A finite segment also cannot carry a steady current on its own.",
+     steps=[S("For an infinite wire, H is the same everywhere on a circle around it, so ∮H·dl = H·2πr."),
+            S("A finite segment breaks that symmetry: the field also depends on position along the wire."),
+            S("A steady current must flow in a closed circuit, so the rest of the circuit contributes too; Biot–Savart gives the segment's share alone.")],
+     answer_text="Ampère's law is always true, but it yields H only when symmetry makes H constant along the integration path. "
+                 "For an infinite wire it does; for a 40 cm segment the field near the ends is weaker than near the middle, so H·2πr is not the integral. "
+                 "Moreover, a segment alone cannot carry a steady current: the rest of the circuit carries the current back and adds its own field. "
+                 "Biot–Savart computes the segment's contribution, which here is «ratio» of the infinite-wire value because the far parts of an infinite wire are missing.",
+     evidence_say="Engine: H = «H» A/m against I/(2πr) = «Hi» A/m for an infinite wire.",
+     mistake="Applying Ampère's law with a circular path where the field is not constant along it.",
+     vals={"ratio": EV("ratio_to_infinite"), "H": EV("H"), "Hi": EV("H_infinite")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2", "exam", "How accurate is a numerical Biot–Savart sum?",
+   "The engine computes Biot–Savart by cutting the wire into N straight elements. How fast does the error shrink as N grows, and why?",
+   {"type": "segment", "L": 0.4}, "bs/segment", {"I": 3, "z1": -0.2, "z2": 0.2, "r": 0.1, "N": 400}, [],
+   X(asked="The convergence of a discretised Biot–Savart integral.",
+     idea="Replacing the integral by a sum over N elements evaluated at their midpoints is the midpoint rule, whose error falls as 1/N² for a smooth integrand.",
+     steps=[S("The field is an integral along the wire, which the engine approximates by a sum over N pieces."),
+            S("With midpoint sampling the error is proportional to (length of a piece)², i.e. to 1/N².", r"\varepsilon\propto\frac{1}{N^2}"),
+            S("Doubling N should cut the error by about four, which the convergence table confirms.")],
+     answer_text="The Biot–Savart field is an integral along the wire. The engine evaluates it as a sum over N elements, each sampled at its midpoint, which is the midpoint rule. "
+                 "For a smooth integrand its error is proportional to the square of the element length, so it falls as 1/N²: each doubling of N cuts the error by about four. "
+                 "The integrand is smooth here because the field point is well away from the wire; close to the wire it varies sharply and many more elements are needed for the same accuracy.",
+     evidence_say="Engine convergence table: the relative error against the closed form settles to slope −2 on log–log axes once N exceeds about ten.",
+     plot=Series(lambda r, p: [c["N"] for c in r["convergence"]], [("relative error", lambda r, p: [c["rel_error"] for c in r["convergence"]], "E")],
+                 "number of elements N", "relative error", logx=True, logy=True),
+     mistake="Expecting a fixed number of elements to be accurate at any distance from the wire.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-3.2", "exam", "Field inside a thick wire",
+   "A straight wire of radius 1 cm carries 10 A spread uniformly over its cross-section. How does B vary from the axis to the surface and beyond, and where is it largest?",
+   {"type": "wires", "wires": [[10, 0, 0]]}, "ms/ampere", {"kind": "wire", "I": 10, "a": 0.01, "r": 0.005}, [],
+   X(asked="B(r) inside and outside a wire with uniform current density.",
+     idea="Ampère's law on a circle of radius r: inside, only the current within r is enclosed, and it grows as r².",
+     steps=[S("Inside (r < a) the enclosed current is I r²/a².", r"B=\frac{\mu_0Ir}{2\pi a^2}"),
+            S("Outside (r > a) all of I is enclosed.", r"B=\frac{\mu_0I}{2\pi r}"),
+            S("The two meet at r = a, where B is largest; at the centre B = 0.")],
+     answer_text="Ampère's law on a circle of radius r gives B·2πr = μ₀I_enc. Inside the wire the enclosed current is I(r/a)², so B = μ₀Ir/(2πa²) grows linearly from zero at the axis. "
+                 "Outside, the whole current is enclosed and B = μ₀I/(2πr) falls off. Both expressions agree at the surface, where B reaches its maximum. "
+                 "This is the magnetic counterpart of the field of a uniformly charged cylinder.",
+     evidence_say="Engine profile of B from the axis outwards: linear rise to the surface at 1 cm, then a 1/r fall.",
+     plot=Series(_pf("r"), [("B", _pf("B"), "H")], "distance from the axis r (m)", "B (T)"),
+     mistake="Using μ₀I/(2πr) inside the conductor.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-4", "basic", "Why a toroid keeps its field inside",
+   "An ideal toroid has a strong field inside its core and none outside. Use Ampère's law to explain why.",
+   {"type": "toroid", "a": 4, "b": 6}, "ms/ampere", {"kind": "toroid", "I": 0.5, "N": 500, "a": 0.04, "b": 0.06, "r": 0.05}, [],
+   X(asked="Why B is confined to the core of a toroid.",
+     idea="Choose circles concentric with the toroid. The current they enclose decides H on them.",
+     steps=[S("A circle inside the core links all N turns once: I_enc = NI, so H = NI/(2πr)."),
+            S("A circle in the central hole links no current, so H = 0 there."),
+            S("A circle outside the toroid passes the windings twice, once going up and once coming down: I_enc = 0, so H = 0.")],
+     answer_text="Apply Ampère's law to circles around the axis of the toroid, on which H is constant by symmetry. "
+                 "A circle inside the core encloses each of the N turns once, so H·2πr = NI. "
+                 "A circle in the central hole encloses no current, and one outside the toroid encloses each turn twice in opposite directions, so the net current, and H, is zero in both. "
+                 "Real toroids leak a little because the winding is helical and not perfectly uniform, but that is why toroidal cores are used where stray fields must be small.",
+     evidence_say="Engine profile across the toroid: B is non-zero only between the inner and outer radius, and falls as 1/r there.",
+     plot=Series(_pf("r"), [("B", _pf("B"), "H")], "distance from the axis r (m)", "B (T)"),
+     mistake="Assuming the field is zero inside because 'the currents cancel'. They cancel only for paths outside the core.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.2", "exam", "Helmholtz coils: a uniform field",
+   "Two identical coaxial loops placed one radius apart and carrying equal currents in the same direction produce an unusually uniform field between them. Why does the spacing a give the most uniform field?",
+   {"type": "loop", "z": 1}, "ms/loops", {"kind": "helmholtz", "I": 1, "a": 0.1, "pr": 0, "pz": 0.02}, [],
+   X(asked="Why a spacing equal to the radius makes the field between two loops flat.",
+     idea="Expand the field near the midpoint in powers of z. By symmetry the odd terms cancel; choosing the spacing to cancel the z² term leaves a field flat to fourth order.",
+     steps=[S("Each loop's axial field changes with z; at the midpoint one is increasing while the other is decreasing, so the first derivatives cancel."),
+            S("The second derivative of a single loop's field is zero at z = a/2, so placing the loops one radius apart makes the z² term vanish too."),
+            S("The field then varies only as z⁴ near the centre, staying within a fraction of a per cent over a good part of the gap.")],
+     answer_text="Near the midpoint the total field can be written as B(0) + c₁z + c₂z² + …. Because the two loops are placed symmetrically, the odd terms cancel automatically. "
+                 "A single loop's axial field has an inflection point at a distance a/2 from its centre, where its second derivative is zero. "
+                 "With a spacing equal to the radius, the midpoint sits at that inflection point for both loops, so the z² term vanishes as well and the first error term is of order z⁴. "
+                 "That makes Helmholtz coils the standard way to produce a known, uniform field in a laboratory.",
+     evidence_say="Engine axial profile of the Helmholtz pair: a broad flat top between the coils.",
+     plot=Series(_ax("z"), [("B_z on the axis", _ax("Bz"), "H")], "distance along the axis z (m)", "B_z (T)"),
+     mistake="Placing the coils as close together as possible, which gives a peaked rather than flat field.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-3.1", "basic", "Why magnetic field lines close on themselves",
+   "Electric field lines start and end on charges. Magnetic field lines have no beginning or end. Which Maxwell equation says this, and what does it rule out?",
+   {"type": "wires", "wires": [[20, -0.05, 0], [30, 0.05, 0]]}, "ms/wires", _wires2, [],
+   X(asked="The meaning of ∇·B = 0.",
+     idea="Gauss's law for magnetism, ∮B·ds = 0, says the net magnetic flux out of any closed surface is zero: there are no magnetic charges for field lines to start or end on.",
+     steps=[S("Gauss's law for magnetism.", r"\nabla\cdot\mathbf B=0\qquad\Leftrightarrow\qquad\oint_S\mathbf B\cdot d\mathbf s=0"),
+            S("Every line that enters a closed surface must leave it, so lines cannot end anywhere; they close or run to infinity."),
+            S("Cutting a bar magnet always produces two smaller magnets, never an isolated north pole.")],
+     answer_text="Gauss's law for magnetism, ∇·B = 0, states that the magnetic flux out of any closed surface is zero. "
+                 "If field lines could start or end, a small surface around that point would have net flux, so they must form closed loops (or extend to infinity). "
+                 "The law expresses the absence of magnetic monopoles: magnetic fields come from currents and magnetic dipoles, never from isolated poles. "
+                 "Cutting a magnet in half gives two magnets, each with both poles.",
+     evidence_say="Engine field-line tracing for two parallel currents: every traced line closes around the wires.",
+     mistake="Drawing magnetic field lines that start on a 'north pole' and end on a 'south pole' inside a magnet; inside, they continue from S back to N.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 5-2.2", "exam", "A loop seen from far away",
+   "Far along its axis a current loop's field falls off as 1/z³, not as 1/z or 1/z². Why, and what single quantity describes the loop from far away?",
+   {"type": "loop", "z": 1}, "bs/loop", {"I": 1, "a": 0.1, "z": 0.3}, [],
+   X(asked="The far-field law of a current loop and the quantity that governs it.",
+     idea="Far away, opposite sides of the loop carry opposite currents and their fields nearly cancel, like the two charges of an electric dipole.",
+     steps=[S("Exact axial field and its far limit.", r"H_z=\frac{Ia^2}{2(a^2+z^2)^{3/2}}\ \xrightarrow{z\gg a}\ \frac{Ia^2}{2z^3}"),
+            S("Only the product I·πa², the magnetic dipole moment m = IA, survives.", r"H_z\approx\frac{m}{2\pi z^3},\qquad m=I\pi a^2"),
+            S("A small loop of any shape with the same m looks identical from far away.")],
+     answer_text="Seen from far away, each element of the loop is almost cancelled by the opposite element, which carries current in the opposite direction. "
+                 "What remains falls off one power faster than a single current, giving 1/z³, just as an electric dipole's field does. "
+                 "In the limit z ≫ a only the magnetic dipole moment m = I·πa² matters: H_z ≈ m/(2πz³) on the axis. "
+                 "Any small current loop, square or circular, with the same m produces the same far field.",
+     evidence_say="Engine axial profile of a 10 cm loop: beyond a few radii it approaches the dipole law.",
+     plot=Series(_ax("z"), [("H on the axis", _ax("H"), "H")], "distance along the axis z (m)", "H (A/m)"),
+     mistake="Using the near-field formula far away, or the far-field formula near the loop.",
+     vals={}), "concept")
 
 # ---------------------------------------------------------------- Maxwell & boundaries
 T = "maxwell"
