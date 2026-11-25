@@ -41,6 +41,7 @@ main:focus { outline: none; }
 #toc .soon { display: block; font-size: 11px; color: var(--ink-3); opacity: .8; }
 #toc .grp { font: 600 11px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 18px 6px 6px; }
 .side-foot { color: var(--ink-3); font-size: 12px; margin-top: 26px; border-top: 1px solid var(--rule); padding-top: 12px; }
+.side-credit { color: var(--ink-3); font-size: 12px; margin: 8px 0 0; }
 
 /* page */
 main { padding: 28px 40px 80px; max-width: 1280px; }
