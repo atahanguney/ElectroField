@@ -140,7 +140,7 @@ def test_transformer_problems_draw_a_tilted_loop():
 
 
 # ---------------------------------------------------------------- every explained topic: 15 problems, 8 conceptual + 7 numerical
-DONE = ["maxwell", "dimensions", "coordinates"]
+DONE = ["maxwell", "dimensions", "coordinates", "electrostatics"]
 
 
 @pytest.mark.parametrize("topic", DONE)

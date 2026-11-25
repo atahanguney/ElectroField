@@ -544,44 +544,247 @@ px(T, "Ulaby & Ravaioli Sec. 3-2", "exam", "Why the order R̂, θ̂, φ̂ matter
 # ---------------------------------------------------------------- electrostatics
 T = "electrostatics"
 nC = 1e-9
-p(T, "Ulaby & Ravaioli Sec. 4-3", "basic", "Field of a point charge",
-  "A 5 nC point charge is in free space. Find |E| at 0.3 m.",
-  {"type": "charges", "charges": [[5, 0, 0]], "probe": [0.3, 0]}, "es/charges", {"charges": [{"q": 5 * nC, "x": 0, "y": 0}], "probe": [0.3, 0]},
-  [("|E|", V("E_mag"), "V/m", 1)], "E = Q/(4πε₀R²).", "The field gets 4 times weaker when you double the distance.")
-p(T, "Ulaby & Ravaioli Sec. 4-3", "exam", "Field of a charge pair",
-  "Charges +2 nC at (−0.1, 0) m and −2 nC at (0.1, 0) m. Find |E| at P(0, 0.1) m.",
-  {"type": "charges", "charges": [[2, -0.1, 0], [-2, 0.1, 0]], "probe": [0, 0.1]}, "es/charges",
-  {"charges": [{"q": 2 * nC, "x": -0.1, "y": 0}, {"q": -2 * nC, "x": 0.1, "y": 0}], "probe": [0, 0.1]}, [("|E|", V("E_mag"), "V/m", 1)],
-  "Superpose the two Coulomb fields as vectors; the y-components cancel, the x-components add.", "Both charges push/pull the test charge toward +x, so their effects add.")
-p(T, "Ulaby & Ravaioli Sec. 4-5", "basic", "Potential on the bisector",
-  "For the same pair (+2 nC and −2 nC, 0.2 m apart), find the potential at P(0, 0.1) m.",
-  {"type": "charges", "charges": [[2, -0.1, 0], [-2, 0.1, 0]], "probe": [0, 0.1]}, "es/charges",
-  {"charges": [{"q": 2 * nC, "x": -0.1, "y": 0}, {"q": -2 * nC, "x": 0.1, "y": 0}], "probe": [0, 0.1]}, [("V", V("V"), "V", 1)],
-  "V = Σ Qᵢ/(4πε₀Rᵢ); the distances are equal and the charges opposite.", "Equal and opposite contributions cancel: zero volts — yet the field is not zero.")
-p(T, "Ulaby & Ravaioli Sec. 4-4", "exam", "Inside a charged sphere",
-  "A sphere of radius 5 cm carries a uniform charge density 2 µC/m³. Find |E| at 2 cm from the centre.",
-  {"type": "sphere", "a": 0.05, "r": 0.02}, "es/gauss", {"kind": "sphere", "rho": 2e-6, "a": 0.05, "r": 0.02},
-  [("|E|", V("E"), "V/m", 1)], "Gauss: D·4πR² = ρᵥ(4/3)πR³ ⇒ E = ρᵥR/(3ε₀) inside.", "Inside, only the charge closer to the centre than you counts.")
-p(T, "Ulaby & Ravaioli Sec. 4-4", "basic", "Infinite line charge",
-  "An infinite line carries 10 nC/m in air. Find |E| at 0.5 m.",
-  {"type": "line", "r": 0.5}, "es/gauss", {"kind": "line", "rho": 1e-8, "a": 0.01, "b": 1, "r": 0.5},
-  [("|E|", V("E"), "V/m", 1)], "Gauss with a cylinder: E·2πrℓ = ρₗℓ/ε₀ ⇒ E = ρₗ/(2πε₀r).", "A line spreads its field over a cylinder, so E ∝ 1/r.")
-p(T, "Ulaby & Ravaioli Sec. 4-10", "basic", "Coaxial capacitance",
-  "A coaxial cable has a = 1 mm, b = 4 mm and polyethylene (εr = 2.25). Find C per metre.",
-  {"type": "coax", "a": 1, "b": 4}, "es/capacitor", {"kind": "coax", "a": 1e-3, "b": 4e-3, "eps_r": 2.25, "length": 1},
-  [("C′", V("C"), "pF/m", 1e12)], "C′ = 2πε/ln(b/a).", "More insulating material constant ε, more capacitance; wider gap, less.")
-p(T, "Ulaby & Ravaioli Sec. 4-10", "basic", "Parallel-plate capacitor and energy",
-  "Plates of 10 cm² are 0.5 mm apart with εr = 4 and 12 V applied. Find C and the stored energy.",
-  {"type": "plates", "d": 0.5}, "es/capacitor", {"kind": "parallel", "A": 1e-3, "d": 5e-4, "eps_r": 4, "V0": 12},
-  [("C", V("C"), "pF", 1e12), ("W", V("W"), "nJ", 1e9)], "C = εA/d, W = ½CV².", "Bigger plates or thinner gap store more charge for the same voltage.")
-p(T, "Ulaby & Ravaioli Sec. 4-10", "exam", "Coax breakdown voltage",
-  "An air-filled coax has a = 1 mm and b = 3 mm. Air breaks down at 3 MV/m. What is the highest safe voltage?",
-  {"type": "coax", "a": 1, "b": 3}, "es/capacitor", {"kind": "coax", "a": 1e-3, "b": 3e-3, "eps_r": 1, "E_bd": 3e6, "V0": 1},
-  [("V_bd", V("V_bd"), "kV", 1e-3)], "E_max = V/(a ln(b/a)) at r = a; set E_max = E_bd.", "The field is strongest at the thin inner conductor — that is where sparks start.")
-p(T, "Ulaby & Ravaioli Sec. 4-10", "basic", "Spherical capacitor",
-  "Concentric spheres of radii 5 cm and 10 cm, air between. Find C.",
-  {"type": "coax", "a": 5, "b": 10, "label": "spherical"}, "es/capacitor", {"kind": "spherical", "a": 0.05, "b": 0.1, "eps_r": 1},
-  [("C", V("C"), "pF", 1e12)], "C = 4πε ab/(b − a).", "Two nested metal balls form a capacitor; closer surfaces give larger C.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual.
+_pair = {"charges": [{"q": 2 * nC, "x": -0.1, "y": 0}, {"q": -2 * nC, "x": 0.1, "y": 0}], "probe": [0, 0.1]}
+_GP = lambda k: (lambda r, p: r["profile"][k])
+
+px(T, "Ulaby & Ravaioli Sec. 4-3", "basic", "Field of a point charge",
+   "A 5 nC point charge sits in free space. Find the magnitude of the electric field and the potential (taking V = 0 at infinity) at a point 0.3 m away.",
+   {"type": "charges", "charges": [[5, 0, 0]], "probe": [0.3, 0]}, "es/charges", {"charges": [{"q": 5 * nC, "x": 0, "y": 0}], "probe": [0.3, 0]},
+   [("|E|", V("E_mag"), "V/m", 1), ("V", V("V"), "V", 1)],
+   X(asked="|E| and V at 0.3 m from a 5 nC charge.",
+     idea="Coulomb's law gives the field of a point charge, radial and falling as 1/R²; the potential, its line integral from infinity, falls as 1/R.",
+     steps=[S("Field magnitude.", r"|\mathbf E|=\frac{q}{4\pi\varepsilon_0R^2}=«E»\ \text{V/m}"),
+            S("Potential with V(∞) = 0.", r"V=\frac{q}{4\pi\varepsilon_0R}=«V»\ \text{V}"),
+            S("Check: for a point charge |E| = V/R, which holds here.")],
+     answer="|E| = «E» V/m, V = «V» V",
+     whatif=[W("…the distance were doubled?", lambda p: {**p, "probe": [0.6, 0]}, "E falls to a quarter («E» V/m), V only to a half («V» V).", r"|\mathbf E|\propto\frac1{R^2},\qquad V\propto\frac1R"),
+             W("…the charge were −5 nC?", lambda p: {**p, "charges": [{"q": -5 * nC, "x": 0, "y": 0}]}, "|E| is unchanged («E» V/m) but points inward, and V becomes «V» V.", r"V=«V»\ \text{V}")],
+     mistake="Using 1/R for the field or 1/R² for the potential.",
+     vals={"E": EV("E_mag"), "V": EV("V")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-3", "exam", "Field of a charge pair",
+   "Charges of +2 nC and −2 nC sit at (−0.1, 0) m and (0.1, 0) m in free space. Find the electric field (magnitude and direction) at P = (0, 0.1) m.",
+   {"type": "charges", "charges": [[2, -0.1, 0], [-2, 0.1, 0]], "probe": [0, 0.1]}, "es/charges", _pair, [("|E|", V("E_mag"), "V/m", 1)],
+   X(asked="The total electric field vector at P.",
+     idea="Superpose the two Coulomb fields as vectors. By symmetry the y-components cancel and the x-components add.",
+     steps=[S("Both charges are the same distance R = √2 × 0.1 m from P.", r"R_1=R_2=R=\sqrt{0.1^2+0.1^2}\ \text{m}"),
+            S("Each field has magnitude q/(4πε₀R²); the positive charge pushes away from (−0.1, 0), the negative one pulls toward (0.1, 0).", r"|\mathbf E_1|=|\mathbf E_2|=\frac{q}{4\pi\varepsilon_0R^2}"),
+            S("Add the components: both point partly in +x and their y parts cancel.", r"E_x=«ex}\ \text{V/m},\qquad E_y=«ey»\ \text{V/m}".replace("«ex}", "«ex»")),
+            S("Magnitude.", r"|\mathbf E|=«E»\ \text{V/m}\ \text{along}\ +\hat x")],
+     answer="E = «E» V/m along +x",
+     whatif=[W("…both charges were +2 nC?", lambda p: {**p, "charges": [{"q": 2 * nC, "x": -0.1, "y": 0}, {"q": 2 * nC, "x": 0.1, "y": 0}]},
+               "Now the x-parts cancel and the y-parts add: E_x = «ex» V/m, E_y = «ey» V/m.", r"|\mathbf E|=«E»\ \text{V/m}"),
+             W("…the potential at P were asked?", lambda p: p, "V = «V» V: equal distances and opposite charges cancel.", r"V=\frac{1}{4\pi\varepsilon_0}\Big(\frac{q}{R}-\frac{q}{R}\Big)=«V»")],
+     mistake="Adding the two magnitudes, which ignores that half of each field cancels.",
+     vals={"ex": EV("E", 0), "ey": EV("E", 1), "E": EV("E_mag"), "V": EV("V")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-4", "exam", "Inside a charged sphere",
+   "A non-conducting sphere of radius 5 cm carries a uniform volume charge density of 2 µC/m³ in free space. Find |E| at 2 cm from its centre, and at 8 cm.",
+   {"type": "sphere", "a": 0.05, "r": 0.02}, "es/gauss", {"kind": "sphere", "rho": 2e-6, "a": 0.05, "r": 0.02}, [("|E| at 2 cm", V("E"), "V/m", 1)],
+   X(asked="|E| inside the sphere (2 cm), and outside it (8 cm) as a follow-up.",
+     idea="Spherical symmetry: D is radial and the same on any concentric sphere, so Gauss's law needs only the enclosed charge.",
+     steps=[S("Charge inside the Gaussian sphere of radius R = 2 cm, which lies inside the charge.", r"Q_{enc}=\rho_v\tfrac43\pi R^3=«Q»\ \text{C}"),
+            S("Gauss's law.", r"D\,4\pi R^2=Q_{enc}\ \Rightarrow\ D=\frac{\rho_vR}{3}=«D»\ \text{C/m}^2"),
+            S("Field.", r"E=\frac{D}{\varepsilon_0}=\frac{\rho_vR}{3\varepsilon_0}=«E»\ \text{V/m}")],
+     answer="|E(2 cm)| = «E» V/m",
+     whatif=[W("…the point were at 8 cm (outside)?", lambda p: {**p, "r": 0.08}, "All the charge is enclosed and the sphere acts like a point charge: E = «E» V/m.", r"E=\frac{\rho_va^3}{3\varepsilon_0R^2}=«E»\ \text{V/m}"),
+             W("…the point were at the surface (5 cm)?", lambda p: {**p, "r": 0.05}, "Both formulas give the maximum field: E = «E» V/m.", r"E=\frac{\rho_va}{3\varepsilon_0}=«E»\ \text{V/m}")],
+     mistake="Using the total charge for a point inside. Only the charge closer to the centre than R counts.",
+     plot=Series(_GP("r"), [("|E|", _GP("E"), "E")], "distance from centre R (m)", "|E| (V/m)"),
+     evidence_say="Engine profile: E rises linearly inside the sphere and falls as 1/R² outside.",
+     vals={"Q": EV("Q_enc"), "D": EV("D"), "E": EV("E")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-4", "basic", "Infinite line charge",
+   "A long straight wire carries 10 nC per metre in air. Find the electric field 0.5 m from the wire, and the potential difference between 0.5 m and 1 m.",
+   {"type": "line", "r": 0.5}, "es/gauss", {"kind": "line", "rho": 1e-8, "a": 0.01, "b": 1, "r": 0.5}, [("|E|", V("E"), "V/m", 1)],
+   X(asked="|E| at 0.5 m, and V(0.5 m) − V(1 m).",
+     idea="Cylindrical symmetry: a coaxial cylinder of length ℓ is the Gaussian surface. Only its curved side carries flux.",
+     steps=[S("Gauss's law on a cylinder of radius r.", r"E\cdot2\pi r\ell=\frac{\rho_\ell\ell}{\varepsilon_0}\ \Rightarrow\ E=\frac{\rho_\ell}{2\pi\varepsilon_0r}=«E»\ \text{V/m}"),
+            S("Integrate E from 0.5 m to 1 m for the potential difference.", r"V(0.5)-V(1)=\frac{\rho_\ell}{2\pi\varepsilon_0}\ln\frac{1}{0.5}=«dv»\ \text{V}")],
+     answer="|E| = «E» V/m; V(0.5 m) − V(1 m) = «dv» V",
+     whatif=[W("…the distance were doubled?", lambda p: {**p, "r": 1.0}, "E ∝ 1/r: «E» V/m.", r"E=«E»\ \text{V/m}"),
+             W("…the potential at 0.5 m were asked, with V = 0 at infinity?", lambda p: p, "It cannot be: for an infinite line the potential diverges logarithmically, so a finite reference distance must be chosen.", None)],
+     mistake="Taking V = 0 at infinity for an infinite line charge.",
+     vals={"E": EV("E"), "dv": EV("V")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-9", "basic", "Coaxial capacitance",
+   "A coaxial cable has an inner conductor of radius 1 mm, an outer conductor of radius 4 mm, and polyethylene insulation (εr = 2.25). Find its capacitance per metre.",
+   {"type": "coax", "a": 1, "b": 4}, "es/capacitor", {"kind": "coax", "a": 1e-3, "b": 4e-3, "eps_r": 2.25, "length": 1}, [("C′", V("C"), "pF/m", 1e12)],
+   X(asked="The capacitance per unit length of the coax.",
+     idea="Put charge ρℓ on the inner conductor, find E with Gauss's law, integrate across the gap for V, and divide.",
+     steps=[S("Field in the insulation.", r"E=\frac{\rho_\ell}{2\pi\varepsilon r}"),
+            S("Voltage between the conductors.", r"V=\frac{\rho_\ell}{2\pi\varepsilon}\ln\frac{b}{a}"),
+            S("Capacitance per metre.", r"C'=\frac{2\pi\varepsilon}{\ln(b/a)}=«C»\ \text{pF/m}")],
+     answer="C′ = «C» pF/m",
+     whatif=[W("…the insulation were air?", lambda p: {**p, "eps_r": 1}, "C′ ∝ ε: «C» pF/m.", r"C'=«C»\ \text{pF/m}"),
+             W("…the outer radius were 8 mm?", lambda p: {**p, "b": 8e-3}, "ln(b/a) grows from ln 4 to ln 8, so C′ drops to «C» pF/m.", r"C'=«C»\ \text{pF/m}")],
+     mistake="Using log₁₀ instead of the natural logarithm.",
+     vals={"C": lambda r, p: r["values"]["C"] * 1e12}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-9, 4-10", "basic", "Parallel-plate capacitor and energy",
+   "Two plates of area 10 cm² are 0.5 mm apart, with a dielectric of εr = 4 between them, and 12 V is applied. Neglecting fringing, find the capacitance, the stored energy and the field in the gap.",
+   {"type": "plates", "d": 0.5}, "es/capacitor", {"kind": "parallel", "A": 1e-3, "d": 5e-4, "eps_r": 4, "V0": 12},
+   [("C", V("C"), "pF", 1e12), ("W", V("W"), "nJ", 1e9)],
+   X(asked="C, the stored energy W and the field E between the plates.",
+     idea="With fringing neglected the field is uniform, E = V/d, and the charge on each plate is Q = εEA.",
+     steps=[S("Capacitance.", r"C=\frac{\varepsilon A}{d}=«C»\ \text{pF}"),
+            S("Uniform field.", r"E=\frac{V}{d}=«E»\ \text{V/m}"),
+            S("Stored energy.", r"W=\tfrac12CV^2=«W»\ \text{nJ}")],
+     answer="C = «C» pF, W = «W» nJ, E = «E» V/m",
+     whatif=[W("…the voltage were doubled?", lambda p: {**p, "V0": 24}, "W ∝ V², so it quadruples to «W» nJ.", r"W=«W»\ \text{nJ}"),
+             W("…the gap were filled with air?", lambda p: {**p, "eps_r": 1}, "C and W at fixed V drop by 4: C = «C» pF, W = «W» nJ.", r"C=«C»\ \text{pF}")],
+     mistake="Forgetting εr in C, or the ½ in the energy.",
+     vals={"C": lambda r, p: r["values"]["C"] * 1e12, "W": lambda r, p: r["values"]["W"] * 1e9, "E": EV("E_max")}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-9", "basic", "Spherical capacitor",
+   "Two concentric metal spheres of radii 5 cm and 10 cm are separated by air. Find the capacitance, and its limit when the outer sphere is moved very far away.",
+   {"type": "coax", "a": 5, "b": 10, "label": "a = 5 cm, b = 10 cm (concentric spheres)"}, "es/capacitor", {"kind": "spherical", "a": 0.05, "b": 0.1, "eps_r": 1},
+   [("C", V("C"), "pF", 1e12)],
+   X(asked="C of two concentric spheres, and the isolated-sphere limit.",
+     idea="Charge Q on the inner sphere gives a point-charge field between the spheres; integrate it to get V.",
+     steps=[S("Field between the spheres.", r"E=\frac{Q}{4\pi\varepsilon R^2}"),
+            S("Potential difference.", r"V=\frac{Q}{4\pi\varepsilon}\Big(\frac1a-\frac1b\Big)"),
+            S("Capacitance.", r"C=\frac{4\pi\varepsilon}{1/a-1/b}=«C»\ \text{pF}")],
+     answer="C = «C» pF",
+     whatif=[W("…the outer sphere were very far away?", lambda p: {**p, "b": 10.0}, "With b = 10 m (200a), C is within 0.5 % of 4πε₀a, the capacitance of an isolated sphere: «C» pF.", r"C\to4\pi\varepsilon a=«C»\ \text{pF}"),
+             W("…the gap were filled with εr = 3?", lambda p: {**p, "eps_r": 3}, "C = «C» pF.", r"C=«C»\ \text{pF}")],
+     mistake="Writing 1/b − 1/a, which gives a negative capacitance.",
+     vals={"C": lambda r, p: r["values"]["C"] * 1e12}), "numeric")
+
+# ---- conceptual
+px(T, "Ulaby & Ravaioli Sec. 4-5", "basic", "Zero potential, non-zero field",
+   "On the perpendicular bisector of a +q, −q pair the potential is zero everywhere, yet the electric field there is not. How can both be true?",
+   {"type": "charges", "charges": [[2, -0.1, 0], [-2, 0.1, 0]], "probe": [0, 0.1]}, "es/charges", _pair, [],
+   X(asked="How V = 0 and E ≠ 0 can hold at the same point.",
+     idea="E is minus the gradient of V. A potential that is zero along a line can still change across that line.",
+     steps=[S("Every point of the bisector is equally far from +q and −q, so their potentials cancel.", r"V=\frac{1}{4\pi\varepsilon_0}\Big(\frac{q}{R}-\frac{q}{R}\Big)=0"),
+            S("E = −∇V depends on how V changes in space. Along the bisector V does not change, but across it, towards the charges, it does."),
+            S("So E points across the bisector, here along +x, with magnitude «E» V/m.")],
+     answer_text="V = 0 is the value of the potential; the field is its rate of change, E = −∇V. "
+                 "On the bisector the contributions of +q and −q cancel, so V is zero all along that line, and therefore E has no component along it. "
+                 "Stepping off the bisector towards +q raises V and stepping towards −q lowers it, so V changes across the line and E points from the positive side to the negative side. "
+                 "A zero value of the potential says nothing about the field, just as a road at sea level can still be steep.",
+     evidence_say="Engine at (0, 0.1) m: V = «V» V while |E| = «E» V/m; its check confirms E = −∇V there.",
+     mistake="Concluding that E = 0 wherever V = 0.",
+     vals={"V": EV("V"), "E": EV("E_mag")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-4", "exam", "Why E grows inside a charged sphere",
+   "For a uniformly charged solid sphere, the field inside grows in proportion to the distance from the centre, while outside it falls as 1/R². Explain both, and why the field is largest at the surface.",
+   {"type": "sphere", "a": 0.05, "r": 0.03}, "es/gauss", {"kind": "sphere", "rho": 2e-6, "a": 0.05, "r": 0.03}, [],
+   X(asked="The shape of E(R) inside and outside a uniformly charged sphere.",
+     idea="Gauss's law: E·4πR² = Q_enc/ε₀. Inside, the enclosed charge grows as R³; outside, it is the total Q.",
+     steps=[S("Inside: Q_enc ∝ R³, while the surface grows as R², so E ∝ R.", r"E=\frac{\rho_vR}{3\varepsilon_0}\quad(R<a)"),
+            S("Outside: Q_enc is fixed, so E ∝ 1/R², like a point charge.", r"E=\frac{\rho_va^3}{3\varepsilon_0R^2}\quad(R>a)"),
+            S("The two formulas meet at R = a, where E reaches its maximum.")],
+     answer_text="Gauss's law sets E·4πR² equal to the enclosed charge over ε₀. Inside the sphere the enclosed charge is ρv·(4/3)πR³, which grows faster than the area 4πR², "
+                 "so E = ρvR/(3ε₀) increases linearly from zero at the centre. Outside, the whole charge is enclosed and fixed, so E falls as 1/R², exactly as if the charge sat at the centre. "
+                 "Both formulas give the same value at R = a, so E is continuous and peaks at the surface. At the centre E = 0 by symmetry.",
+     evidence_say="Engine profile of |E| from the centre outwards: a straight rise to the surface, then a 1/R² fall.",
+     plot=Series(_GP("r"), [("|E|", _GP("E"), "E")], "distance from centre R (m)", "|E| (V/m)"),
+     mistake="Treating the inside like a conductor (E = 0) or like a point charge (E ∝ 1/R²).",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-4", "basic", "Why a charged sheet's field does not fade",
+   "The field of a large, uniformly charged flat sheet has the same strength at 1 cm and at 1 m from it. Why does it not weaken with distance, unlike that of a point charge?",
+   {"type": "plates", "d": None}, "es/gauss", {"kind": "sheet", "rho": 1e-9, "r": 0.3}, [],
+   X(asked="Why E of an infinite sheet is independent of distance.",
+     idea="By symmetry the field lines are straight and perpendicular to the sheet: they never spread apart, so their density cannot fall.",
+     steps=[S("Use a pill-box with faces of area A on both sides of the sheet.", r"2EA=\frac{\rho_sA}{\varepsilon_0}\ \Rightarrow\ E=\frac{\rho_s}{2\varepsilon_0}=«E»\ \text{V/m}"),
+            S("The face area A cancels and no distance appears: the field is uniform on each side."),
+            S("A real sheet of finite size looks infinite only from distances much smaller than its width; far away it acts like a point charge.")],
+     answer_text="For an infinite sheet, symmetry forces E to be perpendicular to the sheet and equal at equal distances. "
+                 "A pill-box straddling the sheet then gives 2EA = ρsA/ε₀, so E = ρs/(2ε₀), with no distance in the result. "
+                 "Geometrically, the field lines are parallel straight lines that never spread apart, so the line density, and therefore E, stays the same. "
+                 "A point charge's lines spread over spheres, which is why its field falls as 1/R². "
+                 "A finite sheet behaves this way only close to its surface compared with its size.",
+     evidence_say="Engine: E = «E» V/m for ρs = 1 nC/m², the same at any distance in the infinite-sheet model.",
+     mistake="Applying the infinite-sheet result far from a finite plate.",
+     vals={"E": EV("E")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-5", "exam", "E can jump but V cannot",
+   "At the surface of a charged sheet the electric field jumps, but the potential is continuous. Why must V be continuous, even where E is not?",
+   {"type": "sphere", "a": 0.05, "r": 0.05}, "es/gauss", {"kind": "shell", "rho": 1e-8, "a": 0.05, "r": 0.05}, [],
+   X(asked="Why the potential is continuous across a surface charge.",
+     idea="V is the line integral of E. A finite E over a vanishing distance contributes nothing to the integral.",
+     steps=[S("The potential difference across a thin layer of thickness Δh is the field times Δh.", r"V_1-V_2=-\int\mathbf E\cdot d\mathbf l\approx E\,\Delta h"),
+            S("As Δh → 0 with E finite, the difference goes to zero, even if E differs on the two sides."),
+            S("Only an infinite field, such as that of a dipole layer, could make V jump.")],
+     answer_text="The potential is defined by the line integral of the field, V₁ − V₂ = −∫E·dl. "
+                 "Crossing a surface charge means integrating a finite field over an infinitely short path, so the potential change across the surface is zero, even though E is different on the two sides. "
+                 "The jump in E is a jump in the slope of V, not in V itself. "
+                 "For a charged spherical shell, E is zero inside and Q/(4πε₀R²) outside, while V is constant inside and continuous at R = a.",
+     evidence_say="Engine profile for a charged spherical shell: |E| steps up at the surface while V has only a kink there.",
+     plot=Series(_GP("r"), [("|E| (V/m)", _GP("E"), "E"), ("V (V)", _GP("V"))], "distance from centre R (m)", "value"),
+     mistake="Assuming the potential must be zero wherever the field is zero (inside a shell it is constant, not zero).",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-9", "exam", "Where a coaxial cable breaks down",
+   "In a coaxial cable under voltage, where is the electric field strongest, and why does insulation breakdown normally start there? How does the inner radius affect it?",
+   {"type": "coax", "a": 1, "b": 4}, "es/capacitor", {"kind": "coax", "a": 1e-3, "b": 4e-3, "eps_r": 2.25, "V0": 1000}, [],
+   X(asked="The location of the maximum field in a coax and the role of the inner radius.",
+     idea="Between the conductors E = V/(r ln(b/a)), which is largest at the smallest radius, r = a.",
+     steps=[S("Field in the gap.", r"E(r)=\frac{V}{r\ln(b/a)},\qquad E_{max}=E(a)=«Em»\ \text{V/m}\ \text{at 1 kV}"),
+            S("Breakdown starts where E first reaches the dielectric strength: at the inner conductor's surface."),
+            S("A thinner inner conductor raises E(a), but a thicker one shrinks ln(b/a); the best compromise is a = b/e.")],
+     answer_text="Gauss's law gives E = V/(r ln(b/a)) between the conductors, so the field is strongest at the surface of the inner conductor, r = a. "
+                 "Insulation fails where the field first exceeds its dielectric strength, so breakdown starts there. "
+                 "Making the inner conductor thinner concentrates the field further; making it thicker reduces ln(b/a), which also raises E(a). "
+                 "For a fixed outer radius the breakdown voltage E_bd·a·ln(b/a) is largest when ln(b/a) = 1, i.e. a = b/e.",
+     evidence_say="Engine runs at 1 kV with b = 4 mm: the maximum field at the inner conductor as a varies; the minimum sits near a = b/e.",
+     plot=Sweep("a", [0.4e-3, 0.8e-3, 1.2e-3, 1.47e-3, 2e-3, 2.6e-3, 3.2e-3], [("E_max at r = a", EV("E_max"), "E")], "inner radius a (m)", "E_max (V/m)"),
+     mistake="Thinking the field is uniform across the gap, as in a parallel-plate capacitor.",
+     vals={"Em": EV("E_max")}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-10", "exam", "Dielectric in a capacitor: more or less energy?",
+   "A dielectric slab is slid into an air-filled capacitor. Does the stored energy go up or down (a) if the capacitor stays connected to the battery, and (b) if it was charged and then disconnected?",
+   {"type": "plates", "d": 0.5}, "es/capacitor", {"kind": "parallel", "A": 1e-3, "d": 5e-4, "eps_r": 1, "V0": 12}, [],
+   X(asked="The change of stored energy when εr increases at fixed V and at fixed Q.",
+     idea="C = εA/d grows by εr. Which formula for W to use depends on what stays fixed: V (battery connected) or Q (isolated).",
+     steps=[S("Battery connected, V fixed: W = ½CV² grows with C.", r"W=\tfrac12CV^2\propto\varepsilon_r"),
+            S("Disconnected, Q fixed: W = Q²/2C shrinks as C grows.", r"W=\frac{Q^2}{2C}\propto\frac{1}{\varepsilon_r}"),
+            S("In case (b) the field does work pulling the slab in; in case (a) the battery supplies twice the energy gained by the capacitor.")],
+     answer_text="Inserting the dielectric multiplies C by εr. (a) With the battery connected V stays fixed, so W = ½CV² rises by εr; "
+                 "the battery delivers extra charge and supplies twice the energy increase, the other half going into the mechanical work of pulling the slab in. "
+                 "(b) With the capacitor isolated, Q stays fixed and W = Q²/2C falls by εr; the lost energy is the work done by the field drawing the slab in. "
+                 "In both cases the slab is pulled into the gap.",
+     evidence_say="Engine runs at a fixed 12 V: the stored energy grows in proportion to εr.",
+     plot=Sweep("eps_r", [1, 2, 3, 4, 6], [("W at fixed V", lambda r, p: r["values"]["W"] * 1e9, "E")], "relative permittivity εr", "stored energy (nJ)"),
+     mistake="Using W = ½CV² when the charge, not the voltage, is fixed.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-9", "basic", "When is C = εA/d accurate?",
+   "The parallel-plate formula C = εA/d ignores fringing. For what plate geometry is it a good approximation, and in which direction does fringing change the true capacitance?",
+   {"type": "plates", "d": 0.5}, "es/capacitor", {"kind": "parallel", "A": 1e-3, "d": 5e-4, "eps_r": 1, "V0": 1}, [],
+   X(asked="The validity condition of C = εA/d and the effect of fringing.",
+     idea="The formula assumes a uniform field confined between the plates. Near the edges the field bulges outwards, which the formula ignores.",
+     steps=[S("The uniform-field picture holds over most of the plates if the gap is much smaller than their width: d ≪ √A."),
+            S("Fringing adds field, and therefore charge, near the edges, so the true C is a little larger than εA/d."),
+            S("For 10 cm² plates 0.5 mm apart the plate width is tens of times the gap, so the formula is good to a few per cent.",r"C=\frac{\varepsilon_0A}{d}=«C»\ \text{pF}")],
+     answer_text="C = εA/d assumes the field is uniform and stays between the plates. That is accurate when the gap is much smaller than the plate dimensions, d ≪ √A, "
+                 "because the edge region where the field bulges outwards is then a small fraction of the area. "
+                 "Fringing fields add extra charge near the edges, so the real capacitance is slightly larger than εA/d, never smaller. "
+                 "For plates whose width is comparable to the gap the formula fails badly and a numerical field solution is needed.",
+     evidence_say="Engine (fringing neglected): C = «C» pF for 10 cm² plates 0.5 mm apart in air.",
+     mistake="Assuming fringing reduces C.",
+     vals={"C": lambda r, p: r["values"]["C"] * 1e12}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-4", "exam", "Gauss's law: always true, not always useful",
+   "Gauss's law holds for any closed surface and any charge distribution. Why can it give the field of a point charge or a sphere in one line, but not the field of two charges?",
+   {"type": "charges", "charges": [[2, -0.1, 0], [-2, 0.1, 0]], "probe": [0, 0.1]}, "es/charges", _pair, [],
+   X(asked="Why Gauss's law determines E only for highly symmetric charge distributions.",
+     idea="Gauss's law fixes the total flux, an integral of E. To get E itself you must already know that E is constant and perpendicular on the surface.",
+     steps=[S("The law fixes only the surface integral.", r"\oint\mathbf E\cdot d\mathbf s=\frac{Q_{enc}}{\varepsilon_0}"),
+            S("With spherical, cylindrical or planar symmetry, E is constant on a suitable surface and comes out of the integral."),
+            S("For a charge pair no such surface exists: a sphere around both encloses zero net charge, yet E on it is not zero.")],
+     answer_text="Gauss's law is always true, but it only states the total flux through a closed surface. "
+                 "To extract E you need a surface on which symmetry makes E constant in size and perpendicular to the surface, so the integral becomes E times the area. "
+                 "Point charges, spheres, infinite lines and planes have such surfaces. For two charges there is none: "
+                 "a sphere enclosing a +q, −q pair has zero net flux, yet the field on it is far from zero, because outward and inward flux cancel. "
+                 "Such problems are solved by superposition of Coulomb fields instead.",
+     evidence_say="Engine checks for the ±2 nC pair: the flux through a sphere around each charge is q/ε₀, and through a sphere around both it is zero, while |E| at (0, 0.1) is «E» V/m.",
+     mistake="Concluding that E = 0 on a surface because the enclosed charge is zero.",
+     vals={"E": EV("E_mag")}), "concept")
 
 # ---------------------------------------------------------------- images
 T = "images"
