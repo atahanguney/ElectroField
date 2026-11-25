@@ -6,12 +6,15 @@ import { figure } from './figures.js';
 const label = (t) => h('div', { class: 'ex-label' }, t);
 
 // Prose with subscripted symbols written plainly (E_n, J_c, V_emf, τ_r) → inline KaTeX for those tokens.
-const SUB = /([A-Za-zτρεμσθΦΔ])_([A-Za-z0-9]+)/g;
+const SUB = /([A-Za-zτρεμσθΦΔ])_([A-Za-z0-9]+|[θφ⊥∥])/g;
+const GREEK = { τ: String.raw`\tau`, ρ: String.raw`\rho`, ε: String.raw`\varepsilon`, μ: String.raw`\mu`, σ: String.raw`\sigma`, θ: String.raw`\theta`,
+  Φ: String.raw`\Phi`, Δ: String.raw`\Delta`, φ: String.raw`\phi`, '⊥': String.raw`\perp`, '∥': String.raw`\parallel` };
 function P(text, attrs = {}) {
   const parts = [];
   let last = 0;
   for (const m of text.matchAll(SUB)) {
-    parts.push(text.slice(last, m.index), tex(`${m[1]}_{${m[2].length > 1 ? String.raw`\text{${m[2]}}` : m[2]}}`));
+    const sub = /^[θφ⊥∥]$/.test(m[2]) ? GREEK[m[2]] : m[2].length > 1 ? String.raw`\text{${m[2]}}` : m[2];
+    parts.push(text.slice(last, m.index), tex(`${GREEK[m[1]] || m[1]}_{${sub}}`));
     last = m.index + m[0].length;
   }
   parts.push(text.slice(last));
