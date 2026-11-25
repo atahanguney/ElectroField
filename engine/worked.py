@@ -9,6 +9,7 @@ import math
 
 from .constants import C0
 from . import routes
+from .explain import render
 
 P = []
 TOPICS = {"dimensions": "1-D, 2-D and 3-D waves", "coordinates": "Vectors & coordinates", "electrostatics": "Electrostatics",
@@ -16,9 +17,16 @@ TOPICS = {"dimensions": "1-D, 2-D and 3-D waves", "coordinates": "Vectors & coor
           "waves": "Plane waves", "reflection": "Reflection & transmission", "tlines": "Transmission lines", "radiation": "Waveguides & antennas"}
 
 
-def p(topic, ref, level, title, text, fig, route, params, answers, approach, simple):
+def p(topic, ref, level, title, text, fig, route, params, answers, approach, simple, x=None, kind="numeric"):
     P.append(dict(id=f"{topic[:3]}{sum(1 for x in P if x['topic'] == topic) + 1}", topic=topic, ref=ref, level=level, title=title,
-                  text=text, fig=fig, route=route, params=params, answers=answers, approach=approach, simple=simple))
+                  text=text, fig=fig, route=route, params=params, answers=answers, approach=approach, simple=simple, x=x, kind=kind))
+
+
+def px(topic, ref, level, title, text, fig, route, params, answers, x, kind):
+    """A problem with a written explanation (engine/explain.py); kind is 'numeric' or 'concept'."""
+    if kind not in ("numeric", "concept"):
+        raise ValueError("kind must be 'numeric' or 'concept'")
+    p(topic, ref, level, title, text, fig, route, params, answers, x["idea"], "", x=x, kind=kind)
 
 
 V = lambda k: (lambda r: r["values"][k])
@@ -411,7 +419,8 @@ p(T, "Ulaby & Ravaioli Sec. 9-3", "exam", "Full-wave dipole",
 
 # ---------------------------------------------------------------- API
 def catalog():
-    return {"topics": TOPICS, "problems": [{k: v for k, v in x.items() if k not in ("answers", "route", "params")} | {"answer_labels": [a[0] for a in x["answers"]]} for x in P]}
+    return {"topics": TOPICS, "problems": [{k: v for k, v in x.items() if k not in ("answers", "route", "params", "x")}
+                                           | {"answer_labels": [a[0] for a in x["answers"]], "has_explain": x["x"] is not None} for x in P]}
 
 
 def solve(pid):
@@ -424,5 +433,6 @@ def solve(pid):
         v = pick(r)
         v = v.real if isinstance(v, complex) else float(v)
         ans.append({"label": label, "value": v * scale, "unit": unit})
+    ex = render(x["x"], lambda q: routes.call(x["route"], q), x["params"], r) if x["x"] else None
     return {"id": pid, "answers": ans, "steps": r.get("steps", []), "checks": r.get("checks", []), "all_passed": bool(r.get("all_passed", True)),
-            "route": x["route"], "params": x["params"]}
+            "route": x["route"], "params": x["params"], "explain": ex}
