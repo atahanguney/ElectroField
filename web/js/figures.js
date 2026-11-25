@@ -64,7 +64,7 @@ export function figure(spec, title = '') {
       Tx(290, 190, spec.label || (spec.type === 'coax' ? `a = ${spec.a}, b = ${spec.b} (mm)` : `a = ${spec.a}, b = ${spec.b} (cm)`), { size: 12 });
       break;
     }
-    case 'plates': { Re(60, 60, 220, 8, { fill: 'E', c: 'E' }); Re(60, 142, 220, 8, { fill: 'H', c: 'H' }); Re(60, 68, 220, 74, { fill: 'accent-bg', c: 'none' }); for (let i = 0; i < 7; i++) L(80 + i * 30, 72, 80 + i * 30, 138, { arrow: 1, c: 'E', w: 1 }); L(300, 68, 300, 142, { both: 1, arrow: 1, c: 'ink-3', w: 1 }); Tx(312, 105, `d = ${spec.d} mm`, { anchor: 'start', size: 12 }); Tx(40, 64, '+'); Tx(40, 146, '−'); Tx(170, 105, 'ε', { italic: 1, size: 16 }); break; }
+    case 'plates': { Re(60, 60, 220, 8, { fill: 'E', c: 'E' }); Re(60, 142, 220, 8, { fill: 'H', c: 'H' }); Re(60, 68, 220, 74, { fill: 'accent-bg', c: 'none' }); for (let i = 0; i < 7; i++) L(80 + i * 30, 72, 80 + i * 30, 138, { arrow: 1, c: 'E', w: 1 }); L(300, 68, 300, 142, { both: 1, arrow: 1, c: 'ink-3', w: 1 }); if (spec.d != null) Tx(312, 105, `d = ${spec.d} mm`, { anchor: 'start', size: 12 }); Tx(40, 64, '+'); Tx(40, 146, '−'); Tx(170, 105, 'ε', { italic: 1, size: 16 }); break; }
     case 'plane': case 'corner': {
       if (spec.type === 'plane') {
         Re(20, 150, 300, 40, { fill: 'ink-3', c: 'none', op: 0.35 }); L(20, 150, 320, 150, { w: 3 }); Tx(170, 172, 'σ = ∞,  V = 0'); charge(170, 150 - 100 * Math.min(spec.d / 0.4, 1.2), 1, 'Q');
@@ -82,9 +82,19 @@ export function figure(spec, title = '') {
     }
     case 'interface': {
       Re(20, 20, 300, 85, { fill: 'accent-bg', c: 'none' }); Re(20, 105, 300, 85, { fill: 'accent', c: 'none', op: 0.18 }); L(20, 105, 320, 105, { w: 2 }); L(170, 20, 170, 190, { dash: '4 3', c: 'ink-3', w: 1 });
-      const t1 = (spec.theta * Math.PI) / 180, c = spec.H ? 'H' : 'E';
-      L(170, 105, 170 + 80 * Math.sin(t1), 105 - 80 * Math.cos(t1), { arrow: 1, c, w: 2.5 }); Tx(178 + 80 * Math.sin(t1), 100 - 80 * Math.cos(t1), spec.H ? 'H₁' : 'E₁', { c, anchor: 'start' });
-      Tx(184, 66, 'θ₁', { size: 12 }); Tx(40, 34, `${spec.H ? 'μ' : 'ε'}r₁ = ${spec.e1}`, { anchor: 'start', size: 12 }); Tx(40, 176, `${spec.H ? 'μ' : 'ε'}r₂ = ${spec.e2}`, { anchor: 'start', size: 12 }); Tx(176, 28, 'n̂₂', { anchor: 'start', c: 'accent' });
+      // drawing only: angles are the given θ₁ and, in a solution figure, the engine's θ₂ (spec.theta2)
+      const t1 = (spec.theta * Math.PI) / 180, c = spec.H ? 'H' : 'E', f = spec.H ? 'H' : 'E', m = spec.H ? 'μ' : 'ε';
+      const arc = (a, r, down) => { const sx = 170, sy = down ? 105 + r : 105 - r, ex = down ? 170 - r * Math.sin(a) : 170 + r * Math.sin(a), ey = down ? 105 + r * Math.cos(a) : 105 - r * Math.cos(a);
+        Pa(`M ${sx} ${sy} A ${r} ${r} 0 0 ${down ? 1 : 1} ${ex} ${ey}`, { c: 'ink-2', w: 1.2 }); };
+      L(170, 105, 170 + 80 * Math.sin(t1), 105 - 80 * Math.cos(t1), { arrow: 1, c, w: 2.5 }); Tx(178 + 80 * Math.sin(t1), 100 - 80 * Math.cos(t1), `${f}₁`, { c, anchor: 'start' });
+      if (spec.theta > 3) { arc(t1, 32, false); Tx(170 + 46 * Math.sin(t1 / 2), 105 - 46 * Math.cos(t1 / 2), 'θ₁', { size: 12 }); }
+      if (spec.theta2 != null) {
+        const t2 = (spec.theta2 * Math.PI) / 180;
+        L(170 - 80 * Math.sin(t2), 105 + 80 * Math.cos(t2), 169, 104.5, { arrow: 1, c, w: 2.5 }); Tx(162 - 80 * Math.sin(t2), 112 + 80 * Math.cos(t2), `${f}₂`, { c, anchor: 'end' });
+        if (spec.theta2 > 3) { arc(t2, 32, true); Tx(170 - 48 * Math.sin(t2 / 2), 105 + 48 * Math.cos(t2 / 2), 'θ₂', { size: 12 }); }
+        Tx(300, 160, `θ₂ = ${spec.theta2.toFixed(2)}°`, { anchor: 'end', size: 12 });
+      }
+      Tx(40, 34, `${m}r₁ = ${spec.e1}`, { anchor: 'start', size: 12 }); Tx(300, 180, `${m}r₂ = ${spec.e2}`, { anchor: 'end', size: 12 }); Tx(176, 26, 'n̂₂', { anchor: 'start', c: 'accent' });
       break;
     }
     case 'oblique': case 'normal': {
@@ -106,7 +116,7 @@ export function figure(spec, title = '') {
     case 'waveguide': { Re(80, 60, 180, 80, { fill: 'accent-bg', w: 3 }); for (let i = 0; i < 7; i++) { const x = 100 + i * 23, hgt = 34 * Math.sin(((x - 80) / 180) * Math.PI); L(x, 100 + hgt / 2, x, 100 - hgt / 2, { arrow: 1, c: 'E', w: 1.5 }); } L(80, 160, 260, 160, { both: 1, arrow: 1, c: 'ink-3', w: 1 }); Tx(170, 174, `a = ${spec.a} mm`, { size: 12 }); L(280, 60, 280, 140, { both: 1, arrow: 1, c: 'ink-3', w: 1 }); Tx(290, 100, `b = ${spec.b} mm`, { anchor: 'start', size: 12 }); Tx(170, 40, 'TE₁₀: E across the narrow dimension', { size: 12 }); break; }
     case 'dipole': { const hl = Math.min(80, 160 * spec.L); L(170, 105 - hl, 170, 100, { c: 'H', w: 4 }); L(170, 110, 170, 105 + hl, { c: 'H', w: 4 }); Ci(170, 105, 4, { fill: 'ink' }); Tx(186, 105, `l = ${spec.L}λ`, { anchor: 'start', size: 12 }); Pa('M 200 60 Q 250 105 200 150', { c: 'S', dash: '4 3' }); Pa('M 140 60 Q 90 105 140 150', { c: 'S', dash: '4 3' }); Tx(270, 60, 'radiation', { c: 'S', size: 12 }); break; }
     case 'array': { for (let k = 0; k < Math.min(spec.N, 12); k++) Ci(50 + k * 22, 120, 6, { fill: 'accent', c: 'accent' }); L(50, 145, 72, 145, { both: 1, arrow: 1, c: 'ink-3', w: 1 }); Tx(61, 160, `d = ${spec.d}λ`, { size: 12 }); Tx(170, 40, `N = ${spec.N} elements`, { size: 13 }); L(170, 100, 170, 55, { arrow: 1, c: 'S', dash: '4 3' }); Tx(184, 70, 'θ from the array axis →', { anchor: 'start', size: 11 }); break; }
-    case 'generator': { Re(40, 30, 40, 150, { fill: 'E', c: 'none', op: 0.4 }); Tx(60, 105, 'N', { c: 'paper', size: 16 }); Re(260, 30, 40, 150, { fill: 'H', c: 'none', op: 0.4 }); Tx(280, 105, 'S', { c: 'paper', size: 16 }); for (let i = 0; i < 4; i++) L(85, 50 + i * 35, 255, 50 + i * 35, { arrow: 1, c: 'ink-3', w: 1 }); s.append(el('ellipse', { cx: 170, cy: 105, rx: 30, ry: 60, fill: 'none', stroke: col('accent'), 'stroke-width': 3 })); Tx(170, 196, 'B (horizontal) through a coil', { size: 12 }); break; }
+    case 'generator': { Re(40, 30, 40, 150, { fill: 'E', c: 'none', op: 0.4 }); Tx(60, 105, 'N', { c: 'paper', size: 16 }); Re(260, 30, 40, 150, { fill: 'H', c: 'none', op: 0.4 }); Tx(280, 105, 'S', { c: 'paper', size: 16 }); for (let i = 0; i < 4; i++) L(85, 50 + i * 35, 255, 50 + i * 35, { arrow: 1, c: 'ink-3', w: 1 }); s.append(el('ellipse', { cx: 170, cy: 105, rx: 30, ry: 60, fill: 'none', stroke: col('accent'), 'stroke-width': 3 })); Tx(170, 196, 'B (horizontal) through a coil', { size: 12 }); if (spec.N) Tx(170, 16, `N = ${spec.N} turn${spec.N > 1 ? 's' : ''}${spec.R ? `, load R = ${spec.R} Ω` : ''}`, { size: 12 }); break; }
     case 'medium': case 'slab': { Re(20, 40, 300, 130, { fill: 'accent-bg', c: 'none' }); Pa('M 20 105 ' + Array.from({ length: 30 }, (_, i) => `L ${20 + i * 10} ${105 - 40 * Math.exp(-i / 12) * Math.sin(i * 0.9)}`).join(' '), { c: 'E', w: 2 }); Tx(170, 190, spec.label ? `medium: ${spec.label}` : 'lossy medium', { size: 12 }); L(30, 30, 120, 30, { arrow: 1, c: 'S' }); Tx(132, 30, 'propagation', { anchor: 'start', size: 11, c: 'S' }); break; }
     default: Tx(170, 105, '');
   }
