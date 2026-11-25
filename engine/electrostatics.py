@@ -381,9 +381,13 @@ def capacitor(kind, V0=1.0, eps_r=1.0, A=1e-2, d=1e-3, a=1e-3, b=3.5e-3, length=
            note=f"{100 * Emax / E_bd:.3g} % of the dielectric strength {E_bd:.3g} V/m")
     D.step("Breakdown voltage", rf"V_{{bd}}=V_0\,E_{{bd}}/E_{{max}}={fmt(V0 * E_bd / Emax)}", V0 * E_bd / Emax, "V")
 
-    Vn, _ = integrate.quad(lambda s: float(E(s)), lo, hi, epsrel=1e-12)
+    def quad_r(g):   # radial geometries: integrate in u = ln r so 1/r^n integrands stay smooth for any b/a
+        if lo > 0:
+            return integrate.quad(lambda u: g(np.exp(u)) * np.exp(u), np.log(lo), np.log(hi), epsrel=1e-13)[0]
+        return integrate.quad(g, lo, hi, epsrel=1e-12)[0]
+    Vn = quad_r(lambda s: float(E(s)))
     D.check(r"\int_a^b E\,dl=V_0", V0, Vn, 1e-10, "scipy quad of the Gauss field")
-    Wn, _ = integrate.quad(lambda s: 0.5 * eps * float(E(s)) ** 2 * w(s), lo, hi, epsrel=1e-12)
+    Wn = quad_r(lambda s: 0.5 * eps * float(E(s)) ** 2 * w(s))
     D.check(r"\tfrac12CV_0^2=\int\tfrac12\varepsilon E^2\,dv", W, Wn, 1e-9, "field-energy integral over the dielectric")
     s1, s2 = lo + 0.25 * (hi - lo), lo + 0.75 * (hi - lo)
     D.check(r"Q=\oint\mathbf D\cdot d\mathbf s \text{ same on any surface between plates}",

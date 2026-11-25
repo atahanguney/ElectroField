@@ -67,3 +67,9 @@ def test_gradient_check_holds_at_a_field_null():
     x0 = d / (1 + 2)          # q2 = 4 q1: E = 0 at d/3
     r = es.point_charges([{"q": 1e-9, "x": 0, "y": 0}, {"q": 4e-9, "x": d, "y": 0}], False, (x0, 0.0), n=21)
     assert r["all_passed"], [c["label"] for c in r["checks"] if not c["passed"]]
+
+
+@pytest.mark.parametrize("b", [1.0, 10.0])
+def test_spherical_capacitor_checks_hold_for_far_outer_sphere(b):
+    from engine import electrostatics as es
+    assert es.capacitor("spherical", a=0.05, b=b)["all_passed"]
