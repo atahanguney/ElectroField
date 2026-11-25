@@ -152,7 +152,7 @@ def invert(fn, kw, name, key, target, lo, hi, log=False):
     get = (lambda r: r["values"][key]) if isinstance(key, str) else key
     g = lambda u: float(get(fn(**kw, **{name: math.exp(u) if log else u}))) - target
     a, b = (math.log(lo), math.log(hi)) if log else (lo, hi)
-    u = brentq(g, a, b, xtol=1e-14, rtol=1e-13, maxiter=200)
+    u = brentq(g, a, b, xtol=1e-14 if log else 1e-15 * (b - a), rtol=1e-13, maxiter=200)   # relative accuracy at any scale
     x = math.exp(u) if log else u
     r = fn(**kw, **{name: x})
     got = float(get(r))
