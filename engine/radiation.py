@@ -154,7 +154,9 @@ def array(N=8, d_lambda=0.5, delta_deg=0.0, n=1441):
     if th0 is not None:
         af0 = float(np.abs(np.exp(1j * (kd * np.cos(np.radians(th0)) + dl) * np.arange(N)).sum()) / N)
         D.check(r"|AF(\theta_0)|=1 \text{ (all elements in phase)}", 1.0, af0, 1e-12, "direct phasor sum at the predicted angle")
-        D.check(r"\text{sampled pattern peaks at }\theta_0", th0, float(np.degrees(th[int(np.argmax(np.abs(AF)))])), 0.01, "argmax on a 0.125° grid",
+        # with grating lobes several directions share the maximum, so check the sampled peak nearest to θ0
+        peaks = np.degrees(th[np.abs(AF) >= np.abs(AF).max() * (1 - 1e-3)])   # sidelobes are far lower
+        D.check(r"\text{sampled pattern peaks at }\theta_0", th0, float(peaks[np.argmin(np.abs(peaks - th0))]), 0.01, "maxima on a 0.125° grid",
                 scale=180.0)
     if abs(delta_deg) < 1e-12 and N * d_lambda >= 2 and d_lambda < 1:
         D.check(r"\text{broadside: }D\approx2Nd/\lambda", 2 * N * d_lambda, Dmax, 0.15, "long-array approximation (±15 %)")

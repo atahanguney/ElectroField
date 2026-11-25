@@ -38,3 +38,10 @@ def test_arrays(N, d, delta):
 
 def test_endfire_direction():
     assert ra.array(8, 0.25, -90)["values"]["theta0"] == pytest.approx(0, abs=1e-6)
+
+
+@pytest.mark.parametrize("d, delta", [(1.0, 0.0), (0.7, -178.0)])
+def test_array_checks_hold_with_grating_lobes(d, delta):
+    from engine import radiation as ra
+    r = ra.array(N=8, d_lambda=d, delta_deg=delta)
+    assert r["values"]["grating"] and r["all_passed"], [c["label"] for c in r["checks"] if not c["passed"]]
