@@ -53,7 +53,11 @@ export function figure(spec, title = '') {
       break;
     }
     case 'sphere': case 'line': {
-      if (spec.type === 'sphere') { Ci(170, 105, 70, { fill: 'accent-bg', c: 'E' }); Tx(170, 30, `a = ${spec.a * 100} cm`); Ci(170, 105, 70 * spec.r / spec.a, { c: 'S', dash: '5 4' }); Tx(170, 105 + 70 * spec.r / spec.a + 12, 'Gaussian surface', { c: 'S', size: 12 }); L(170, 105, 170 + 70 * spec.r / spec.a, 105, { c: 'S', arrow: 1 }); Tx(170 + 35 * spec.r / spec.a, 96, 'R', { italic: 1, c: 'S' }); }
+      if (spec.type === 'sphere') {   // scaled so the larger of a and R fits the canvas
+        const k = 82 / Math.max(spec.a, spec.r), ra = k * spec.a, rr = k * spec.r;
+        Ci(170, 105, ra, { fill: 'accent-bg', c: 'E' }); Tx(40, 20, `a = ${+(spec.a * 100).toFixed(3)} cm`, { anchor: 'start', size: 12 });
+        Ci(170, 105, rr, { c: 'S', dash: '5 4' }); Tx(300, 200, `Gaussian surface, R = ${+(spec.r * 100).toFixed(3)} cm`, { c: 'S', size: 12, anchor: 'end' });
+        L(170, 105, 170 + rr, 105, { c: 'S', arrow: 1 }); Tx(170 + rr / 2, 96, 'R', { italic: 1, c: 'S' }); }
       else { L(170, 20, 170, 190, { c: 'E', w: 4 }); Tx(150, 30, 'ρₗ', { c: 'E' }); Re(130, 60, 80, 90, { c: 'S', dash: '5 4' }); L(170, 105, 210, 105, { arrow: 1, c: 'S' }); Tx(192, 95, 'r', { italic: 1, c: 'S' }); Tx(260, 105, 'cylindrical Gaussian surface', { size: 11, c: 'S' }); }
       break;
     }
