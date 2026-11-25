@@ -1574,42 +1574,249 @@ px(T, U + "6-10", "basic", "Why excess charge lives on the surface",
 
 # ---------------------------------------------------------------- plane waves
 T = "waves"
-p(T, "Ulaby & Ravaioli Sec. 7-5", "basic", "Skin depth of copper",
-  "Find the skin depth of copper (σ = 5.8 × 10⁷ S/m) at 10 MHz.",
-  {"type": "slab", "label": "copper"}, "waves/solve", {"f": 1e7, "sigma": 5.8e7}, [("δs", V("skin_depth"), "µm", 1e6)],
-  "Good conductor: δs = 1/√(πfμσ).", "High-frequency current flows only in a skin about 20 µm thick.")
-p(T, "Ulaby & Ravaioli Sec. 7-5", "basic", "Skin depth of aluminium at 60 Hz",
-  "Find the skin depth of aluminium (σ = 3.5 × 10⁷ S/m) at 60 Hz.",
-  {"type": "slab", "label": "aluminium"}, "waves/solve", {"f": 60, "sigma": 3.5e7}, [("δs", V("skin_depth"), "mm", 1e3)],
-  "δs = 1/√(πfμσ).", "At power-line frequency the skin is about a centimetre — why thick cables are stranded.")
-p(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Attenuation in sea water",
-  "A 1 MHz wave travels in sea water (εr = 81, σ = 4 S/m). Find the attenuation in dB/m.",
-  {"type": "slab", "label": "sea water"}, "waves/solve", {"f": 1e6, "eps_r": 81, "sigma": 4}, [("α", V("alpha_dB"), "dB/m", 1)],
-  "σ/ωε ≈ 890 ⇒ good conductor, α ≈ √(πfμσ); 1 Np = 8.686 dB.", "Radio barely penetrates the sea: tens of dB lost per metre.")
-p(T, "Ulaby & Ravaioli Sec. 7-3", "basic", "Wavelength in a dielectric",
-  "Find the wavelength of a 3 GHz wave in a lossless material with εr = 4.",
-  {"type": "slab", "label": "εr = 4"}, "waves/solve", {"f": 3e9, "eps_r": 4}, [("λ", V("wavelength"), "cm", 100)],
-  "λ = c/(f√εr).", "Slower wave, shorter wavelength.")
-p(T, "Ulaby & Ravaioli Sec. 7-2", "basic", "Impedance of free space",
-  "Find the intrinsic impedance of free space.",
-  {"type": "slab", "label": "free space"}, "waves/solve", {"f": 1e9}, [("η₀", V("eta_mag"), "Ω", 1)],
-  "η₀ = √(μ₀/ε₀).", "The ratio of E to H in a plane wave in vacuum: about 377 Ω.")
-p(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Low-loss dielectric",
-  "A dielectric has εr = 4 and σ = 0.01 S/m. At 1 GHz find the loss tangent and α.",
-  {"type": "slab", "label": "εr = 4, σ = 0.01"}, "waves/solve", {"f": 1e9, "eps_r": 4, "sigma": 0.01},
-  [("ε″/ε′", V("loss_tangent"), "", 1), ("α", V("alpha"), "Np/m", 1)], "ε″/ε′ = σ/ωε ≈ 0.045, a quasi-conductor; the exact α formula applies.", "Small but not negligible loss: the wave fades slowly.")
-p(T, "Ulaby & Ravaioli Sec. 7-3", "basic", "Phase velocity",
-  "Find the phase velocity in a lossless medium with εr = 9.",
-  {"type": "slab", "label": "εr = 9"}, "waves/solve", {"f": 1e9, "eps_r": 9}, [("u_p", V("vp"), "m/s", 1)],
-  "u_p = c/√εr.", "Three times slower than light in vacuum.")
-p(T, "Ulaby & Ravaioli Sec. 7-7", "basic", "Power density",
-  "A plane wave in air has E₀ = 100 V/m. Find the time-average power density.",
-  {"type": "slab", "label": "free space"}, "waves/solve", {"f": 1e9, "E0": 100}, [("S_av", V("S_av0"), "W/m²", 1)],
-  "S_av = |E₀|²/(2η₀).", "Power density grows with the square of the field.")
-p(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Microwave in muscle",
-  "A 2.45 GHz microwave enters muscle tissue (εr = 52.7, σ = 1.74 S/m). Find the skin depth.",
-  {"type": "slab", "label": "muscle"}, "waves/solve", {"f": 2.45e9, "eps_r": 52.7, "sigma": 1.74}, [("δs", V("skin_depth"), "cm", 100)],
-  "σ/ωε ≈ 0.24 — neither limit; use the exact α.", "Microwave ovens heat the outer couple of centimetres of food.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual.
+_mag = lambda key: (lambda r, p: [math.hypot(a, b) for a, b in zip(r["field"][key]["re"], r["field"][key]["im"])])
+_fz = lambda r, p: r["field"]["z"]
+_WV = {"lt": EV("loss_tangent"), "a": EV("alpha"), "b": EV("beta"), "adb": EV("alpha_dB"), "eta": EV("eta_mag"), "ph": EV("eta_phase_deg"),
+       "vp": EV("vp"), "lam": EV("wavelength"), "S": EV("S_av0")}
+_ds = lambda unit: (lambda r, p: r["values"]["skin_depth"] * unit)
+
+px(T, "Ulaby & Ravaioli Sec. 7-5", "basic", "Skin depth of copper",
+   "A 10 MHz current flows in a copper conductor (σ = 5.8 × 10⁷ S/m). How deep below the surface does it penetrate, measured by the skin depth?",
+   {"type": "slab", "label": "copper"}, "waves/solve", {"f": 1e7, "sigma": 5.8e7}, [("δs", V("skin_depth"), "µm", 1e6)],
+   X(asked="The skin depth δs of copper at 10 MHz.",
+     idea="In a good conductor the fields decay as e^(−z/δs) with δs = 1/√(πfμσ). First confirm that copper is a good conductor at this frequency.",
+     steps=[S("Loss tangent: enormous, so the good-conductor formulas apply.", r"\frac{\sigma}{\omega\varepsilon}=«lt»"),
+            S("Attenuation constant.", r"\alpha=\sqrt{\pi f\mu_0\sigma}=«a»\ \text{Np/m}"),
+            S("Skin depth.", r"\delta_s=\frac1\alpha=«d»\ \mu\text{m}")],
+     answer="δs = «d» µm",
+     whatif=[W("…the frequency were 1 GHz?", lambda p: {**p, "f": 1e9}, "δs ∝ 1/√f: «d» µm, which is why RF circuits use plated or polished surfaces.", r"\delta_s=«d»\ \mu\text{m}"),
+             W("…the metal were stainless steel (σ ≈ 1.4 × 10⁶ S/m)?", lambda p: {**p, "sigma": 1.4e6}, "δs ∝ 1/√σ: «d» µm.", r"\delta_s=«d»\ \mu\text{m}")],
+     mistake="Using δs = 1/(πfμσ) without the square root.",
+     plot=Series(_fz, [("|E| inside the copper", _mag("E"), "E")], "depth z (m)", "|E| (relative)"),
+     evidence_say="Engine field profile: |E| falls to 1/e of its surface value at z = δs.",
+     vals={**_WV, "d": _ds(1e6)}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-5", "basic", "Skin depth of aluminium at 60 Hz",
+   "Overhead power lines carry 60 Hz current in aluminium conductors (σ = 3.5 × 10⁷ S/m). Find the skin depth, and explain why very thick conductors are made of strands around a steel core rather than solid aluminium.",
+   {"type": "slab", "label": "aluminium"}, "waves/solve", {"f": 60, "sigma": 3.5e7}, [("δs", V("skin_depth"), "mm", 1e3)],
+   X(asked="δs of aluminium at power-line frequency, and its practical consequence.",
+     idea="Even at 60 Hz the current crowds towards the surface of a good conductor; metal much deeper than δs carries little current.",
+     steps=[S("Good-conductor skin depth.", r"\delta_s=\frac{1}{\sqrt{\pi f\mu_0\sigma}}=«d»\ \text{mm}"),
+            S("In a solid conductor much thicker than about 2δs, the core carries little current but adds weight and cost."),
+            S("So large conductors use a steel core for strength, with aluminium strands where the current actually flows.")],
+     answer="δs = «d» mm",
+     whatif=[W("…the line ran at 50 Hz?", lambda p: {**p, "f": 50}, "δs = «d» mm, slightly deeper.", r"\delta_s=«d»\ \text{mm}"),
+             W("…the conductor were copper?", lambda p: {**p, "sigma": 5.8e7}, "δs = «d» mm.", r"\delta_s=«d»\ \text{mm}")],
+     mistake="Assuming skin effect matters only at radio frequencies. For thick power conductors it matters at 50–60 Hz.",
+     vals={**_WV, "d": _ds(1e3)}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Attenuation in sea water",
+   "A 1 MHz radio wave travels through sea water (εr = 81, σ = 4 S/m). Find the attenuation in dB per metre, and the depth at which the signal has lost 100 dB.",
+   {"type": "slab", "label": "sea water"}, "waves/solve", {"f": 1e6, "eps_r": 81, "sigma": 4}, [("α", V("alpha_dB"), "dB/m", 1)],
+   X(asked="α in dB/m and the depth for 100 dB of loss.",
+     idea="Check the regime with the loss tangent; sea water at 1 MHz is a good conductor, so α ≈ √(πfμσ). Then convert to dB.",
+     steps=[S("Loss tangent.", r"\frac{\sigma}{\omega\varepsilon}=«lt»"),
+            S("Attenuation constant (exact formula, which here equals the good-conductor value).", r"\alpha=«a»\ \text{Np/m}"),
+            S("In dB per metre.", r"\alpha_{dB}=20\log_{10}(e)\,\alpha=«adb»\ \text{dB/m}"),
+            S("Depth for 100 dB.", r"z=\frac{100}{\alpha_{dB}}=«z»\ \text{m}")],
+     answer="α = «adb» dB/m; 100 dB is lost within «z» m",
+     whatif=[W("…the frequency were 10 kHz?", lambda p: {**p, "f": 1e4}, "α ∝ √f: «adb» dB/m, which is why submarines use very low frequencies.", r"\alpha_{dB}=«adb»\ \text{dB/m}"),
+             W("…it were fresh water (σ ≈ 0.01 S/m)?", lambda p: {**p, "sigma": 0.01}, "Now σ/ωε ≈ «lt» and the loss is far smaller: «adb» dB/m.", r"\alpha_{dB}=«adb»\ \text{dB/m}")],
+     mistake="Treating sea water as a dielectric with εr = 81 at radio frequencies.",
+     vals={**_WV, "z": lambda r, p: 100 / r["values"]["alpha_dB"]}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Is it a low-loss dielectric?",
+   "A dielectric has εr = 4 and σ = 0.01 S/m. At 1 GHz, find its loss tangent and attenuation constant, and decide which approximation, if any, is valid.",
+   {"type": "slab", "label": "εr = 4, σ = 0.01 S/m"}, "waves/solve", {"f": 1e9, "eps_r": 4, "sigma": 0.01},
+   [("ε″/ε′", V("loss_tangent"), "", 1), ("α", V("alpha"), "Np/m", 1)],
+   X(asked="The loss tangent, α, and the applicable regime.",
+     idea="Ulaby classifies media by ε″/ε′ = σ/ωε: below 0.01 low-loss, above 100 good conductor, in between quasi-conductor.",
+     steps=[S("Loss tangent.", r"\frac{\varepsilon''}{\varepsilon'}=\frac{\sigma}{\omega\varepsilon}=«lt»"),
+            S("It lies between 0.01 and 100, so this is a quasi-conductor and the exact formula is required.", r"\alpha=\omega\sqrt{\frac{\mu\varepsilon}{2}\Big[\sqrt{1+(\varepsilon''/\varepsilon')^2}-1\Big]}=«a»\ \text{Np/m}"),
+            S("The low-loss shortcut (σ/2)√(μ/ε) happens to be close here because ε″/ε′ is still well below 1.")],
+     answer="ε″/ε′ = «lt», α = «a» Np/m",
+     whatif=[W("…σ were 10⁻⁴ S/m?", lambda p: {**p, "sigma": 1e-4}, "ε″/ε′ = «lt»: low-loss, α = «a» Np/m.", r"\alpha=«a»\ \text{Np/m}"),
+             W("…the frequency were 10 MHz?", lambda p: {**p, "f": 1e7}, "ε″/ε′ = «lt»: now a quasi-conductor near the good-conductor end, α = «a» Np/m.", r"\alpha=«a»\ \text{Np/m}")],
+     mistake="Calling a material 'low-loss' or 'conducting' without computing σ/ωε at the frequency of interest.",
+     vals=_WV), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-3", "basic", "Phase velocity and wavelength in a dielectric",
+   "A 1 GHz plane wave travels in a lossless dielectric with εr = 9. Find its phase velocity, wavelength and intrinsic impedance.",
+   {"type": "slab", "label": "εr = 9"}, "waves/solve", {"f": 1e9, "eps_r": 9}, [("u_p", V("vp"), "m/s", 1), ("λ", V("wavelength"), "cm", 100)],
+   X(asked="u_p, λ and η in the dielectric.",
+     idea="Everything scales with √εr: the wave is slower, shorter, and has a lower E/H ratio.",
+     steps=[S("Phase velocity.", r"u_p=\frac{c}{\sqrt{\varepsilon_r}}=«vp»\ \text{m/s}"),
+            S("Wavelength.", r"\lambda=\frac{u_p}{f}=«lamc»\ \text{cm}"),
+            S("Intrinsic impedance.", r"\eta=\frac{\eta_0}{\sqrt{\varepsilon_r}}=«eta»\ \Omega")],
+     answer="u_p = «vp» m/s, λ = «lamc» cm, η = «eta» Ω",
+     whatif=[W("…εr were 2.25?", lambda p: {**p, "eps_r": 2.25}, "u_p = «vp» m/s, λ = «lamc» cm, η = «eta» Ω.", r"\sqrt{\varepsilon_r}=1.5"),
+             W("…the frequency were 2 GHz?", lambda p: {**p, "f": 2e9}, "u_p and η do not change; λ halves to «lamc» cm.", r"\lambda=«lamc»\ \text{cm}")],
+     mistake="Dividing by εr instead of √εr.",
+     vals={**_WV, "lamc": lambda r, p: r["values"]["wavelength"] * 100}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-7", "basic", "Power density of a plane wave",
+   "A plane wave in free space has an electric field amplitude of 100 V/m. Find the amplitude of H and the time-average power density.",
+   {"type": "slab", "label": "free space"}, "waves/solve", {"f": 1e9, "E0": 100}, [("S_av", V("S_av0"), "W/m²", 1)],
+   X(asked="|H| and the average Poynting vector for E₀ = 100 V/m.",
+     idea="In a plane wave H = E/η and the average power density is half the product of the amplitudes.",
+     steps=[S("Intrinsic impedance of free space.", r"\eta_0=\sqrt{\mu_0/\varepsilon_0}=«eta»\ \Omega"),
+            S("Magnetic field amplitude.", r"H_0=\frac{E_0}{\eta_0}=«H»\ \text{A/m}"),
+            S("Average power density.", r"S_{av}=\frac{E_0^2}{2\eta_0}=«S»\ \text{W/m}^2")],
+     answer="H₀ = «H» A/m, S_av = «S» W/m²",
+     whatif=[W("…E₀ were 200 V/m?", lambda p: {**p, "E0": 200}, "S ∝ E₀²: «S» W/m².", r"S_{av}=«S»\ \text{W/m}^2"),
+             W("…the wave were in a dielectric with εr = 4?", lambda p: {**p, "eps_r": 4}, "η halves, so for the same E₀ the power density doubles: «S» W/m².", r"S_{av}=\frac{E_0^2}{2\eta}=«S»\ \text{W/m}^2")],
+     mistake="Forgetting the ½ for time-averaging, or using rms and peak values inconsistently.",
+     vals={**_WV, "H": lambda r, p: p["E0"] / r["values"]["eta_mag"]}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4, 7-5", "exam", "Microwave in muscle",
+   "Muscle tissue at 2.45 GHz (the microwave-oven frequency) has εr ≈ 52.7 and σ ≈ 1.74 S/m (typical values). Find the skin depth, i.e. the depth at which the field drops to 1/e.",
+   {"type": "slab", "label": "muscle tissue"}, "waves/solve", {"f": 2.45e9, "eps_r": 52.7, "sigma": 1.74}, [("δs", V("skin_depth"), "cm", 100)],
+   X(asked="The penetration depth of 2.45 GHz fields in muscle.",
+     idea="Muscle at this frequency is a quasi-conductor, so neither shortcut applies and δs = 1/α must come from the exact α.",
+     steps=[S("Loss tangent.", r"\frac{\sigma}{\omega\varepsilon}=«lt»"),
+            S("Exact attenuation constant.", r"\alpha=«a»\ \text{Np/m}"),
+            S("Skin depth.", r"\delta_s=\frac1\alpha=«d»\ \text{cm}")],
+     answer="δs = «d» cm",
+     whatif=[W("…fat tissue (εr ≈ 5.3, σ ≈ 0.1 S/m) were asked?", lambda p: {**p, "eps_r": 5.3, "sigma": 0.1}, "Lower loss, deeper penetration: δs = «d» cm.", r"\delta_s=«d»\ \text{cm}"),
+             W("…the good-conductor formula were used anyway?", lambda p: p, "It would give 1/√(πfμσ) = «dgc» cm, a clear overestimate of the loss.", r"\delta_s\approx\frac{1}{\sqrt{\pi f\mu_0\sigma}}=«dgc»\ \text{cm}")],
+     mistake="Applying the good-conductor skin-depth formula to tissue, where σ/ωε is of order 1.",
+     vals={**_WV, "d": _ds(100), "dgc": lambda r, p: 100 / math.sqrt(math.pi * p["f"] * 4e-7 * math.pi * p["sigma"])}), "numeric")
+
+# ---- conceptual
+px(T, "Ulaby & Ravaioli Sec. 7-2", "basic", "What η₀ ≈ 377 Ω means",
+   "The 'intrinsic impedance of free space' is about 377 Ω. There is no resistor in empty space, so what does this number describe?",
+   {"type": "slab", "label": "free space"}, "waves/solve", {"f": 1e9}, [],
+   X(asked="The physical meaning of η₀.",
+     idea="In a plane wave E and H are locked together; η is their ratio, fixed by μ and ε of the medium.",
+     steps=[S("From Maxwell's equations for a plane wave, E and H are perpendicular, in phase in a lossless medium, and in a fixed ratio.", r"\eta_0=\frac{|E|}{|H|}=\sqrt{\frac{\mu_0}{\varepsilon_0}}=«eta»\ \Omega"),
+            S("It sets how much power a given field carries: S = |E|²/2η₀."),
+            S("No energy is dissipated: the 'impedance' describes the wave, not a loss.")],
+     answer_text="η₀ is the ratio of the electric to the magnetic field amplitude in a plane wave travelling in vacuum, |E|/|H| = √(μ₀/ε₀) ≈ «eta» Ω. "
+                 "It has units of ohms because E is in V/m and H in A/m, but nothing is dissipated: it describes how the two fields are tied together, "
+                 "and how much power a given E carries, S = |E|²/(2η₀). "
+                 "It plays the same role as the characteristic impedance of a transmission line, which is why mismatched impedances cause reflections in both.",
+     evidence_say="Engine: η₀ = «eta» Ω with phase «ph}°, i.e. E and H in phase.".replace("«ph}", "«ph»"),
+     mistake="Thinking free space 'resists' or absorbs the wave.",
+     vals=_WV), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-5", "exam", "Why H lags E by 45° in a good conductor",
+   "In a lossless medium E and H are in phase. In a good conductor H lags E by 45°. Why, and what does it mean for the power flow?",
+   {"type": "slab", "label": "copper"}, "waves/solve", {"f": 1e7, "sigma": 5.8e7}, [],
+   X(asked="The phase of the intrinsic impedance in a good conductor.",
+     idea="η = √(jωμ/(σ + jωε)). When σ ≫ ωε, the square root of j gives a 45° phase.",
+     steps=[S("Good-conductor limit.", r"\eta\approx\sqrt{\frac{j\omega\mu}{\sigma}}=(1+j)\sqrt{\frac{\pi f\mu}{\sigma}}"),
+            S("So |η| is tiny and its phase is 45°.", r"|\eta|=«eta»\ \Omega,\qquad\angle\eta=«ph»^\circ"),
+            S("A phase difference between E and H means part of the field energy is exchanged back and forth while the rest is absorbed.")],
+     answer_text="In a good conductor the conduction current dominates, and the intrinsic impedance becomes η ≈ (1 + j)√(πfμ/σ). "
+                 "The factor (1 + j) has a phase of 45°, so H lags E by 45°. "
+                 "Its magnitude is tiny, of order milliohms for metals, which means E is very small for a given H: a metal surface is almost a short circuit. "
+                 "Because E and H are not in phase, the time-average Poynting vector is smaller than |E||H|/2, and the power that does enter is absorbed within a few skin depths.",
+     evidence_say="Engine runs at 10 MHz as σ grows: the phase of η rises from 0° (dielectric) to 45° (good conductor).",
+     plot=Sweep("sigma", [1e-6, 1e-4, 1e-3, 1e-2, 1e-1, 1, 1e3, 5.8e7], [("phase of η", EV("eta_phase_deg"), "S")], "conductivity σ (S/m)", "phase of η (°)", logx=True),
+     mistake="Assuming E and H are always in phase in a plane wave.",
+     vals=_WV), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "Low-loss, quasi-conductor, good conductor",
+   "Why do textbooks classify media by σ/ωε rather than by σ alone? Can the same material be a good conductor at one frequency and low-loss at another?",
+   {"type": "slab", "label": "lossy medium"}, "waves/solve", {"f": 1e6, "eps_r": 10, "sigma": 0.01}, [],
+   X(asked="The meaning of σ/ωε and its frequency dependence.",
+     idea="σ/ωε is the ratio of conduction to displacement current. It falls as 1/f, so the same material changes class with frequency.",
+     steps=[S("Ratio of the two current densities in Ampère–Maxwell.", r"\frac{|J_c|}{|J_d|}=\frac{\sigma}{\omega\varepsilon}=\frac{\varepsilon''}{\varepsilon'}"),
+            S("Ulaby's classes: below 0.01 low-loss dielectric, 0.01 to 100 quasi-conductor, above 100 good conductor."),
+            S("Because ω is in the denominator, raising the frequency moves a material from 'conductor' towards 'dielectric'.")],
+     answer_text="The behaviour of a wave depends on which current dominates in Ampère–Maxwell: conduction current σE or displacement current jωεE. "
+                 "Their ratio, σ/ωε, is the loss tangent ε″/ε′. Ulaby calls a medium a low-loss dielectric below 0.01, a good conductor above 100, and a quasi-conductor in between. "
+                 "Since ω appears in the denominator, the class changes with frequency: a moist soil with σ = 0.01 S/m and εr = 10 is a good conductor at low audio frequencies, "
+                 "a quasi-conductor at about «lt» at 1 MHz, and close to low-loss in the gigahertz range.",
+     evidence_say="Engine runs of σ/ωε for this soil from 1 kHz to 10 GHz: a straight line of slope −1 crossing all three classes.",
+     plot=Sweep("f", [1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10], [("σ/ωε", EV("loss_tangent"), "S")], "frequency f (Hz)", "loss tangent σ/ωε", logx=True, logy=True),
+     mistake="Labelling a material a conductor or insulator without stating the frequency.",
+     vals=_WV), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-5", "basic", "Why RF current flows on the surface",
+   "At high frequency the current in a copper wire is concentrated in a thin layer at its surface. Why does the field not penetrate further, and what does this do to the wire's resistance?",
+   {"type": "slab", "label": "copper"}, "waves/solve", {"f": 1e8, "sigma": 5.8e7}, [],
+   X(asked="The cause of the skin effect and its effect on resistance.",
+     idea="Inside a good conductor the field obeys a diffusion-like equation and decays exponentially with depth, with length scale δs.",
+     steps=[S("In a good conductor the fields decay as e^(−z/δs) from the surface.", r"\delta_s=\frac{1}{\sqrt{\pi f\mu\sigma}}=«d»\ \mu\text{m}"),
+            S("Induced eddy currents oppose changes of the field in the interior, pushing the current outwards."),
+            S("The current effectively uses a layer about δs thick, so the AC resistance rises roughly as √f.")],
+     answer_text="Inside a good conductor the time-varying field induces eddy currents that oppose it, so the field, and with it the current density, decays exponentially with depth as e^(−z/δs). "
+                 "At 100 MHz in copper δs is only «d» µm, so the current flows in a very thin skin. "
+                 "The conductor behaves as if only a layer about δs thick carried the current, and its AC resistance rises in proportion to 1/δs, that is as √f. "
+                 "This is why RF conductors are often silver-plated: only the surface layer matters.",
+     evidence_say="Engine field profile in copper at 100 MHz: |E| (and the current density σE) fall to 1/e at one skin depth.",
+     plot=Series(_fz, [("|E| inside the copper", _mag("E"), "E")], "depth z (m)", "|E| (relative)"),
+     mistake="Using the DC resistance of a wire at radio frequencies.",
+     vals={**_WV, "d": _ds(1e6)}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-5", "exam", "Wavelength inside a good conductor",
+   "In a good conductor the wavelength equals 2π times the skin depth. Why, and what does it say about how far a wave travels in a metal?",
+   {"type": "slab", "label": "sea water"}, "waves/solve", {"f": 1e6, "eps_r": 81, "sigma": 4}, [],
+   X(asked="Why λ = 2πδs in a good conductor, and its meaning.",
+     idea="In a good conductor α = β. The phase constant sets the wavelength and the attenuation constant sets the skin depth, so they are tied together.",
+     steps=[S("Good-conductor limit.", r"\alpha\approx\beta\approx\sqrt{\pi f\mu\sigma}"),
+            S("So the wavelength and the skin depth are linked.", r"\lambda=\frac{2\pi}{\beta}=2\pi\delta_s"),
+            S("After one wavelength the amplitude has fallen by e^(−2π), about 0.2 %: the wave dies within a single wavelength.")],
+     answer_text="When σ ≫ ωε the propagation constant is γ ≈ (1 + j)√(πfμσ), so α and β are equal. "
+                 "The wavelength is 2π/β and the skin depth is 1/α, hence λ = 2πδs. For sea water at 1 MHz, λ = «lam» m and δs = «d» m. "
+                 "Over one wavelength the amplitude drops by a factor e^(2π), more than 500, so a wave in a good conductor hardly completes one oscillation before it is gone. "
+                 "It is better thought of as a diffusing field than as a travelling wave.",
+     evidence_say="Engine: λ = «lam» m and δs = «d» m, a ratio of «ratio».",
+     mistake="Using the free-space or εr-based wavelength inside a conductor.",
+     vals={**_WV, "d": _ds(1), "ratio": lambda r, p: r["values"]["wavelength"] / r["values"]["skin_depth"]}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-5", "exam", "Why a good conductor is dispersive",
+   "In a lossless dielectric every frequency travels at c/√εr. In sea water the phase velocity depends strongly on frequency. Why, and what happens to a pulse?",
+   {"type": "slab", "label": "sea water"}, "waves/solve", {"f": 1e5, "eps_r": 81, "sigma": 4}, [],
+   X(asked="The frequency dependence of u_p in a conductor, and its effect on pulses.",
+     idea="In a good conductor β = √(πfμσ) grows only as √f, so u_p = ω/β grows as √f.",
+     steps=[S("Phase velocity in a good conductor.", r"u_p=\frac{\omega}{\beta}=\sqrt{\frac{4\pi f}{\mu\sigma}}"),
+            S("It rises with √f: higher frequencies travel faster."),
+            S("A pulse contains many frequencies, which drift apart and spread the pulse out (dispersion), while they are also attenuated at different rates.")],
+     answer_text="In a lossless dielectric β = ω√(με) is proportional to ω, so u_p = ω/β is the same for every frequency. "
+                 "In a good conductor β = √(πfμσ) grows only as the square root of frequency, so u_p = √(4πf/μσ) increases with frequency. "
+                 "The medium is dispersive: the frequency components of a pulse travel at different speeds and are attenuated by different amounts, so the pulse spreads and distorts. "
+                 "For sea water at 100 kHz u_p is only «vp» m/s, far below c.",
+     evidence_say="Engine runs of u_p in sea water from 1 kHz to 10 MHz: slope ½ on log–log axes.",
+     plot=Sweep("f", [1e3, 1e4, 1e5, 1e6, 1e7], [("u_p", EV("vp"), "S")], "frequency f (Hz)", "phase velocity u_p (m/s)", logx=True, logy=True),
+     mistake="Using u_p = c/√εr in a conducting medium.",
+     vals=_WV), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-7", "basic", "Power decays twice as fast as the field",
+   "In a lossy medium the field amplitude decays as e^(−αz). How does the power density decay, and why is the attenuation in dB the same for both?",
+   {"type": "slab", "label": "εr = 4, σ = 0.01 S/m"}, "waves/solve", {"f": 1e9, "eps_r": 4, "sigma": 0.01}, [],
+   X(asked="The decay of S compared with E, and the dB consistency.",
+     idea="Power density goes as the square of the field, so the exponent doubles.",
+     steps=[S("Field and power density.", r"|E|\propto e^{-\alpha z},\qquad S_{av}\propto|E|^2\propto e^{-2\alpha z}"),
+            S("In dB: 20 log₁₀ of the field ratio equals 10 log₁₀ of the power ratio.", r"20\log_{10}e^{-\alpha z}=10\log_{10}e^{-2\alpha z}"),
+            S("So one value, α_dB = «adb» dB/m here, describes both.")],
+     answer_text="Power density is proportional to |E|², so if the field decays as e^(−αz) the power density decays as e^(−2αz): twice the exponent. "
+                 "That is why the 'power penetration depth' is half the skin depth. "
+                 "In decibels nothing changes: 20 log₁₀ of a field ratio and 10 log₁₀ of the corresponding power ratio give the same number, here «adb» dB/m. "
+                 "Mixing the two conventions is a frequent source of factor-of-two errors.",
+     evidence_say="Engine profiles: S_av falls twice as fast (in nepers) as |E|.",
+     plot=Series(_fz, [("|E| (relative)", lambda r, p: [v / max(_mag("E")(r, p)) for v in _mag("E")(r, p)], "E"),
+                       ("S_av (relative)", lambda r, p: [v / max(r["field"]["S_av"]) for v in r["field"]["S_av"]], "S")], "distance z (m)", "relative value"),
+     mistake="Using e^(−αz) for power, or halving the dB figure for power.",
+     vals=_WV), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 7-4", "exam", "What the imaginary part of ε means",
+   "Lossy media are described by a complex permittivity εc = ε′ − jε″. What is physically 'imaginary' about ε″, and how is it related to σ?",
+   {"type": "slab", "label": "εr = 4, σ = 0.01 S/m"}, "waves/solve", {"f": 1e9, "eps_r": 4, "sigma": 0.01}, [],
+   X(asked="The meaning of ε″ and its link to conductivity.",
+     idea="In Ampère–Maxwell the conduction current σE can be folded into the displacement term as an extra imaginary part of ε.",
+     steps=[S("Combine the two current terms.", r"\nabla\times\mathbf H=(\sigma+j\omega\varepsilon')\mathbf E=j\omega\Big(\varepsilon'-j\frac{\sigma}{\omega}\Big)\mathbf E"),
+            S("So ε″ = σ/ω collects every loss mechanism, conduction or dielectric friction.", r"\varepsilon''=\frac{\sigma}{\omega},\qquad\frac{\varepsilon''}{\varepsilon'}=«lt»"),
+            S("The 'imaginary' part is the component of current in phase with E, which dissipates power.")],
+     answer_text="Nothing about the loss is imaginary. Writing εc = ε′ − jε″ is a bookkeeping device in phasor notation: "
+                 "the part of the current 90° ahead of E (displacement current, stored energy) goes with ε′, and the part in phase with E (conduction or dielectric friction, dissipated energy) goes with ε″. "
+                 "For a conductor ε″ = σ/ω; measured ε″ of materials such as water also includes molecular relaxation losses. "
+                 "The ratio ε″/ε′, here «lt», decides how lossy the medium is.",
+     evidence_say="Engine: ε″/ε′ = «lt» for εr = 4, σ = 0.01 S/m at 1 GHz, giving α = «a» Np/m.",
+     mistake="Treating ε″ as unphysical, or forgetting that it depends on frequency.",
+     vals=_WV), "concept")
 
 # ---------------------------------------------------------------- reflection
 T = "reflection"
