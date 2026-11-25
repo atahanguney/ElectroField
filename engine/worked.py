@@ -788,38 +788,241 @@ px(T, "Ulaby & Ravaioli Sec. 4-4", "exam", "Gauss's law: always true, not always
 
 # ---------------------------------------------------------------- images
 T = "images"
-p(T, "Ulaby & Ravaioli Sec. 4-11", "basic", "Force from the image",
-  "A 1 nC charge is 0.4 m above a grounded conducting plane in air. Find the force on it.",
-  {"type": "plane", "d": 0.4}, "img/plane", {"Q": 1e-9, "d": 0.4}, [("F", V("F"), "nN", 1e9)],
-  "Replace the plane by −Q at depth d: F = Q²/(4πε₀(2d)²).", "The plane pulls the charge like an opposite charge twice as far away.")
-p(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Induced charge under the charge",
-  "For the same configuration, find the induced surface charge density directly below the charge.",
-  {"type": "plane", "d": 0.4}, "img/plane", {"Q": 1e-9, "d": 0.4}, [("ρs(0)", V("rho_s0"), "nC/m²", 1e9)],
-  "ρs = ε₀E_z(0⁺) = −Qd/(2π(x² + d²)^{3/2}); at x = 0 this is −Q/(2πd²).", "The metal gathers opposite charge right below Q.")
-p(T, "Ulaby & Ravaioli Sec. 4-11", "basic", "Closer charge, larger force",
-  "A −3 nC charge sits 10 cm above a grounded plane. Find the force.",
-  {"type": "plane", "d": 0.1}, "img/plane", {"Q": -3e-9, "d": 0.1}, [("F", V("F"), "µN", 1e6)],
-  "F = Q²/(16πε₀d²): the sign of Q does not matter, the force is always attractive.", "Any charge, positive or negative, is attracted to a grounded metal.")
-p(T, "Cheng Sec. 4-4", "exam", "Energy of charge and plane",
-  "A 2 nC charge is 0.2 m above a grounded plane. Find the electrostatic energy of the system.",
-  {"type": "plane", "d": 0.2}, "img/plane", {"Q": 2e-9, "d": 0.2}, [("W", V("W"), "nJ", 1e9)],
-  "W = −Q²/(16πε₀d): half the energy of the free Q, −Q pair, because only z > 0 holds field.", "Bringing a charge near metal releases energy, so W is negative.")
-p(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Image in a dielectric",
-  "A 1 nC charge is 0.5 m above a grounded plane in oil with εr = 2.5. Find the force.",
-  {"type": "plane", "d": 0.5}, "img/plane", {"Q": 1e-9, "d": 0.5, "eps_r": 2.5}, [("F", V("F"), "nN", 1e9)],
-  "Same image construction with ε = 2.5ε₀: F = Q²/(4πε(2d)²).", "The oil weakens all electric forces by 2.5.")
-p(T, "Cheng Sec. 4-4", "exam", "Charge in a 90° corner",
-  "A 1 nC charge is at (0.3, 0.5) m between two grounded planes x = 0 and y = 0. Find the magnitude of the force.",
-  {"type": "corner", "x0": 0.3, "y0": 0.5}, "img/corner", {"Q": 1e-9, "x0": 0.3, "y0": 0.5}, [("|F|", lambda r: math.hypot(*r["values"]["F"]), "nN", 1e9)],
-  "Three images: −Q at (−x₀, y₀), −Q at (x₀, −y₀), +Q at (−x₀, −y₀); sum their Coulomb forces.", "Each wall acts as a mirror, and the two mirrors also make a mirror of a mirror.")
-p(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Field near the plane",
-  "A 2 nC charge is 0.3 m above a grounded plane. Find |E| at the point 6 cm to the side and 18 cm above the plane.",
-  {"type": "plane", "d": 0.3, "probe": [0.06, 0.18]}, "es/charges", {"charges": [{"q": 2e-9, "x": 0, "y": 0.3}], "ground": True, "probe": [0.06, 0.18]},
-  [("|E|", V("E_mag"), "V/m", 1)], "Superpose the fields of Q at (0, 0.3) and −Q at (0, −0.3).", "Add the real charge and its mirror image as two ordinary charges.")
-p(T, "Cheng Sec. 4-4", "basic", "Corner: equal distances",
-  "A 2 nC charge is at (0.2, 0.2) m inside a grounded 90° corner. Find the magnitude of the force.",
-  {"type": "corner", "x0": 0.2, "y0": 0.2}, "img/corner", {"Q": 2e-9, "x0": 0.2, "y0": 0.2}, [("|F|", lambda r: math.hypot(*r["values"]["F"]), "nN", 1e9)],
-  "Images at (−0.2, 0.2), (0.2, −0.2), (−0.2, −0.2); by symmetry F points toward the corner.", "Pulled equally by both walls, the charge is drawn diagonally into the corner.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual. Grounded, perfectly conducting planes.
+_rs = lambda k: (lambda r, p: r["rho_s"][k])
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "basic", "Force from the image",
+   "A 1 nC point charge is held 0.4 m above a large grounded metal plate in air. With what force is it pulled towards the plate?",
+   {"type": "plane", "d": 0.4}, "img/plane", {"Q": 1e-9, "d": 0.4}, [("F", V("F"), "nN", 1e9)],
+   X(asked="The attractive force between a point charge and a grounded plane.",
+     idea="Above the plate, the field of the charge plus the induced surface charge equals the field of the charge plus an image −Q at the mirror point, 2d away.",
+     steps=[S("Replace the plate by an image charge −Q at distance d below its surface.", r"Q'=-Q\ \text{at}\ z=-d"),
+            S("The real charge feels the image's Coulomb force across the distance 2d.", r"F=\frac{Q^2}{4\pi\varepsilon_0(2d)^2}=\frac{Q^2}{16\pi\varepsilon_0d^2}=«F»\ \text{nN}")],
+     answer="F = «F» nN, towards the plate",
+     whatif=[W("…the charge were twice as close (0.2 m)?", lambda p: {**p, "d": 0.2}, "F ∝ 1/d², so it quadruples to «F» nN.", r"F=«F»\ \text{nN}"),
+             W("…the charge were −1 nC?", lambda p: {**p, "Q": -1e-9}, "The image flips sign too, so the force is still attractive and equal: «F» nN.", r"F\propto Q^2")],
+     mistake="Using the distance d instead of 2d between the charge and its image.",
+     vals={"F": lambda r, p: r["values"]["F"] * 1e9}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Induced charge under the charge",
+   "A 1 nC charge is 0.4 m above a grounded plane. Find the induced surface charge density on the plane directly beneath it, and the total charge induced on the plane.",
+   {"type": "plane", "d": 0.4}, "img/plane", {"Q": 1e-9, "d": 0.4}, [("ρs(0)", V("rho_s0"), "nC/m²", 1e9)],
+   X(asked="ρs at the foot of the perpendicular, and the total induced charge.",
+     idea="At a conductor surface ρs = ε₀E_n. The field at the plane is the field of the charge and its image, which is purely normal there.",
+     steps=[S("Normal field at a point on the plane a distance x from the foot of the perpendicular.", r"E_z(x)=-\frac{2Qd}{4\pi\varepsilon_0(x^2+d^2)^{3/2}}"),
+            S("Surface charge density.", r"\rho_s(x)=\varepsilon_0E_z=-\frac{Qd}{2\pi(x^2+d^2)^{3/2}}"),
+            S("Directly beneath the charge (x = 0).", r"\rho_s(0)=-\frac{Q}{2\pi d^2}=«rs»\ \text{nC/m}^2"),
+            S("Integrating ρs over the whole plane gives exactly −Q.", r"\iint\rho_s\,ds=-Q")],
+     answer="ρs(0) = «rs» nC/m²; total induced charge = −Q",
+     whatif=[W("…the charge were at 0.2 m?", lambda p: {**p, "d": 0.2}, "ρs(0) ∝ 1/d², so it becomes «rs» nC/m², while the total is still −Q.", r"\rho_s(0)=«rs»\ \text{nC/m}^2"),
+             W("…the charge were −1 nC?", lambda p: {**p, "Q": -1e-9}, "The induced charge is positive: ρs(0) = «rs» nC/m².", r"\rho_s(0)=«rs»\ \text{nC/m}^2")],
+     mistake="Expecting the total induced charge to depend on d. It is always −Q; only how it is spread out changes.",
+     plot=Series(_rs("x"), [("engine (numerical)", lambda r, p: [v * 1e9 for v in r["rho_s"]["num"]], "E"), ("closed form", lambda r, p: [v * 1e9 for v in r["rho_s"]["closed"]])],
+                 "distance along the plane x (m)", "ρs (nC/m²)"),
+     evidence_say="Engine: ρs along the plane from the field (numerical) and from the closed form agree.",
+     vals={"rs": lambda r, p: r["values"]["rho_s0"] * 1e9}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "basic", "Closer charge, larger force",
+   "A −3 nC charge is held 10 cm above a grounded plate. Find the force on it, and say whether it is attracted or repelled.",
+   {"type": "plane", "d": 0.1}, "img/plane", {"Q": -3e-9, "d": 0.1}, [("F", V("F"), "µN", 1e6)],
+   X(asked="The magnitude and direction of the force on a negative charge near a grounded plane.",
+     idea="The image of −Q is +Q at the mirror point. Opposite charges attract, whatever the sign of the real charge.",
+     steps=[S("Image charge.", r"Q'=-Q=+3\ \text{nC at}\ z=-d"),
+            S("Coulomb force at distance 2d.", r"F=\frac{Q^2}{16\pi\varepsilon_0d^2}=«F»\ \mu\text{N}"),
+            S("The charge and its image have opposite signs, so the force is attractive.")],
+     answer="F = «F» µN, attractive",
+     whatif=[W("…the distance were doubled?", lambda p: {**p, "d": 0.2}, "F ∝ 1/d²: «F» µN.", r"F=«F»\ \mu\text{N}"),
+             W("…the charge were +3 nC?", lambda p: {**p, "Q": 3e-9}, "Same magnitude, «F» µN, still attractive.", r"F=«F»\ \mu\text{N}")],
+     mistake="Expecting a negative charge to be repelled by a grounded plate. The plate always supplies charge of the opposite sign.",
+     vals={"F": lambda r, p: r["values"]["F"] * 1e6}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-10, 4-11", "exam", "Energy of charge and plane",
+   "A 2 nC charge is 0.2 m above a grounded plane. Find the electrostatic energy of the system, i.e. the work needed to bring the charge in from infinity.",
+   {"type": "plane", "d": 0.2}, "img/plane", {"Q": 2e-9, "d": 0.2}, [("W", V("W"), "nJ", 1e9)],
+   X(asked="The work done in assembling the charge–plane system.",
+     idea="Integrate the image force while bringing the charge in. The image moves with the charge, so the result is half of what a fixed charge −Q at 2d would give.",
+     steps=[S("Force at height z.", r"F(z)=\frac{Q^2}{16\pi\varepsilon_0z^2}\ \text{(towards the plane)}"),
+            S("Work done by an external agent moving the charge from ∞ to d.", r"W=-\int_\infty^d F(z)\,dz=-\frac{Q^2}{16\pi\varepsilon_0d}=«W»\ \text{nJ}"),
+            S("The energy is negative: the system gives out energy as the charge approaches the plane.")],
+     answer="W = «W» nJ",
+     whatif=[W("…the charge were twice as far?", lambda p: {**p, "d": 0.4}, "W ∝ 1/d: «W» nJ.", r"W=«W»\ \text{nJ}"),
+             W("…the force at d were asked?", lambda p: p, "F = «F» nN; note that W = −F·d.", r"F=\frac{Q^2}{16\pi\varepsilon_0d^2}=«F»\ \text{nN}")],
+     mistake="Using the energy of two real charges, −Q²/(8πε₀d). The image is not a real charge, so the true value is half of that.",
+     vals={"W": lambda r, p: r["values"]["W"] * 1e9, "F": lambda r, p: r["values"]["F"] * 1e9}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-7, 4-11", "exam", "Image in a dielectric",
+   "A 1 nC charge is 0.5 m above a grounded metal plane, with the whole upper region filled with oil (εr = 2.5). Find the force on the charge.",
+   {"type": "plane", "d": 0.5}, "img/plane", {"Q": 1e-9, "d": 0.5, "eps_r": 2.5}, [("F", V("F"), "nN", 1e9)],
+   X(asked="The image force when the charge sits in a uniform dielectric.",
+     idea="The image construction is unchanged: −Q at the mirror point. Only the permittivity of the medium between them changes.",
+     steps=[S("Image charge −Q at 2d from the real charge."),
+            S("Coulomb force in a medium of permittivity ε = εrε₀.", r"F=\frac{Q^2}{16\pi\varepsilon d^2}=«F»\ \text{nN}"),
+            S("The polarised oil screens the field, so the force is εr times weaker than in air.")],
+     answer="F = «F» nN",
+     whatif=[W("…the oil were removed?", lambda p: {**p, "eps_r": 1}, "F = «F» nN, larger by εr.", r"F=«F»\ \text{nN}"),
+             W("…the oil were water (εr = 80)?", lambda p: {**p, "eps_r": 80}, "F = «F» nN.", r"F=«F»\ \text{nN}")],
+     mistake="Changing the size of the image charge. For a conducting plane under a uniform dielectric the image is still −Q.",
+     vals={"F": lambda r, p: r["values"]["F"] * 1e9}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Charge in a 90° corner",
+   "A 1 nC charge sits at (0.3, 0.5) m inside a corner formed by two grounded, perpendicular metal walls along the x- and y-axes. Find the magnitude of the force on it.",
+   {"type": "corner", "x0": 0.3, "y0": 0.5}, "img/corner", {"Q": 1e-9, "x0": 0.3, "y0": 0.5}, [("|F|", lambda r: math.hypot(*r["values"]["F"]), "nN", 1e9)],
+   X(asked="The total force on a charge between two perpendicular grounded planes.",
+     idea="Three images make both walls zero-potential: −Q at (−x₀, y₀), −Q at (x₀, −y₀) and +Q at (−x₀, −y₀).",
+     steps=[S("Image charges.", r"-Q\ (-x_0,y_0),\qquad -Q\ (x_0,-y_0),\qquad +Q\ (-x_0,-y_0)"),
+            S("Add the three Coulomb forces on the real charge.", r"F_x=«fx»\ \text{nN},\qquad F_y=«fy»\ \text{nN}"),
+            S("Magnitude.", r"|\mathbf F|=«F»\ \text{nN}")],
+     answer="|F| = «F» nN",
+     whatif=[W("…the charge sat on the diagonal at (0.3, 0.3)?", lambda p: {**p, "y0": 0.3}, "By symmetry the force points straight into the corner: |F| = «F» nN.", r"|\mathbf F|=«F»\ \text{nN}"),
+             W("…only the wall y = 0 existed?", lambda p: p, "Then only one image would be needed and the force would be Q²/(16πε₀y₀²), straight down.", None)],
+     mistake="Forgetting the third image (+Q at the opposite corner). Without it neither wall is at zero potential.",
+     vals={"fx": lambda r, p: r["values"]["F"][0] * 1e9, "fy": lambda r, p: r["values"]["F"][1] * 1e9, "F": lambda r, p: math.hypot(*r["values"]["F"]) * 1e9}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Field near the plane",
+   "A 2 nC charge is 0.3 m above a grounded plane (the plane y = 0). Find |E| at the point (0.06, 0.18) m.",
+   {"type": "plane", "d": 0.3, "probe": [0.2, 0.18]}, "es/charges", {"charges": [{"q": 2e-9, "x": 0, "y": 0.3}], "ground": True, "probe": [0.06, 0.18]},
+   [("|E|", V("E_mag"), "V/m", 1)],
+   X(asked="The electric field at a point between the charge and the plane.",
+     idea="In the region above the plane, the field equals that of the charge plus its image −Q at (0, −0.3) m.",
+     steps=[S("Image charge −2 nC at (0, −0.3) m; superpose the two Coulomb fields at the probe.", r"\mathbf E=\mathbf E_Q+\mathbf E_{-Q}"),
+            S("Components.", r"E_x=«ex»\ \text{V/m},\qquad E_y=«ey»\ \text{V/m}"),
+            S("Magnitude.", r"|\mathbf E|=«E»\ \text{V/m}")],
+     answer="|E| = «E» V/m",
+     whatif=[W("…the plane were removed?", lambda p: {**p, "ground": False}, "Only the real charge remains: |E| = «E» V/m.", r"|\mathbf E|=«E»\ \text{V/m}"),
+             W("…the probe were on the plane, at (0.06, 0)?", lambda p: {**p, "probe": [0.06, 0.0]}, "There the field is purely normal (E_x = «ex» V/m): |E| = «E» V/m.", r"E_x=«ex}".replace("«ex}", "«ex»"))],
+     mistake="Including the image when evaluating the field below the plane. There, inside the conductor, E = 0.",
+     vals={"ex": EV("E", 0), "ey": EV("E", 1), "E": EV("E_mag")}), "numeric")
+
+# ---- conceptual
+_pl = {"Q": 1e-9, "d": 0.4}
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Why the image method is allowed",
+   "The image charge does not exist. Why is it nevertheless legitimate to use it to compute the field above a grounded plane?",
+   {"type": "plane", "d": 0.4}, "img/plane", _pl, [],
+   X(asked="The justification for replacing a conductor by an image charge.",
+     idea="The uniqueness theorem: a solution of Laplace's/Poisson's equation that meets the boundary conditions is the only solution.",
+     steps=[S("Above the plane the real problem is: the given charge Q, and V = 0 on the plane and at infinity."),
+            S("The pair Q, −Q produces exactly V = 0 on the mirror plane, with the same charge in the upper region."),
+            S("Same equation, same charges, same boundary values in the region: by uniqueness, the same field there.")],
+     answer_text="The field above the plane is fixed by Poisson's equation with the given charge and the boundary condition V = 0 on the plane (and at infinity). "
+                 "The uniqueness theorem says only one potential satisfies both. "
+                 "The charge Q together with an image −Q at the mirror point makes V = 0 on the whole plane and has the same charges in the upper region, so it must give the correct field there. "
+                 "The image is a calculating device that reproduces the effect of the induced surface charge; it says nothing about the region below the plane.",
+     evidence_say="Engine checks: the image field equals the field computed from the induced surface charge at a test point, and V = 0 on the plane.",
+     mistake="Thinking the image describes the field inside the conductor too.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Where does the induced charge sit, and how much is there?",
+   "A point charge Q is held above a grounded plane. How is the induced charge distributed over the plane, and what is its total?",
+   {"type": "plane", "d": 0.4}, "img/plane", _pl, [],
+   X(asked="The shape and total of the induced surface charge.",
+     idea="ρs = ε₀E_n at the conductor; E_n comes from the charge and its image.",
+     steps=[S("The density is strongest right below the charge and falls off as the distance grows.", r"\rho_s(x)=-\frac{Qd}{2\pi(x^2+d^2)^{3/2}}"),
+            S("Integrated over the infinite plane it gives −Q, independent of d.", r"\iint\rho_s\,ds=-Q"),
+            S("Moving the charge closer concentrates the same total into a smaller spot.")],
+     answer_text="The induced charge has the opposite sign to Q and is concentrated beneath it: ρs = −Qd/(2π(x² + d²)^(3/2)), "
+                 "which peaks at the foot of the perpendicular and falls off as 1/x³ far away. "
+                 "Its total is exactly −Q for any height d, as Gauss's law requires: all field lines leaving Q end on the plane. "
+                 "Bringing the charge closer makes the spot narrower and taller, keeping the same total.",
+     evidence_say="Engine: ρs(0) = «rs» nC/m² for Q = 1 nC at 0.4 m; its check integrates ρs over the plane and recovers −Q.",
+     plot=Series(_rs("x"), [("ρs (nC/m²)", lambda r, p: [v * 1e9 for v in r["rho_s"]["closed"]], "E")], "distance along the plane x (m)", "ρs (nC/m²)"),
+     mistake="Thinking the induced charge is spread uniformly, or that its total depends on the distance.",
+     vals={"rs": lambda r, p: r["values"]["rho_s0"] * 1e9}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-10, 4-11", "exam", "Why the energy is half of the 'two-charge' value",
+   "A student computes the energy of a charge Q above a grounded plane as that of Q and its image, −Q²/(8πε₀d). The correct answer is half of that. Explain why.",
+   {"type": "plane", "d": 0.4}, "img/plane", _pl, [],
+   X(asked="Why W = −Q²/(16πε₀d) and not the two-charge value.",
+     idea="The image is not a real charge, and the field exists only in the upper half-space. Energy is stored only where the real field is.",
+     steps=[S("The real field fills only the region above the plane; below it E = 0."),
+            S("The two-charge formula counts the field energy of both half-spaces, which by symmetry is twice the real one."),
+            S("Equivalently, the work of bringing Q in from infinity, integrating the image force, gives the half value.", r"W=-\int_\infty^d\frac{Q^2}{16\pi\varepsilon_0z^2}dz=-\frac{Q^2}{16\pi\varepsilon_0d}")],
+     answer_text="The image charge is a fiction that reproduces the field above the plane; below the plane, inside the metal, the real field is zero. "
+                 "The energy of two real charges Q and −Q, −Q²/(8πε₀d), includes the field energy of both half-spaces, which are mirror images and hold equal shares. "
+                 "Only the upper half is real, so the true energy is half: −Q²/(16πε₀d). "
+                 "The same result follows from integrating the image force while moving the charge in, because the image moves too as the charge approaches.",
+     evidence_say="Engine for Q = 1 nC at 0.4 m: W = «W» nJ and F = «F» nN, consistent with W = −F·d.",
+     mistake="Treating the image like a fixed real charge when computing work or energy.",
+     vals={"W": lambda r, p: r["values"]["W"] * 1e9, "F": lambda r, p: r["values"]["F"] * 1e9}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "basic", "The image is valid only on one side",
+   "With the image charge in place, the 'field' below the grounded plane would look like that of a charge −Q. What is the real field below the plane, and why?",
+   {"type": "plane", "d": 0.4}, "img/plane", _pl, [],
+   X(asked="The field in the region occupied by the conductor.",
+     idea="The image solution is constructed to be correct only in the region that contains the real charge and is bounded by the conductor.",
+     steps=[S("Below the surface is the conductor, where the electrostatic field is zero."),
+            S("The image was chosen only to satisfy V = 0 on the plane as seen from above."),
+            S("Its field below the plane is a mathematical artefact and must not be used.")],
+     answer_text="Below the plane is the grounded conductor, and inside a conductor in electrostatic equilibrium E = 0. "
+                 "The image solution is only guaranteed to be correct in the region where the uniqueness argument was applied: above the plane, where the real charge is. "
+                 "The field that the pair Q, −Q would produce below the plane is not physical. "
+                 "In general, an image construction is valid only in the region that contains the real charges and is bounded by the surfaces whose boundary conditions it reproduces.",
+     evidence_say="Engine check: on the plane the potential of Q and its image is zero, matching the grounded conductor.",
+     mistake="Using the image field inside the conductor or behind the mirror plane.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Which corners can be solved with images?",
+   "A charge between two grounded planes meeting at 90° needs three images. How many are needed for 60°, and why can a 70° corner not be handled with a finite set of point images?",
+   {"type": "corner", "x0": 0.3, "y0": 0.5}, "img/corner", {"Q": 1e-9, "x0": 0.3, "y0": 0.5}, [],
+   X(asked="The rule that decides when a wedge has a finite image solution.",
+     idea="Images come from repeated reflections in the two planes. The reflections close up into a finite set only if the wedge angle divides 180° evenly.",
+     steps=[S("Reflecting a charge alternately in the two planes rotates it in steps of twice the wedge angle."),
+            S("For an angle 180°/n the pattern closes after 2n charges, i.e. 2n − 1 images.", r"\alpha=\frac{180^\circ}{n}\ \Rightarrow\ 2n-1\ \text{images}"),
+            S("90° gives n = 2 and three images; 60° gives n = 3 and five; 70° does not divide 180° and never closes.")],
+     answer_text="Each image is a mirror reflection of a charge in one of the planes. Reflecting alternately in the two planes rotates the charge around the corner in steps of twice the wedge angle α. "
+                 "If α = 180°/n for a whole number n, the reflections return to the start after 2n charges, so 2n − 1 images make both planes zero-potential. "
+                 "A 90° corner (n = 2) needs three, a 60° corner (n = 3) five. "
+                 "For 70° the reflections never repeat and some would fall inside the physical region, so the method fails and another technique, such as a series solution, is required.",
+     evidence_say="Engine check for the 90° corner: with three images, V = 0 on both walls.",
+     mistake="Placing a single image behind each wall and forgetting the image of the images.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "basic", "Always attracted, whatever the sign",
+   "Will a negatively charged particle near a grounded metal plate be attracted or repelled? What about a positive one?",
+   {"type": "plane", "d": 0.4}, "img/plane", _pl, [],
+   X(asked="The direction of the force on a charge near a grounded plane, for either sign.",
+     idea="The image always has the opposite sign to the real charge, so the force is always attractive.",
+     steps=[S("The image of Q is −Q, whatever the sign of Q.", r"Q'=-Q"),
+            S("Opposite charges attract, so the force points towards the plate.", r"F=\frac{Q^2}{16\pi\varepsilon_0d^2}\propto Q^2"),
+            S("Physically, the plate draws in charge of the opposite sign from ground, right under the particle.")],
+     answer_text="Both are attracted. The grounded plate takes charge of the opposite sign from earth and gathers it under the particle, "
+                 "which is represented by an image of opposite sign. The force depends on Q², so its direction does not depend on the sign of Q. "
+                 "This is why charged dust sticks to grounded surfaces, and why a charged object is attracted even by a neutral conductor (which polarises instead of drawing charge from ground).",
+     evidence_say="Engine runs for Q from −3 nC to +3 nC at 0.4 m: the attractive force is symmetric in Q.",
+     plot=Sweep("Q", [-3e-9, -2e-9, -1e-9, 1e-9, 2e-9, 3e-9], [("attractive force F", lambda r, p: r["values"]["F"] * 1e9, "E")], "charge Q (C)", "F (nN)"),
+     mistake="Applying 'like charges repel' between the particle and the plate. The plate's nearby charge is always of the opposite sign.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 4-11", "exam", "Why the field meets the plane at right angles",
+   "Sketches of a charge above a grounded plane always show the field lines meeting the plane perpendicularly. Why must they, and how does the image construction guarantee it?",
+   {"type": "plane", "d": 0.4, "probe": [0.2, 0.0]}, "es/charges", {"charges": [{"q": 1e-9, "x": 0, "y": 0.4}], "ground": True, "probe": [0.2, 0.0]}, [],
+   X(asked="Why E is normal to a conductor surface, and how the image ensures it.",
+     idea="Tangential E is continuous at any boundary and zero inside a conductor, so it must be zero just outside too.",
+     steps=[S("Inside the conductor E = 0, and the tangential component of E is continuous across the surface."),
+            S("So just outside the surface E_t = 0, and E is purely normal."),
+            S("For the mirror pair the tangential components of the two fields cancel at every point of the plane.")],
+     answer_text="Inside a conductor in equilibrium E = 0, and the boundary condition that tangential E is continuous then forces E_t = 0 just outside. "
+                 "The field at the surface is therefore purely normal, and the field lines meet the conductor at right angles; equivalently, the surface is an equipotential. "
+                 "In the image picture, at any point on the plane the real charge and its mirror image are at equal distances, so their tangential components are equal and opposite and cancel, "
+                 "while the normal components add.",
+     evidence_say="Engine at the point (0.2, 0) on the plane: E_x = «ex» V/m and E_y = «ey» V/m.",
+     mistake="Drawing field lines that meet a conductor at an angle.",
+     vals={"ex": EV("E", 0), "ey": EV("E", 1)}), "concept")
+
+px(T, "Cheng Sec. 4-4", "exam", "Images for a grounded sphere",
+   "Can the image method be used for a point charge near a grounded metal sphere? If so, what replaces the simple mirror image?",
+   {"type": "plane", "d": 0.4}, "img/plane", _pl, [],
+   X(asked="The image construction for a sphere.",
+     idea="For a sphere of radius a and a charge Q at distance d from its centre, a single image of different size and position makes the sphere an equipotential.",
+     steps=[S("The image lies on the line to the centre, inside the sphere, at the inverse point.", r"d'=\frac{a^2}{d}"),
+            S("Its size is reduced in proportion.", r"Q'=-\frac{a}{d}\,Q"),
+            S("As the sphere grows, with the distance to its surface fixed, d' approaches the mirror point and Q' → −Q: the plane result.")],
+     answer_text="Yes. For a grounded sphere of radius a and a charge Q at distance d from its centre, one image charge Q′ = −(a/d)Q placed at distance a²/d from the centre, "
+                 "on the line joining the centre and Q, makes the potential zero everywhere on the sphere. "
+                 "Unlike the plane, the image is smaller than Q, so the total induced charge is −(a/d)Q, not −Q. "
+                 "For a very large sphere this reduces to the mirror image of the plane. An ungrounded, neutral sphere needs an extra charge +(a/d)Q at the centre.",
+     evidence_say="For comparison, the engine's plane solution with Q = 1 nC at 0.4 m gives an attractive force of «F» nN.",
+     mistake="Using the plane's mirror image (−Q at the same distance behind the surface) for a curved conductor.",
+     vals={"F": lambda r, p: r["values"]["F"] * 1e9}), "concept")
 
 # ---------------------------------------------------------------- magnetostatics & Biot–Savart
 T = "magnetostatics"
