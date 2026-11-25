@@ -2068,44 +2068,245 @@ px(T, "Ulaby & Ravaioli Sec. 8-3", "exam", "Where Snell's law comes from",
 
 # ---------------------------------------------------------------- transmission lines
 T = "tlines"
-p(T, "Ulaby & Ravaioli Sec. 2-6", "basic", "Resistive mismatch",
-  "A 50 Ω line is terminated in 100 Ω. Find |Γ| and the VSWR.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "100 Ω"}, "tl/line", {"Z0": 50, "RL": 100, "XL": 0}, [("|Γ|", V("Gamma_mag"), "", 1), ("VSWR", V("S"), "", 1)],
-  "Γ = (Z_L − Z₀)/(Z_L + Z₀), S = (1 + |Γ|)/(1 − |Γ|).", "A load twice Z₀ gives VSWR 2.")
-p(T, "Ulaby & Ravaioli Sec. 2-6", "exam", "Complex load",
-  "A 50 Ω line feeds Z_L = 25 − j30 Ω. Find |Γ| and the VSWR.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "25 − j30 Ω"}, "tl/line", {"Z0": 50, "RL": 25, "XL": -30}, [("|Γ|", V("Gamma_mag"), "", 1), ("VSWR", V("S"), "", 1)],
-  "Compute Γ with complex arithmetic; only |Γ| enters S.", "Both the resistance and the reactance mismatch cause reflection.")
-p(T, "Ulaby & Ravaioli Sec. 2-8", "basic", "Return loss",
-  "A 75 Ω antenna is connected to a 50 Ω line. Find the return loss.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "75 Ω"}, "tl/line", {"Z0": 50, "RL": 75, "XL": 0}, [("RL", V("return_loss_dB"), "dB", 1)],
-  "RL = −20 log₁₀|Γ| with Γ = 0.2.", "Higher return loss means less is reflected; 14 dB is acceptable for many systems.")
-p(T, "Ulaby & Ravaioli Sec. 2-11", "exam", "Quarter-wave transformer at the voltage minimum",
-  "A 200 Ω resistive load terminates a 50 Ω line. A quarter-wave transformer is inserted at the first voltage minimum. What characteristic impedance Z_T is needed?",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "200 Ω"}, "tl/line", {"Z0": 50, "RL": 200, "XL": 0}, [("Z_T", lambda r: r["match"]["quarter_wave"]["Z_T"], "Ω", 1)],
-  "S = 4, so at d_min the line looks like the real resistance Z₀/S = 12.5 Ω; a λ/4 section of Z_T = √(Z₀ · Z₀/S) transforms it to Z₀. (Placed directly at the load it would be √(Z₀R_L) = 100 Ω.)",
-  "A quarter-wave line turns an impedance Z into Z_T²/Z, so choose Z_T as the geometric mean of the two resistances it connects.")
-p(T, "Ulaby & Ravaioli Sec. 2-8", "basic", "λ/4 impedance inverter",
-  "A λ/4 section of 50 Ω line (1 GHz, air) is terminated in 100 Ω. Find Z_in.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "100 Ω", "l": "λ/4"}, "tl/line", {"Z0": 50, "RL": 100, "XL": 0, "f": 1e9, "length": LAM(1e9) / 4},
-  [("Re Z_in", lambda r: r["values"]["Zin"]["re"], "Ω", 1)], "Z_in = Z₀²/Z_L for βl = π/2.", "A quarter wavelength of line 'inverts' the load.")
-p(T, "Ulaby & Ravaioli Sec. 2-8", "exam", "Shorted stub",
-  "A 50 Ω air line λ/8 long (1 GHz) is short-circuited at the end. Find its input reactance.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "short", "l": "λ/8"}, "tl/line", {"Z0": 50, "RL": 0, "XL": 0, "f": 1e9, "length": LAM(1e9) / 8},
-  [("X_in", lambda r: r["values"]["Zin"]["im"], "Ω", 1)], "Short: Z_in = jZ₀ tan βl with βl = π/4.", "A short piece of shorted line behaves like an inductor.")
-p(T, "Ulaby & Ravaioli Sec. 2-6", "exam", "Position of the voltage maximum",
-  "Z_L = 100 + j50 Ω on a 50 Ω air line at 1 GHz. How far from the load is the first voltage maximum?",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "100 + j50 Ω"}, "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e9}, [("d_max", V("d_max"), "cm", 100)],
-  "d_max = θr λ/(4π) with θr the phase of Γ_L.", "The phase of the reflection decides where incident and reflected waves add up.")
-p(T, "Ulaby & Ravaioli Sec. 2-7", "exam", "Power to a mismatched load",
-  "A 10 V, 50 Ω generator feeds a 100 Ω load through a lossless 50 Ω line. Find the power delivered to the load.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "100 Ω"}, "tl/line", {"Z0": 50, "RL": 100, "XL": 0, "Vg": 10, "Zg": 50}, [("P_L", V("P_L"), "mW", 1e3)],
-  "P_L = |V₀⁺|²(1 − |Γ|²)/(2Z₀); with a matched source the available power is |V_g|²/(8R_g).", "The mismatch sends 1/9 of the available power back.")
-p(T, "Ulaby & Ravaioli Sec. 2-11", "exam", "Single-stub matching",
-  "Match Z_L = 100 + j50 Ω to a 50 Ω air line at 1 GHz with a shorted shunt stub. Find the first stub position d.",
-  {"type": "tline", "Z0": "50 Ω", "ZL": "100 + j50 Ω", "stub": True}, "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e9},
-  [("d", lambda r: r["match"]["stub"][0]["d"], "cm", 100), ("stub length", lambda r: r["match"]["stub"][0]["l_stub"], "cm", 100)],
-  "Find d where Re{Y(d)} = Y₀, then a stub of susceptance −B cancels Im{Y(d)}.", "Walk along the line until the load looks like 50 Ω plus a reactance, then cancel the reactance.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual. Lossless lines, f = 1 GHz unless stated (λ = 30 cm in air).
+_c = lambda k, part: (lambda r, p: r["values"][k][part])
+_TL = {"gr": _c("Gamma_L", "re"), "gi": _c("Gamma_L", "im"), "gm": EV("Gamma_mag"), "gd": EV("Gamma_deg"), "S": EV("S"), "rl": EV("return_loss_dB"),
+       "zr": _c("Zin", "re"), "zi": _c("Zin", "im"), "lam": EV("lambda_"), "PL": EV("P_L"), "Pin": EV("P_in"),
+       "dmax": lambda r, p: r["values"]["d_max"] / r["values"]["lambda_"], "dmin": lambda r, p: r["values"]["d_min"] / r["values"]["lambda_"],
+       "zt": lambda r, p: r["match"]["quarter_wave"]["Z_T"]}
+_VPROF = Series(lambda r, p: r["profile"]["d"], [("|V(d)|", lambda r, p: r["profile"]["V"], "E")], "distance from the load d (m)", "|V| (V)")
+_tlf = lambda Z0, ZL, **kw: {"type": "tline", "Z0": f"{Z0} Ω", "ZL": ZL, **kw}
+
+px(T, "Ulaby & Ravaioli Sec. 2-6", "basic", "Resistive mismatch",
+   "A 50 Ω lossless line is terminated in a 100 Ω resistor. Find the reflection coefficient and the voltage standing-wave ratio.",
+   _tlf(50, "100 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 0}, [("|Γ|", V("Gamma_mag"), "", 1), ("VSWR", V("S"), "", 1)],
+   X(asked="Γ_L and the VSWR for a resistive load twice the line impedance.",
+     idea="A wave arriving at a load that does not equal Z₀ is partly reflected; Γ measures the mismatch and the VSWR the resulting standing wave.",
+     steps=[S("Load reflection coefficient.", r"\Gamma_L=\frac{Z_L-Z_0}{Z_L+Z_0}=\frac{100-50}{100+50}=«gr»"),
+            S("Standing-wave ratio.", r"S=\frac{1+|\Gamma_L|}{1-|\Gamma_L|}=«S»"),
+            S("For a real load the VSWR is simply the larger of Z_L/Z₀ and Z₀/Z_L.")],
+     answer="Γ_L = «gr», VSWR = «S»",
+     whatif=[W("…the load were 25 Ω?", lambda p: {**p, "RL": 25}, "Γ_L = «gr» (negative), but the VSWR is the same, «S».", r"S=\frac{Z_0}{R_L}=«S»"),
+             W("…the load were 50 Ω?", lambda p: {**p, "RL": 50}, "Matched: Γ_L = «gr», VSWR = «S».", r"S=1")],
+     mistake="Expecting 25 Ω and 100 Ω to give different VSWRs. Only |Γ| enters.",
+     vals=_TL), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 2-6", "exam", "Complex load",
+   "A 50 Ω line feeds an antenna whose impedance is Z_L = 25 − j30 Ω. Find Γ_L in magnitude and angle, and the VSWR.",
+   _tlf(50, "25 − j30 Ω"), "tl/line", {"Z0": 50, "RL": 25, "XL": -30}, [("|Γ|", V("Gamma_mag"), "", 1), ("VSWR", V("S"), "", 1)],
+   X(asked="The complex reflection coefficient and the VSWR.",
+     idea="The same formula applies with complex arithmetic; the angle of Γ_L tells where the standing-wave maxima and minima sit.",
+     steps=[S("Complex reflection coefficient.", r"\Gamma_L=\frac{Z_L-Z_0}{Z_L+Z_0}=\frac{-25-j30}{75-j30}=«gr»+j(«gi»)"),
+            S("Magnitude and angle.", r"|\Gamma_L|=«gm»,\qquad\theta_r=«gd»^\circ"),
+            S("VSWR.", r"S=\frac{1+|\Gamma_L|}{1-|\Gamma_L|}=«S»")],
+     answer="Γ_L = «gm» ∠ «gd»°, VSWR = «S»",
+     whatif=[W("…the reactance were +30 Ω?", lambda p: {**p, "XL": 30}, "|Γ| and the VSWR are unchanged («gm», «S»), but the angle flips to «gd»°.", r"\theta_r=«gd»^\circ"),
+             W("…the first voltage minimum were asked?", lambda p: p, "d_min = «dmin» λ from the load.", r"d_{min}=«dmin»\,\lambda")],
+     mistake="Taking the magnitudes of Z_L − Z₀ and Z_L + Z₀ separately before dividing; the division must be complex.",
+     vals=_TL), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 2-8", "basic", "Return loss",
+   "A 75 Ω cable is accidentally connected to a 50 Ω system's input, so the 50 Ω line sees a 75 Ω load. Find the return loss and the fraction of power delivered.",
+   _tlf(50, "75 Ω"), "tl/line", {"Z0": 50, "RL": 75, "XL": 0}, [("RL", V("return_loss_dB"), "dB", 1)],
+   X(asked="The return loss and the transmitted power fraction.",
+     idea="Return loss is how far the reflected wave lies below the incident one in dB; the power not reflected is delivered.",
+     steps=[S("Reflection coefficient.", r"\Gamma_L=\frac{75-50}{75+50}=«gr»"),
+            S("Return loss.", r"RL=-20\log_{10}|\Gamma_L|=«rl»\ \text{dB}"),
+            S("Delivered fraction of the incident power.", r"1-|\Gamma_L|^2=«pd»\ \%")],
+     answer="RL = «rl» dB; «pd» % of the incident power is delivered",
+     whatif=[W("…the mismatch were 100 Ω?", lambda p: {**p, "RL": 100}, "RL = «rl» dB.", r"RL=«rl»\ \text{dB}"),
+             W("…the VSWR were asked?", lambda p: p, "S = «S».", r"S=«S»")],
+     mistake="Reporting return loss as a negative number. For a passive load it is positive; larger means better matched.",
+     vals={**_TL, "pd": lambda r, p: (1 - r["values"]["Gamma_mag"] ** 2) * 100}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 2-11", "exam", "Quarter-wave transformer at the voltage minimum",
+   "A 200 Ω resistive load on a 50 Ω line is to be matched with a quarter-wave transformer inserted at the first voltage minimum. Find the transformer's characteristic impedance and where to put it.",
+   _tlf(50, "200 Ω"), "tl/line", {"Z0": 50, "RL": 200, "XL": 0}, [("Z_T", lambda r: r["match"]["quarter_wave"]["Z_T"], "Ω", 1)],
+   X(asked="Z_T of a λ/4 section placed at the first voltage minimum.",
+     idea="At a voltage minimum the line impedance is real and equal to Z₀/S. A λ/4 section of impedance Z_T maps Z into Z_T²/Z.",
+     steps=[S("VSWR of the load.", r"S=\frac{R_L}{Z_0}=«S»"),
+            S("R_L > Z₀, so the load is at a voltage maximum and the first minimum is λ/4 towards the generator.", r"d_{min}=«dmin»\,\lambda,\qquad Z(d_{min})=\frac{Z_0}{S}"),
+            S("Choose Z_T to map Z₀/S onto Z₀.", r"Z_T=\sqrt{Z_0\cdot\frac{Z_0}{S}}=\frac{Z_0}{\sqrt S}=«zt»\ \Omega")],
+     answer="Z_T = «zt» Ω, placed «dmin» λ from the load",
+     whatif=[W("…the transformer were placed directly at the load?", lambda p: p, "Then it must map 200 Ω to 50 Ω: Z_T = √(Z₀R_L) = 100 Ω, a different design.", None),
+             W("…the load were 100 Ω?", lambda p: {**p, "RL": 100}, "S = «S», Z_T = «zt» Ω.", r"Z_T=«zt»\ \Omega")],
+     mistake="Using √(Z₀R_L) for a transformer that is not at the load.",
+     vals=_TL), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 2-9", "basic", "λ/4 impedance inverter",
+   "A 100 Ω load is connected to a 50 Ω line that is exactly a quarter of a wavelength long at 1 GHz (7.49 cm in air). What impedance is seen at the input?",
+   _tlf(50, "100 Ω", l="λ/4"), "tl/line", {"Z0": 50, "RL": 100, "XL": 0, "f": 1e9, "length": 0.0749481145}, [("Re Z_in", lambda r: r["values"]["Zin"]["re"], "Ω", 1)],
+   X(asked="The input impedance of a quarter-wave line.",
+     idea="Over λ/4 the round-trip phase of the reflected wave is 180°, which turns Γ into −Γ: high impedances become low and vice versa.",
+     steps=[S("General input impedance of a lossless line.", r"Z_{in}=Z_0\frac{Z_L+jZ_0\tan\beta l}{Z_0+jZ_L\tan\beta l}"),
+            S("For βl = π/2, tan βl → ∞ and the formula collapses.", r"Z_{in}=\frac{Z_0^2}{Z_L}"),
+            S("Numerically.", r"Z_{in}=«zr»+j(«zi»)\ \Omega")],
+     answer="Z_in = «zr» Ω",
+     whatif=[W("…the line were λ/2 long?", lambda p: {**p, "length": 0.149896229}, "The impedance repeats: Z_in = «zr» Ω.", r"Z_{in}=Z_L"),
+             W("…the frequency were 1.5 GHz?", lambda p: {**p, "f": 1.5e9}, "The line is no longer λ/4: Z_in = «zr» + j(«zi») Ω.", r"Z_{in}=«zr»+j«zi»\ \Omega")],
+     mistake="Forgetting that the λ/4 property holds only at one frequency.",
+     vals=_TL), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 2-10", "exam", "Power to a mismatched load",
+   "A 10 V (peak) source with 50 Ω internal impedance feeds a 100 Ω load through a 50 Ω lossless line. How much average power reaches the load, and how much would a matched load receive?",
+   _tlf(50, "100 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 0, "Vg": 10, "Zg": 50}, [("P_L", V("P_L"), "mW", 1e3)],
+   X(asked="The average power in a mismatched load, compared with the available power.",
+     idea="A matched source launches the available power V_g²/(8R_g) as the incident wave; the load absorbs the fraction 1 − |Γ_L|².",
+     steps=[S("Incident (available) power from a matched source.", r"P^i=\frac{V_g^2}{8Z_0}=«pa»\ \text{mW}"),
+            S("Mismatch at the load.", r"|\Gamma_L|=«gm»,\qquad1-|\Gamma_L|^2=«f»"),
+            S("Power delivered.", r"P_L=P^i(1-|\Gamma_L|^2)=«PLm»\ \text{mW}")],
+     answer="P_L = «PLm» mW (a matched load would get «pa» mW)",
+     whatif=[W("…the load were matched (50 Ω)?", lambda p: {**p, "RL": 50}, "All the available power is delivered: «PLm» mW.", r"P_L=\frac{V_g^2}{8Z_0}=«PLm»\ \text{mW}"),
+             W("…the input power were asked?", lambda p: p, "For a lossless line P_in = P_L = «Pinm» mW.", r"P_{in}=«Pinm»\ \text{mW}")],
+     mistake="Using V_g²/(2R_L) as if the source had no internal impedance.",
+     vals={**_TL, "pa": lambda r, p: p["Vg"] ** 2 / (8 * p["Z0"]) * 1e3, "f": lambda r, p: 1 - r["values"]["Gamma_mag"] ** 2,
+           "PLm": lambda r, p: r["values"]["P_L"] * 1e3, "Pinm": lambda r, p: r["values"]["P_in"] * 1e3}), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 2-6", "exam", "Position of the voltage maximum",
+   "A 50 Ω line operating at 1 GHz (λ = 30 cm) is terminated in Z_L = 100 + j50 Ω. How far from the load is the first voltage maximum, and the first minimum?",
+   _tlf(50, "100 + j50 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e9}, [("d_max", V("d_max"), "cm", 100)],
+   X(asked="The distances from the load to the first maximum and minimum of |V|.",
+     idea="The voltage is maximum where the incident and reflected waves are in phase. Their phase difference is θ_r − 2βd, so the first maximum is at d = θ_r λ/(4π).",
+     steps=[S("Reflection coefficient.", r"\Gamma_L=«gm}\angle«gd»^\circ".replace("«gm}", "«gm»")),
+            S("First maximum, where θ_r − 2βd = 0.", r"d_{max}=\frac{\theta_r\lambda}{4\pi}=«dmax»\,\lambda=«dmc»\ \text{cm}"),
+            S("The minimum is a quarter wavelength further on.", r"d_{min}=d_{max}+\frac\lambda4=«dmin»\,\lambda")],
+     answer="d_max = «dmc» cm («dmax» λ), d_min = «dmin» λ",
+     whatif=[W("…the load were 100 − j50 Ω?", lambda p: {**p, "XL": -50}, "θ_r is negative, so the minimum comes first: d_min = «dmin» λ, d_max = «dmax» λ.", r"d_{min}=«dmin»\,\lambda"),
+             W("…the load were a pure 100 Ω?", lambda p: {**p, "XL": 0}, "θ_r = 0: the maximum is at the load, d_max = «dmax» λ.", r"d_{max}=0")],
+     mistake="Measuring d from the generator instead of the load, or forgetting to divide θ_r by 4π.",
+     plot=_VPROF, evidence_say="Engine voltage profile along the line: the first peak sits at d_max from the load.",
+     vals={**_TL, "dmc": lambda r, p: r["values"]["d_max"] * 100}), "numeric")
+
+# ---- conceptual
+px(T, "Ulaby & Ravaioli Sec. 2-9", "exam", "A short-circuited stub as L or C",
+   "A short-circuited section of line can behave as an inductor or as a capacitor. Explain how, and what happens at exactly a quarter wavelength.",
+   _tlf(50, "short", stub=True), "tl/line", {"Z0": 50, "RL": 0, "XL": 0, "f": 1e9, "length": 0.0375}, [],
+   X(asked="How the input reactance of a shorted line depends on its length.",
+     idea="A short at the end reflects with Γ = −1. Along the line the input impedance is purely reactive, Z_in = jZ₀ tan βl.",
+     steps=[S("Input impedance of a shorted lossless line.", r"Z_{in}=jZ_0\tan\beta l"),
+            S("For l < λ/4, tan βl > 0: inductive. For λ/4 < l < λ/2 it is negative: capacitive."),
+            S("At l = λ/4 the short is transformed into an open circuit; at λ/2 back into a short.")],
+     answer_text="A shorted line stores energy in its standing wave. Its input impedance is purely reactive, Z_in = jZ₀ tan βl. "
+                 "Shorter than a quarter wavelength, tan βl is positive and the stub looks like an inductor; between λ/4 and λ/2 it looks like a capacitor. "
+                 "At exactly λ/4 the reactance becomes infinite: the short is transformed into an open circuit, which is why λ/4 shorted stubs are used as insulating supports. "
+                 "At λ/2 the short reappears. This makes stubs convenient adjustable reactances for matching networks at microwave frequencies.",
+     evidence_say="Engine runs at 1 GHz (λ = 30 cm): the input reactance is positive below 7.5 cm, changes sign through infinity at λ/4, and is negative above.",
+     plot=Sweep("length", [0.01, 0.03, 0.05, 0.065, 0.085, 0.1, 0.12, 0.14], [("X_in", _c("Zin", "im"), "E")], "stub length l (m)", "input reactance X_in (Ω)"),
+     mistake="Assuming a shorted line is always a short circuit at its input.",
+     vals={}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-6", "basic", "Why measure VSWR rather than Γ",
+   "Γ contains all the information about the mismatch, yet engineers have long specified VSWR instead. What does VSWR measure physically, and why was it convenient?",
+   _tlf(50, "100 + j50 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e9}, [],
+   X(asked="The physical meaning of the VSWR.",
+     idea="On a mismatched line the incident and reflected waves form a standing wave. The ratio of its maximum to minimum amplitude can be measured directly with a probe moved along the line.",
+     steps=[S("Maxima and minima of |V| along the line.", r"|V|_{max}=|V_0^+|(1+|\Gamma|),\qquad|V|_{min}=|V_0^+|(1-|\Gamma|)"),
+            S("Their ratio depends only on |Γ|.", r"S=\frac{|V|_{max}}{|V|_{min}}=«S»"),
+            S("A detector sliding along a slotted line measured exactly this ratio, without needing any phase reference.")],
+     answer_text="The VSWR is the ratio of the largest to the smallest voltage amplitude of the standing wave on the line, S = (1 + |Γ|)/(1 − |Γ|). "
+                 "It can be measured with nothing more than an amplitude detector moved along the line: no phase measurement is needed. "
+                 "The positions of the minima then give the angle of Γ, so VSWR plus the minimum position fully determine the load. "
+                 "Modern network analysers measure Γ directly, but VSWR survives as a convenient specification: 1 is perfect, 2 means |Γ| = 1/3.",
+     evidence_say="Engine voltage profile for Z_L = 100 + j50 Ω: maxima and minima in the ratio S = «S».",
+     plot=_VPROF, mistake="Confusing VSWR with return loss; they describe the same |Γ| on different scales.",
+     vals=_TL), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-10", "basic", "Where does the reflected power go?",
+   "On a lossless line with a mismatched load, part of the incident power is reflected. Where does it go, and does the load still receive the full input power?",
+   _tlf(50, "100 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 0, "Vg": 10, "Zg": 50}, [],
+   X(asked="The fate of reflected power and the power balance on a lossless line.",
+     idea="The reflected wave travels back to the source. On a lossless line the net power flowing past every point is the same.",
+     steps=[S("Net power at any point = incident power − reflected power.", r"P=P^i(1-|\Gamma|^2)"),
+            S("A lossless line dissipates nothing, so the net power entering it equals the power reaching the load.", r"P_{in}=«Pinm}\ \text{mW}=P_L".replace("«Pinm}", "«Pinm»")),
+            S("The reflected power returns to the generator, where its internal impedance absorbs it (or, if mismatched too, re-reflects it).")],
+     answer_text="The reflected wave carries power back towards the generator. On a lossless line nothing is dissipated, so the net power, incident minus reflected, "
+                 "is the same at every point and equals the power absorbed by the load: here «PLm» mW at both ends. "
+                 "The 'missing' power was never delivered: the mismatch reduces how much power the source can hand over. "
+                 "With a matched generator the reflected wave is absorbed in its internal impedance, which can overheat a transmitter, the practical reason high-power systems specify a maximum VSWR.",
+     evidence_say="Engine: P_in = «Pinm» mW and P_L = «PLm» mW.",
+     mistake="Thinking the reflected power is lost in the line or the load.",
+     vals={**_TL, "PLm": lambda r, p: r["values"]["P_L"] * 1e3, "Pinm": lambda r, p: r["values"]["P_in"] * 1e3}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-9", "basic", "Why impedance repeats every half wavelength",
+   "The input impedance of a lossless line terminated in Z_L equals Z_L again whenever the line is a whole number of half wavelengths long. Why?",
+   _tlf(50, "100 + j50 Ω", l="λ"), "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e9, "length": 0.299792458}, [],
+   X(asked="The λ/2 periodicity of the input impedance.",
+     idea="The input impedance depends on Γ at the input, which is Γ_L rotated by the round-trip phase −2βl.",
+     steps=[S("Reflection coefficient at distance l from the load.", r"\Gamma(l)=\Gamma_Le^{-j2\beta l}"),
+            S("For l = λ/2 the round-trip phase is 2π, so Γ(l) = Γ_L and Z_in = Z_L."),
+            S("Here the line is one wavelength long: Z_in = «zr» + j«zi» Ω, essentially Z_L.")],
+     answer_text="Moving away from the load, the reflection coefficient keeps its magnitude but rotates: Γ(l) = Γ_L e^(−j2βl). "
+                 "The round trip to the load and back adds a phase of 2βl, which equals a full turn when l = λ/2. "
+                 "Every half wavelength Γ, and therefore Z_in, returns to its load value. "
+                 "This is why a half-wave section is 'invisible' at its design frequency, and why the Smith chart wraps around once every half wavelength.",
+     evidence_say="Engine with a one-wavelength line: Z_in = «zr» + j«zi» Ω for Z_L = 100 + j50 Ω.",
+     mistake="Expecting the impedance to repeat every full wavelength, as the voltage pattern does.",
+     vals=_TL), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-1", "exam", "When is a wire a transmission line?",
+   "In circuit theory a wire simply connects two points. When must the same pair of wires be treated as a transmission line instead?",
+   _tlf(50, "100 + j50 Ω", l="0.3 m"), "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e6, "length": 0.3}, [],
+   X(asked="The criterion that separates lumped circuits from transmission-line behaviour.",
+     idea="Transmission-line effects come from the phase change along the line, βl. When the line is a tiny fraction of a wavelength, that phase is negligible.",
+     steps=[S("The input impedance differs from Z_L only through βl = 2πl/λ.", r"Z_{in}=Z_0\frac{Z_L+jZ_0\tan\beta l}{Z_0+jZ_L\tan\beta l}"),
+            S("If l ≪ λ (say l < λ/100), tan βl ≈ 0 and Z_in ≈ Z_L: the wire is just a connection."),
+            S("A 30 cm line is transparent at 1 MHz (λ = 300 m) but changes the impedance completely at 1 GHz (λ = 30 cm).")],
+     answer_text="A pair of wires behaves as a simple connection only if it is electrically short, much shorter than a wavelength: then the phase βl along it is negligible and Z_in ≈ Z_L. "
+                 "Once the length is a noticeable fraction of λ, typically more than about λ/20, the voltage and current vary along the line, waves reflect at mismatches and the input impedance is transformed. "
+                 "A 30 cm cable at 1 MHz is a wire; at 1 GHz it is a full wavelength and must be treated as a transmission line. "
+                 "On fast digital boards the relevant frequency is set by the signal's rise time.",
+     evidence_say="Engine runs of the same 30 cm line from 1 MHz to 1 GHz: Re Z_in stays at 100 Ω at low frequency and swings once the line becomes a sizeable fraction of λ.",
+     plot=Sweep("f", [1e6, 1e7, 5e7, 1e8, 2e8, 3e8, 5e8], [("Re Z_in", _c("Zin", "re"), "E"), ("Im Z_in", _c("Zin", "im"))], "frequency f (Hz)", "input impedance (Ω)", logx=True),
+     mistake="Applying lumped circuit rules to interconnects that are a sizeable fraction of a wavelength.",
+     vals=_TL), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-8", "exam", "Return loss versus mismatch loss",
+   "A datasheet gives a return loss of 9.5 dB. Is 9.5 dB of power lost? Explain the difference between return loss and mismatch loss.",
+   _tlf(50, "100 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 0}, [],
+   X(asked="The meaning of return loss and of mismatch loss.",
+     idea="Return loss compares the reflected power with the incident power. Mismatch loss compares the delivered power with the incident power.",
+     steps=[S("Return loss: how far below the incident wave the reflection is.", r"RL=-10\log_{10}|\Gamma|^2=«rl»\ \text{dB}"),
+            S("Mismatch loss: how much the delivered power falls short of the incident power.", r"ML=-10\log_{10}\big(1-|\Gamma|^2\big)=«ml»\ \text{dB}"),
+            S("A large return loss means a small reflection, so only a small mismatch loss.")],
+     answer_text="No. Return loss says how far the reflected wave is below the incident one: 9.5 dB means about 11 % of the power comes back. "
+                 "The power actually lost to the load through the mismatch is the mismatch loss, −10 log₁₀(1 − |Γ|²), which for the same load is only about 0.5 dB. "
+                 "A higher return loss is better. For a 100 Ω load on a 50 Ω line the engine gives RL = «rl» dB and a mismatch loss of «ml» dB.",
+     evidence_say="Engine: |Γ| = «gm», RL = «rl» dB, mismatch loss = «ml» dB.",
+     mistake="Reading return loss as the loss in delivered power.",
+     vals={**_TL, "ml": lambda r, p: -10 * math.log10(1 - r["values"]["Gamma_mag"] ** 2)}), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-11", "exam", "Why the Smith chart uses circles",
+   "On a Smith chart, moving along a lossless line traces a circle around the centre. Why a circle, and why does one full turn correspond to half a wavelength?",
+   _tlf(50, "100 + j50 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 50, "f": 1e9}, [],
+   X(asked="The geometry of impedance transformation on the Smith chart.",
+     idea="The Smith chart is a plot of the complex Γ plane. Along a lossless line Γ keeps its magnitude and only its phase changes.",
+     steps=[S("Γ at distance d from the load.", r"\Gamma(d)=\Gamma_Le^{-j2\beta d}"),
+            S("|Γ| is constant, so the point moves on a circle of radius |Γ_L| = «gm» about the centre."),
+            S("The angle changes by 2βd, which is a full turn when d = λ/2.")],
+     answer_text="The Smith chart is the complex plane of the reflection coefficient, with impedances mapped onto it through z = (1 + Γ)/(1 − Γ). "
+                 "On a lossless line, moving a distance d towards the generator multiplies Γ by e^(−j2βd): its magnitude stays «gm» and its angle decreases by 2βd. "
+                 "The point therefore travels on a circle around the centre, the circle of constant VSWR, and completes a turn when 2βd = 2π, i.e. after half a wavelength. "
+                 "On a lossy line the point spirals inwards instead.",
+     evidence_say="Engine: Γ along 0.3 m of line at 1 GHz plotted in the complex plane traces a circle of radius |Γ_L|.",
+     plot=Series(lambda r, p: r["smith"]["re"], [("Γ along the line", lambda r, p: r["smith"]["im"], "E")], "Re Γ", "Im Γ"),
+     mistake="Moving the wrong way round the chart: towards the generator is clockwise.",
+     vals=_TL), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 2-11", "basic", "Why match at all?",
+   "Name three practical reasons for matching a load to its line, rather than accepting some reflection.",
+   _tlf(50, "100 Ω"), "tl/line", {"Z0": 50, "RL": 100, "XL": 0, "Vg": 10, "Zg": 50}, [],
+   X(asked="The engineering reasons for impedance matching.",
+     idea="A mismatch reflects power, sets up standing waves and makes the input impedance depend on line length and frequency.",
+     steps=[S("Power: a matched load receives all the available power; here only «f» % of it arrives."),
+            S("Stress: standing waves raise the peak voltage to (1 + |Γ|) times the incident amplitude, risking breakdown in high-power lines."),
+            S("Stability: reflections returning to the source can upset amplifiers and oscillators, and make the input impedance frequency-dependent.")],
+     answer_text="First, power transfer: a matched load absorbs all the incident power, while a mismatched one returns part of it; here only «f» % arrives. "
+                 "Second, voltage and current stress: the standing wave raises the voltage maxima to (1 + |Γ|) times the incident amplitude, which limits the power a cable or connector can safely carry. "
+                 "Third, system behaviour: reflected waves return to the source, where they can detune or damage amplifiers, and they make the input impedance depend on cable length and frequency. "
+                 "Matching networks such as quarter-wave transformers and stubs remove these problems at the design frequency.",
+     evidence_say="Engine for 100 Ω on 50 Ω: |Γ| = «gm», delivered fraction «f» %.",
+     mistake="Thinking matching only matters for maximum power.",
+     vals={**_TL, "f": lambda r, p: (1 - r["values"]["Gamma_mag"] ** 2) * 100}), "concept")
 
 # ---------------------------------------------------------------- waveguides & antennas
 T = "radiation"
