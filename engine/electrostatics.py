@@ -192,12 +192,15 @@ def point_charges(charges, ground=False, probe=(0.0, 0.0), span=1.0, n=141):
         xp = np.linspace(-3 * span, 3 * span, 201)
         _, Vplane = field_at(Q, np.c_[xp, 0 * xp, 0 * xp])
         D.check(r"V=0 \text{ on the plane } y=0", 0.0, np.abs(Vplane).max(), 1e-12, "201 sample points", scale=Vc)
-        def rho_s(z, x):
-            Es, _ = field_at(Q, np.array([[x, 0.0, z]]))
-            return EPS0 * Es[0, 1]
-        Qind, _ = integrate.dblquad(rho_s, -np.inf, np.inf, -np.inf, np.inf, epsabs=1e-14 * qmax, epsrel=1e-8)
+        # each charge's share of ρs (from it and its image) is circularly symmetric about the point below it,
+        # so integrate ε0·E_y over the plane as a radial integral per charge and add (superposition)
+        def share(i):
+            Qi, xi = np.vstack([real[i], img[i]]), real[i, 1]
+            f = lambda s: EPS0 * field_at(Qi, np.array([[xi + s, 0.0, 0.0]]))[0][0, 1] * 2 * np.pi * s
+            return integrate.quad(f, 0, np.inf, epsabs=1e-14 * qmax, epsrel=1e-10, limit=200)[0]
+        Qind = sum(share(i) for i in range(len(real)))
         D.check(r"\iint\rho_s\,ds=-\sum q_i \text{ (induced charge on plane)}", -real[:, 0].sum(), Qind, 1e-5,
-                r"ρs = ε0 E_y at y = 0⁺, integrated over the infinite plane", scale=np.abs(real[:, 0]).sum())
+                r"ρs = ε0 E_y at y = 0⁺, integrated over the infinite plane (radial quad per charge)", scale=np.abs(real[:, 0]).sum())
 
     return {**D.out(E=Ep[:2], E_mag=np.linalg.norm(Ep), V=Vp),
             "contributions": [{k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in c.items()} for c in contrib],

@@ -73,3 +73,13 @@ def test_gradient_check_holds_at_a_field_null():
 def test_spherical_capacitor_checks_hold_for_far_outer_sphere(b):
     from engine import electrostatics as es
     assert es.capacitor("spherical", a=0.05, b=b)["all_passed"]
+
+
+def test_grounded_plane_check_is_fast_and_holds():
+    import time
+    from engine import electrostatics as es
+    t = time.perf_counter()
+    r = es.point_charges([{"q": 2e-9, "x": 0.0, "y": 0.3}, {"q": -1e-9, "x": 0.2, "y": 0.1}], True, (0.05, 0.2))
+    assert r["all_passed"] and time.perf_counter() - t < 0.4
+    c = next(c for c in r["checks"] if "induced charge" in c["label"])
+    assert c["reference"] == pytest.approx(-1e-9) and c["passed"]
