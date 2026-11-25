@@ -98,7 +98,7 @@ def test_rhos_closed_form(seed):
 def test_question_figure_shows_givens_only():
     g = qb.generate(qid="c4-refraction", seed=3)
     assert g["fig"]["type"] == "interface" and "theta2" not in g["fig"]
-    assert qb.generate(qid="c5-skin", seed=3)["fig"] is None
+    assert qb.generate(qid="c5-skin", seed=3)["fig"] == {"type": "slab", "label": "silver"}
 
 
 
@@ -113,3 +113,8 @@ def test_rhos_uses_one_unit_and_unicode_minus(seed):
 def test_rhos_negative_measurement_prints_unicode_minus():
     seed = next(s for s in range(400) if qb.BY_ID["c4-rhos"]["gen"](np.random.default_rng(s))["E2n"] < 0)
     assert "E₂n = −" in qb.generate(qid="c4-rhos", seed=seed)["text"]
+
+
+def test_every_template_has_explanation_and_figure():
+    assert [t["id"] for t in qb.T if not t["x"]] == []
+    assert [t["id"] for t in qb.T if not t["fig"]] == []
