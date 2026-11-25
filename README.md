@@ -1,14 +1,23 @@
 # ElectroField
 
-Built by **[Atahan Güney](https://atahanguney.github.io/)** (Atahan Guney) — electrical & electronics engineering, Antalya Bilim University.
+**Electromagnetics you can check.** An interactive applied-electromagnetics workbench: every number on screen is computed by a Python engine, shown as a step-by-step derivation, and cross-checked by an independent method (complex root vs closed form, Jacobian vs finite differences, Maxwell-equation residuals, numerical integration).
 
-An interactive applied-electromagnetics workbench. Every number on screen is computed by a Python engine, shown as a step-by-step derivation, and cross-checked by an independent method (complex root vs closed form, Jacobian vs finite differences, Maxwell-equation residuals, numerical integration).
+**[Open it in your browser →](https://atahanguney.github.io/ElectroField/)** Nothing to install.
 
-Notation and coverage follow Ulaby & Ravaioli, *Fundamentals of Applied Electromagnetics*, and Cheng, *Field and Wave Electromagnetics*.
+![Chapter 7, transmission lines: the line length grows from 0 to λ/2 and the input impedance makes one full clockwise turn on the Smith chart](docs/media/smith.gif)
+
+<sub>Chapter 7: as the line gets longer, Z<sub>in</sub> rotates clockwise around the Smith chart at constant |Γ|. At λ/2 it is back at the load.</sub>
+
+<p>
+<img src="docs/media/home.png" width="72%" alt="Landing page on a desktop: a 1 MHz wave decaying in sea water, with skin depth, attenuation and 8 of 8 checks passing">
+<img src="docs/media/phone.png" width="24%" alt="The same page on a phone, chapter list folded behind a button">
+</p>
+
+Notation and coverage follow Ulaby & Ravaioli, *Fundamentals of Applied Electromagnetics*, and Cheng, *Field and Wave Electromagnetics*. Built by **[Atahan Güney](https://atahanguney.github.io/)** (Atahan Guney), electrical & electronics engineering, Antalya Bilim University.
 
 ## Use it online
 
-**https://atahanguney.github.io/ElectroField/** — the complete workbench runs in your browser: the same Python engine (`engine/`) is executed client-side with [Pyodide](https://pyodide.org) (NumPy and SciPy compiled to WebAssembly). The first visit downloads about 30 MB, after that it is cached.
+**https://atahanguney.github.io/ElectroField/** runs the complete workbench in your browser: the same Python engine (`engine/`) is executed client-side with [Pyodide](https://pyodide.org) (NumPy and SciPy compiled to WebAssembly). The landing page opens on an example the engine computed ahead of time, so there is something to read at once; the engine itself (about 30 MB, cached afterwards) downloads the first time a computation runs, with a progress bar.
 
 ### EM tutor (AI)
 
@@ -37,7 +46,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-On Windows you can also double-click `Start_ElectroField.bat`. Opens http://127.0.0.1:8765. Verification suite (439 tests): `python -m pytest -q -p no:anyio tests`
+On Windows you can also double-click `Start_ElectroField.bat`. Opens http://127.0.0.1:8765. Verification suite: `python -m pytest -q -p no:anyio tests`
 
 ### Assistant
 
@@ -71,6 +80,8 @@ web/         frontend (ES modules, Plotly, KaTeX)
 tests/       pytest verification against textbook results
 index.html   GitHub Pages entry point (copy of web/index.html with web/ paths)
 run.py, Start_ElectroField.bat   start the local server (current version)
+scripts/     build_home_example.py (landing-page snapshot), render_media.js (social card, README images)
+docs/media/  README images (generated)
 legacy/      old single-file WebGL workbench and desktop solver, reference only;
              legacy/Start_ElectroField.bat starts that old version, not this one
 ```

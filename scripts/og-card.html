@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- Social preview card (1280×640). Rendered to web/img/og.png by scripts/render_media.js.
+     The curve and numbers are read from web/data/home.json, i.e. the engine's output. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../web/css/base.css">
+<style>
+  :root { color-scheme: light; }
+  html, body { width: 1280px; height: 640px; margin: 0; overflow: hidden; background: #fbfaf7; color: #1c1f23; }
+  .card { display: grid; grid-template-columns: 560px 1fr; gap: 48px; height: 100%; box-sizing: border-box; padding: 64px 64px 56px; }
+  .left { display: flex; flex-direction: column; }
+  .brand { font: 600 26px/1 var(--serif); color: #1f4e79; letter-spacing: .01em; }
+  h1 { font: 600 58px/1.08 var(--serif); margin: 26px 0 20px; color: #1c1f23; }
+  .sub { font: 22px/1.5 var(--serif); color: #4a5058; margin: 0; }
+  .topics { margin-top: auto; font: 15px/1.6 var(--mono); color: #5d636b; }
+  .url { font: 600 17px var(--mono); color: #1f4e79; margin-top: 10px; }
+  .panel { background: #fff; border: 1px solid #e3e0d8; border-radius: 8px; padding: 22px 24px; display: flex; flex-direction: column; }
+  .eb { font: 500 13px var(--mono); color: #5d636b; letter-spacing: .04em; }
+  .q { font: 600 22px/1.3 var(--serif); margin: 6px 0 2px; }
+  .m { font: 15px var(--serif); color: #4a5058; }
+  svg { display: block; margin: 10px 0 4px; font: 13px var(--mono); }
+  .nums { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #e3e0d8; padding-top: 12px; margin-top: auto; }
+  .nums .k { font: 13px var(--sans); color: #5d636b; }
+  .nums .v { font: 19px var(--mono); margin-top: 2px; }
+  .ok { font: 600 15px var(--mono); color: #2e7d4f; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="left">
+    <div class="brand">ElectroField</div>
+    <h1>Electromagnetics you can check</h1>
+    <p class="sub">Maxwell’s equations to antennas. A Python engine computes every number, writes out the derivation and verifies it by an independent method — in your browser.</p>
+    <div class="topics">electrostatics · magnetostatics · plane waves<br>reflection · transmission lines · Smith chart<br>waveguides · antennas</div>
+    <div class="url">atahanguney.github.io/ElectroField</div>
+  </div>
+  <div class="panel">
+    <div class="eb">EXAMPLE · CHAPTER 5</div>
+    <div class="q">1 MHz wave entering sea water</div>
+    <div class="m">εr = 81, σ = 4 S/m</div>
+    <svg id="plot" width="494" height="292"></svg>
+    <div class="nums" id="nums"></div>
+    <div class="ok" id="ok"></div>
+  </div>
+</div>
+<script type="module">
+const d = await (await fetch('../web/data/home.json')).json();
+const { z, E } = d.field, v = d.values;
+const env = E.re.map((r, i) => Math.hypot(r, E.im[i]));
+const W = 494, H = 292, L = 44, R = 14, T = 10, B = 42, zmax = z[z.length - 1], ym = Math.max(...env) * 1.08;
+const X = (x) => L + x / zmax * (W - L - R), Y = (y) => T + (1 - (y + ym) / (2 * ym)) * (H - T - B);
+const path = (ys) => ys.map((y, i) => `${i ? 'L' : 'M'}${X(z[i]).toFixed(1)},${Y(y).toFixed(1)}`).join('');
+const ph = 0.6, c = Math.cos(ph), s = Math.sin(ph);   // one instant of Re{E e^{jωt}}
+const xd = X(v.skin_depth);
+const ticks = [0, 25, 50, 75].map((cm) => `<text x="${X(cm / 100)}" y="${H - B + 18}" text-anchor="middle" fill="#5d636b">${cm}</text>`).join('');
+document.getElementById('plot').innerHTML = `
+  <line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="#cfcbc0"/>
+  <line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" stroke="#5d636b"/>
+  <line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="#5d636b"/>
+  ${ticks}<text x="${W - R}" y="${H - 2}" text-anchor="end" fill="#5d636b">z (cm)</text>
+  <text x="${L - 8}" y="${Y(1) + 5}" text-anchor="end" fill="#5d636b">+E₀</text><text x="${L - 8}" y="${Y(-1) + 5}" text-anchor="end" fill="#5d636b">−E₀</text>
+  <line x1="${xd}" x2="${xd}" y1="${T}" y2="${H - B}" stroke="#5d636b" stroke-dasharray="2 3"/>
+  <text x="${xd + 6}" y="${T + 14}" fill="#5d636b">δs = ${(v.skin_depth * 100).toFixed(1)} cm</text>
+  <path d="${path(env)}" fill="none" stroke="#b03a2e" stroke-dasharray="5 4" opacity=".55"/>
+  <path d="${path(env.map((e) => -e))}" fill="none" stroke="#b03a2e" stroke-dasharray="5 4" opacity=".55"/>
+  <path d="${path(E.re.map((r, i) => r * c - E.im[i] * s))}" fill="none" stroke="#b03a2e" stroke-width="3"/>`;
+document.getElementById('nums').innerHTML = [['skin depth', `${(v.skin_depth * 100).toFixed(1)} cm`], ['attenuation', `${v.alpha_dB.toFixed(1)} dB/m`], ['|ηc|', `${v.eta_mag.toFixed(3)} Ω`]]
+  .map(([k, x]) => `<div><div class="k">${k}</div><div class="v">${x}</div></div>`).join('');
+document.getElementById('ok').textContent = `✓ ${d.checks.length} of ${d.checks.length} independent checks pass`;
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>
