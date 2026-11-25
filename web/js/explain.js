@@ -19,12 +19,15 @@ function P(text, attrs = {}) {
 }
 
 function plot(p) {
-  const box = h('div', { class: 'ex-plot', role: 'img', 'aria-label': `${p.ylabel} against ${p.xlabel}` });
-  const colors = [C.accent, C.ink3];
+  const strip = (t) => t.replace(/<[^>]+>/g, '');
+  const box = h('div', { class: 'ex-plot', role: 'img', 'aria-label': `${strip(p.ylabel)} against ${strip(p.xlabel)}` });
+  // field traces keep the site's colours (E red, H blue, S green); others use the accent, then grey
+  const color = (s, i) => (s.color && C[s.color]) || [C.accent, C.ink3][i % 2];
+  let tries = 0;
   const draw = () => {
-    if (!box.isConnected || !window.Plotly) return requestAnimationFrame(draw);
+    if (!box.isConnected || !window.Plotly) { if (++tries < 600) requestAnimationFrame(draw); return; }   // give up after ~10 s
     window.Plotly.newPlot(box, p.ys.map((s, i) => ({ x: p.x, y: s.y, name: s.name, mode: p.x.length > 12 ? 'lines' : 'lines+markers',
-      line: { color: colors[i % 2], width: 2, dash: i ? 'dash' : 'solid' }, marker: { size: 6 } })),
+      line: { color: color(s, i), width: 2, dash: i ? 'dash' : 'solid' }, marker: { size: 6 } })),
     layout({ height: 250, showlegend: p.ys.length > 1, margin: { t: p.ys.length > 1 ? 34 : 10 },
       xaxis: { title: { text: p.xlabel }, type: p.logx ? 'log' : 'linear', exponentformat: 'power', showexponent: 'all',
         ...(p.x.length <= 12 ? { tickvals: p.x } : {}) },
