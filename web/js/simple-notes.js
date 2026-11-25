@@ -39,7 +39,7 @@ export const NOTES = {
     mistakes: ['Using |Γ| instead of |Γ|² for power.', 'Looking for a critical angle when going into a denser medium (there is none).'],
   },
   tlines: {
-    idea: 'On a cable the signal goes to the load and part of it bounces back if the load does not match Z₀. The two waves add into a standing pattern. A quarter-wave of line turns a load into Z₀²/Z_L; the Smith chart is a map where moving along the cable just rotates the point.',
+    idea: 'On a cable the signal goes to the load and part of it bounces back if the load does not match Z₀. The two waves add into a standing pattern. A quarter-wave of line turns a load Z into Z₀²/Z; the Smith chart is a map where moving along the cable just rotates the point.',
     remember: [[tex(R`\Gamma_L=\frac{Z_L-Z_0}{Z_L+Z_0}`), ', VSWR = (1 + |Γ|)/(1 − |Γ|).'], 'Every λ/2 the input impedance repeats.', 'Matched load: Γ = 0, VSWR = 1.'],
     mistakes: ['Measuring d from the generator instead of from the load.', 'Forgetting to normalise impedances by Z₀ on the Smith chart.'],
   },

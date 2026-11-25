@@ -16,13 +16,13 @@ export function render(view, ch, init = {}) {
     f: c({ key: 'f', texLabel: 'f', unit: 'Hz', value: S.f, min: 1e6, max: 1e11, log: true }), length: c({ key: 'length', texLabel: 'l', label: 'line length', unit: 'm', value: S.length, min: 1e-3, max: 10, log: true }),
     vf: c({ key: 'vf', texLabel: 'u_p/c', label: 'velocity factor', value: S.vf, min: 0.3, max: 1 }) };
   view.append(h('div', { class: 'eyebrow' }, `CHAPTER ${ch.n}`), h('h1', {}, ch.title),
-    h('p', { class: 'lede' }, 'A line of characteristic impedance Z₀ terminated in Z_L carries an incident and a reflected wave. Their interference fixes the standing-wave pattern and transforms the load into a different impedance at every distance — which the Smith chart shows as a rotation of Γ at constant |Γ|.'),
+    h('p', { class: 'lede' }, 'A line of characteristic impedance Z₀ terminated in a load impedance carries an incident and a reflected wave. Their interference fixes the standing-wave pattern and transforms the load into a different impedance at every distance — which the Smith chart shows as a rotation of Γ at constant |Γ|.'),
     h('div', { class: 'work' },
       h('div', { class: 'panel' }, h('h3', {}, 'Line and load'), h('div', { class: 'presets' }, PRE.map(([n, v]) => h('button', { class: 'btn', onclick: () => Object.entries(v).forEach(([k, x]) => cs[k].set(x)) }, n))),
         cs.Z0.el, cs.RL.el, cs.XL.el, cs.f.el, cs.length.el, cs.vf.el, h('p', { class: 'hint' }, 'Generator: 10 V with 50 Ω source impedance.'), err),
       h('div', { class: 'figs' }, res,
         h('div', { class: 'grid2' }, h('div', { class: 'fig' }, fS, h('p', { class: 'cap' }, h('b', {}, 'Smith chart. '),
-          'Red dot: normalised load z_L. Moving toward the generator, Γ rotates clockwise on the dashed |Γ| circle; the green arc ends at Z_in. One full turn = λ/2.')),
+          'Red dot: the normalised load. Moving toward the generator, Γ rotates clockwise on the dashed |Γ| circle; the green arc ends at the input impedance. One full turn = λ/2.')),
           h('div', { class: 'fig' }, fV, h('p', { class: 'cap' }, h('b', {}, 'Standing-wave pattern. '), '|V| and |I| along the line, d measured from the load. Voltage maxima coincide with current minima.'))),
         matchBox)),
     h('h2', {}, 'Derivation'), steps, h('h2', {}, 'Verification'), checks, theory());
@@ -65,8 +65,8 @@ function smith(el, r, S) {
   const GL = { re: v.Gamma_mag * Math.cos(v.Gamma_deg * Math.PI / 180), im: v.Gamma_mag * Math.sin(v.Gamma_deg * Math.PI / 180) };
   tr.push({ x: [GL.re], y: [GL.im], mode: 'markers', marker: { size: 11, color: C.E }, hovertext: `z_L = ${(S.RL / S.Z0).toFixed(3)} ${S.XL < 0 ? '−' : '+'} j${Math.abs(S.XL / S.Z0).toFixed(3)}`, hoverinfo: 'text' });
   const end = r.smith.re.length - 1;
-  tr.push({ x: [r.smith.re[end]], y: [r.smith.im[end]], mode: 'markers', marker: { size: 11, color: C.S, symbol: 'diamond' }, hovertext: 'Z_in', hoverinfo: 'text' });
-  ann.push({ x: GL.re, y: GL.im, text: 'z_L', showarrow: false, yshift: 12, font: { color: C.E, size: 12 } }, { x: r.smith.re[end], y: r.smith.im[end], text: 'z_in', showarrow: false, yshift: -12, font: { color: C.S, size: 12 } });
+  tr.push({ x: [r.smith.re[end]], y: [r.smith.im[end]], mode: 'markers', marker: { size: 11, color: C.S, symbol: 'diamond' }, hovertext: 'Z<sub>in</sub>', hoverinfo: 'text' });
+  ann.push({ x: GL.re, y: GL.im, text: 'z<sub>L</sub>', showarrow: false, yshift: 12, font: { color: C.E, size: 12 } }, { x: r.smith.re[end], y: r.smith.im[end], text: 'z<sub>in</sub>', showarrow: false, yshift: -12, font: { color: C.S, size: 12 } });
   Plotly.react(el, tr.map((t) => ({ hoverinfo: 'skip', showlegend: false, ...t })), layout({ annotations: ann, hovermode: 'closest', margin: { l: 10, r: 10, t: 10, b: 10 },
     xaxis: { range: [-1.12, 1.12], visible: false, constrain: 'domain' }, yaxis: { range: [-1.12, 1.12], visible: false, scaleanchor: 'x' } }), plotCfg);
 }

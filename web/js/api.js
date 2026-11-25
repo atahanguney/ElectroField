@@ -30,12 +30,23 @@ export function backend() {
 let pyP = null, pyDone = false;
 /** true once the in-browser engine has finished loading in this tab */
 export const engineReady = () => pyDone;
+// Status box while the in-browser engine loads: step k of 3 with a bar (the steps are real, not a time estimate).
+const STEPS = 3;
 const banner = (() => {
-  let el = null;
-  return (msg) => {
+  let el = null, text = null, bar = null;
+  return (msg, step = 0) => {
     if (!msg) { el && el.remove(); el = null; return; }
-    if (!el) { el = document.createElement('div'); el.className = 'engine-banner'; el.setAttribute('role', 'status'); document.body.append(el); }
-    el.textContent = msg;
+    if (!el) {
+      el = document.createElement('div'); el.className = 'engine-banner'; el.setAttribute('role', 'status');
+      text = document.createElement('div');
+      const track = document.createElement('div'); track.className = 'bar'; bar = document.createElement('i'); track.append(bar);
+      el.append(text, track); document.body.append(el);
+    }
+    text.replaceChildren();
+    if (step) { const s = document.createElement('span'); s.className = 'step'; s.textContent = `${step}/${STEPS}`; text.append(s); }
+    text.append(msg);
+    bar.parentElement.hidden = !step;
+    bar.style.width = `${Math.round(((step - 1) / STEPS) * 100 + 100 / STEPS / 2)}%`;
   };
 })();
 function loadScript(src) {
@@ -45,12 +56,12 @@ function python() {
   if (pyP) return pyP;
   pyP = (async () => {
     try {
-      banner('Starting the Python engine in your browser (first visit downloads ≈ 30 MB, then it is cached)…');
+      banner('Downloading the Python runtime (first visit only: about 30 MB in total, then cached)…', 1);
       await loadScript(`${PYODIDE}pyodide.js`);
       const py = await window.loadPyodide({ indexURL: PYODIDE });
-      banner('Loading NumPy and SciPy…');
+      banner('Downloading NumPy and SciPy…', 2);
       await py.loadPackage(['numpy', 'scipy', 'contourpy']);
-      banner('Loading the ElectroField engine…');
+      banner('Loading the ElectroField engine…', 3);
       py.FS.mkdirTree('/home/pyodide/engine');
       await Promise.all(ENGINE_FILES.map(async (f) => {
         const r = await fetch(ENGINE_BASE + f, { cache: 'no-cache' });

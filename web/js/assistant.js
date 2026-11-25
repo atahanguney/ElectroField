@@ -31,7 +31,9 @@ export function mount() {
 
   backend().then((m) => {
     if (m === 'server') return;
-    // static build (GitHub Pages): no server-side key, so the assistant cannot run here
+    // static build (GitHub Pages): no server-side key, so the assistant cannot run here.
+    // The corner button opens the EM tutor instead, which runs in the browser without a key.
+    fab.replaceWith(h('a', { class: 'ai-fab', href: '#/tutor' }, 'Ask the EM tutor'));
     intro.replaceChildren(h('p', {}, 'The assistant needs the local version of ElectroField, because it uses your own Anthropic API key on your computer. Everything else on this site — every solver, graph, derivation and check — runs here in your browser.'),
       h('p', { class: 'hint' }, 'Local version: download the repository, run Start_ElectroField.bat (or python run.py) and set ANTHROPIC_API_KEY.'));
     input.disabled = true; send.disabled = true;

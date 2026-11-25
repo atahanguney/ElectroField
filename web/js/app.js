@@ -80,6 +80,14 @@ async function route() {
 }
 window.addEventListener('hashchange', route);
 route();
+
+// Phones: the chapter list is folded behind a "Chapters" button so the page content comes first.
+{
+  const side = document.querySelector('.side'), btn = document.querySelector('.toc-toggle');
+  const fold = (open) => { side.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open)); btn.textContent = open ? 'Close' : 'Chapters'; };
+  btn.addEventListener('click', () => fold(!side.classList.contains('open')));
+  window.addEventListener('hashchange', () => fold(false));
+}
 // name every control, label icon buttons, give plots an image role — for content rendered now and later
 {
   let t = 0;
