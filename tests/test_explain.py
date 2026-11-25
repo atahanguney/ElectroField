@@ -79,3 +79,11 @@ def test_plain_format():
     assert plain(78.948) == "78.95"
     assert plain(0) == "0"
     assert plain(-2.5e6) == "−2.500 × 10⁶"
+
+
+def test_sweep_with_several_traces():
+    x = X(asked="", idea="", steps=[], plot=Sweep("eps2", [1, 4], [("E₂t", V("F2", 0)), ("E₂n", V("F2", 1))], "εr₂", "E (V/m)"))
+    ys = _go(x)["plot"]["ys"]
+    assert [y["name"] for y in ys] == ["E₂t", "E₂n"]
+    n1 = 132 * math.cos(math.radians(52))
+    assert ys[1]["y"] == pytest.approx([n1, n1 / 4], rel=1e-12)

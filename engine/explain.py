@@ -27,8 +27,9 @@ def W(q, change, say, tex=None):
 
 
 def Sweep(param, values, y, xlabel, ylabel, logx=False, logy=False):
-    """Evidence plot: one engine run per value of `param`."""
-    return {"sweep": param, "values": list(values), "y": y, "xlabel": xlabel, "ylabel": ylabel, "logx": logx, "logy": logy}
+    """Evidence plot: one engine run per value of `param`; y = extractor or [(name, extractor), …]."""
+    ys = [(ylabel, y)] if callable(y) else list(y)
+    return {"sweep": param, "values": list(values), "ys": ys, "xlabel": xlabel, "ylabel": ylabel, "logx": logx, "logy": logy}
 
 
 def Series(x, ys, xlabel, ylabel, logx=False, logy=False):
@@ -124,13 +125,15 @@ def render(x, run, params, result):
         out["whatif"].append({"q": f(w["q"]), "say": f(w["say"], r2, p2), "tex": f(w["tex"], r2, p2, True), "verified": good})
     pl = x["plot"]
     if pl and "sweep" in pl:
-        ys = []
+        ys = [[] for _ in pl["ys"]]
         for v in pl["values"]:
             p2 = {**params, pl["sweep"]: v}
             r2 = run(p2)
             ok = ok and bool(r2.get("all_passed", True))
-            ys.append(_scalar(pl["y"](r2, p2), pl["sweep"]))
-        out["plot"] = {"x": num(pl["values"]), "ys": [{"name": pl["ylabel"], "y": ys}], **{k: pl[k] for k in ("xlabel", "ylabel", "logx", "logy")}}
+            for col, (n, g) in zip(ys, pl["ys"]):
+                col.append(_scalar(g(r2, p2), n))
+        out["plot"] = {"x": num(pl["values"]), "ys": [{"name": n, "y": y} for (n, _), y in zip(pl["ys"], ys)],
+                       **{k: pl[k] for k in ("xlabel", "ylabel", "logx", "logy")}}
     elif pl:
         out["plot"] = {"x": num(pl["x"](result, params)), "ys": [{"name": n, "y": num(g(result, params))} for n, g in pl["ys"]],
                        **{k: pl[k] for k in ("xlabel", "ylabel", "logx", "logy")}}

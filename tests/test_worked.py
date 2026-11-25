@@ -64,3 +64,43 @@ def test_catalog_has_kind():
 def test_old_problems_have_no_explain():
     old = next(p for p in worked.P if p.get("x") is None)
     assert worked.solve(old["id"])["explain"] is None
+
+
+# ---------------------------------------------------------------- explained Maxwell pilot
+import json
+import re
+from engine.constants import EPS0
+
+MAX = [p for p in worked.P if p["topic"] == "maxwell"]
+_sentences = lambda s: len([x for x in re.split(r"(?<=[.!?])\s+", s.strip()) if x])
+
+
+def test_maxwell_has_15_problems_8_concept_7_numeric():
+    kinds = [p["kind"] for p in MAX]
+    assert len(MAX) == 15 and kinds.count("concept") == 8 and kinds.count("numeric") == 7
+
+
+@pytest.mark.parametrize("pid", [p["id"] for p in MAX])
+def test_maxwell_explanations_complete(pid):
+    prob = next(p for p in MAX if p["id"] == pid)
+    ex = worked.solve(pid)["explain"]
+    assert ex and ex["verified"]
+    assert "«" not in json.dumps(ex, ensure_ascii=False)
+    assert ex["asked"] and ex["idea"] and 1 <= len(ex["steps"]) <= 6
+    assert all(_sentences(s["say"]) <= 2 for s in ex["steps"]), [s["say"] for s in ex["steps"]]
+    if prob["kind"] == "numeric":
+        assert ex["answer"] and len(ex["whatif"]) >= 2
+    else:
+        assert ex["answer_text"] and len(ex["answer_text"].split()) <= 120
+
+
+def test_maxwell_known_answers():
+    by = {p["title"]: p["id"] for p in MAX}
+    get = lambda t, i=0: worked.solve(by[t])["answers"][i]["value"]
+    s60, c60 = math.sin(math.radians(60)), math.cos(math.radians(60))
+    assert get("Refraction of E at a dielectric", 0) == pytest.approx(math.hypot(100 * s60, 100 * c60 / 5), rel=1e-12)
+    assert get("Refraction of E at a dielectric", 1) == pytest.approx(math.degrees(math.atan(5 * math.tan(math.radians(60)))), rel=1e-12)
+    V = 50 * 0.3 * 0.04 * 2 * math.pi * 60
+    assert get("Generator driving a load", 0) == pytest.approx(V, rel=2e-4)
+    assert get("Generator driving a load", 1) == pytest.approx(V ** 2 / 20, rel=4e-4)
+    assert get("Charge relaxation: copper vs distilled water") == pytest.approx(EPS0 / 5.8e7, rel=1e-12)
