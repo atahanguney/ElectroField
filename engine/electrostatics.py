@@ -160,7 +160,9 @@ def point_charges(charges, ground=False, probe=(0.0, 0.0), span=1.0, n=141):
     hh = 1e-4 * dmin
     grad = np.array([(field_at(Q, (P + hh * e)[None])[1][0] - field_at(Q, (P - hh * e)[None])[1][0]) / (2 * hh) for e in np.eye(3)])
     D.check(r"\mathbf E=-\nabla V \text{ at probe}", 0.0, np.linalg.norm(Ep + grad), 1e-6,
-            "central differences of V", scale=np.linalg.norm(Ep))
+            "central differences of V",
+            # scale by the strongest single-charge field, so the check stays meaningful where the fields cancel (E ≈ 0)
+            scale=max(np.linalg.norm(Ep), max(np.linalg.norm(field_at(Q[i:i + 1], P[None])[0][0]) for i in range(len(Q)))))
     lap = sum(field_at(Q, (P + hh * e)[None])[1][0] + field_at(Q, (P - hh * e)[None])[1][0] for e in np.eye(3)) - 6 * Vp
     lap /= hh * hh
     D.check(r"\nabla^2V=0 \text{ (charge-free point)}", 0.0, lap, 1e-3, "7-point Laplacian",

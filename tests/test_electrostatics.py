@@ -59,3 +59,11 @@ def test_rg58_like_coax():
     # a = 0.45 mm, b = 1.47 mm, PE εr = 2.25 → ≈ 106 pF/m (datasheet ~100 pF/m)
     C = es.capacitor("coax", a=0.45e-3, b=1.47e-3, eps_r=2.25)["values"]["C"]
     assert 100e-12 < C < 110e-12
+
+
+def test_gradient_check_holds_at_a_field_null():
+    from engine import electrostatics as es
+    d = 0.3
+    x0 = d / (1 + 2)          # q2 = 4 q1: E = 0 at d/3
+    r = es.point_charges([{"q": 1e-9, "x": 0, "y": 0}, {"q": 4e-9, "x": d, "y": 0}], False, (x0, 0.0), n=21)
+    assert r["all_passed"], [c["label"] for c in r["checks"] if not c["passed"]]
