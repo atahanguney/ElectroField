@@ -118,6 +118,16 @@ export function figure(spec, title = '') {
     case 'array': { for (let k = 0; k < Math.min(spec.N, 12); k++) Ci(50 + k * 22, 120, 6, { fill: 'accent', c: 'accent' }); L(50, 145, 72, 145, { both: 1, arrow: 1, c: 'ink-3', w: 1 }); Tx(61, 160, `d = ${spec.d}λ`, { size: 12 }); Tx(170, 40, `N = ${spec.N} elements`, { size: 13 }); L(170, 100, 170, 55, { arrow: 1, c: 'S', dash: '4 3' }); Tx(184, 70, 'θ from the array axis →', { anchor: 'start', size: 11 }); break; }
     case 'generator': { Re(40, 30, 40, 150, { fill: 'E', c: 'none', op: 0.4 }); Tx(60, 105, 'N', { c: 'paper', size: 16 }); Re(260, 30, 40, 150, { fill: 'H', c: 'none', op: 0.4 }); Tx(280, 105, 'S', { c: 'paper', size: 16 }); for (let i = 0; i < 4; i++) L(85, 50 + i * 35, 255, 50 + i * 35, { arrow: 1, c: 'ink-3', w: 1 }); s.append(el('ellipse', { cx: 170, cy: 105, rx: 30, ry: 60, fill: 'none', stroke: col('accent'), 'stroke-width': 3 })); Tx(170, 196, 'B (horizontal) through a coil', { size: 12 }); if (spec.N) Tx(170, 16, `N = ${spec.N} turn${spec.N > 1 ? 's' : ''}${spec.R ? `, load R = ${spec.R} Ω` : ''}`, { size: 12 }); break; }
     case 'medium': case 'slab': { Re(20, 40, 300, 130, { fill: 'accent-bg', c: 'none' }); Pa('M 20 105 ' + Array.from({ length: 30 }, (_, i) => `L ${20 + i * 10} ${105 - 40 * Math.exp(-i / 12) * Math.sin(i * 0.9)}`).join(' '), { c: 'E', w: 2 }); Tx(170, 190, spec.label ? `medium: ${spec.label}` : 'lossy medium', { size: 12 }); L(30, 30, 120, 30, { arrow: 1, c: 'S' }); Tx(132, 30, 'propagation', { anchor: 'start', size: 11, c: 'S' }); break; }
+    case 'slab3': {   // air / slab / third medium; only the given θ₁ is drawn
+      Re(20, 20, 300, 60, { fill: 'accent-bg', c: 'none' }); Re(20, 80, 300, 55, { fill: 'accent', c: 'none', op: 0.18 }); Re(20, 135, 300, 55, { fill: 'accent', c: 'none', op: 0.32 });
+      L(20, 80, 320, 80, { w: 2 }); L(20, 135, 320, 135, { w: 2 }); L(170, 20, 170, 190, { dash: '4 3', c: 'ink-3', w: 1 });
+      const t1 = (spec.theta * Math.PI) / 180;
+      L(170, 80, 170 + 62 * Math.sin(t1), 80 - 62 * Math.cos(t1), { arrow: 1, c: 'E', w: 2.5 }); Tx(176 + 62 * Math.sin(t1), 74 - 62 * Math.cos(t1), 'E₁', { c: 'E', anchor: 'start' });
+      Pa(`M 170 52 A 28 28 0 0 1 ${170 + 28 * Math.sin(t1)} ${80 - 28 * Math.cos(t1)}`, { c: 'ink-2', w: 1.2 }); Tx(170 + 40 * Math.sin(t1 / 2), 80 - 40 * Math.cos(t1 / 2), 'θ₁', { size: 12 });
+      Tx(30, 34, `εr₁ = ${spec.e1} (air)`, { anchor: 'start', size: 12 }); Tx(30, 108, `slab: εr₂ = ${spec.e2}`, { anchor: 'start', size: 12 }); Tx(30, 162, `εr₃ = ${spec.e3}`, { anchor: 'start', size: 12 });
+      Tx(300, 172, 'θ₃ = ?', { anchor: 'end', size: 12 });
+      break;
+    }
     default: Tx(170, 105, '');
   }
   return s;

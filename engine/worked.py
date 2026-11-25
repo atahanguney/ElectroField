@@ -513,7 +513,7 @@ px(T, U + "6-7, 7-4", "exam", "Sea water: conductor at 1 kHz, dielectric at 100 
                  "The model leaves out that water's own permittivity is not constant: the dipole relaxation of water molecules, centred near 20 GHz, "
                  "lowers εr to under 10 at 100 GHz and adds a large loss of its own (Meissner & Wentz, 2004). Real sea water at 100 GHz is therefore far lossier than σ alone predicts.",
      evidence_say="Engine runs of σ/ωε from 1 kHz to 100 GHz: a straight line on log–log axes with slope −1, crossing 1 at f_c.",
-     plot=Sweep("f", [1e3, 1e5, 1e7, 1e9, 1e11], EV("ratio"), "frequency f (Hz)", "|J_c| / |J_d|", logx=True, logy=True),
+     plot=Sweep("f", [1e3, 1e5, 1e7, 1e9, 1e11], EV("ratio"), "frequency f (Hz)", "|J<sub>c</sub>| / |J<sub>d</sub>|", logx=True, logy=True),
      mistake="Treating 'conductor' and 'dielectric' as fixed labels of a material. They describe it at a given frequency.",
      vals={"r1": EV("ratio"), "fc": lambda r, p: r["values"]["fc"] / 1e9}), "concept")
 

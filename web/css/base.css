@@ -206,3 +206,32 @@ button.btn:disabled { opacity: .5; cursor: default; }
   main { padding: 20px 16px 60px; }
   .work, .grid2 { grid-template-columns: 1fr; }
 }
+
+/* explained solutions (web/js/explain.js) */
+.ex { margin-top: 14px; font: 15.5px/1.6 var(--serif); max-width: 980px; }
+.ex p { margin: 0 0 6px; }
+.ex-label { font: 600 11.5px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 4px; }
+.ex-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; padding: 10px 0 12px; border-bottom: 1px solid var(--rule); }
+.ex-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin-top: 12px; }
+.ex-body.with-fig { grid-template-columns: minmax(0, 1fr) minmax(0, 340px); align-items: start; }
+.ex-fig { margin: 0; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 6px; }
+.ex-fig figcaption { font: 12px var(--sans); color: var(--ink-3); padding: 4px 4px 0; }
+.ex-steps { list-style: none; margin: 0; padding: 0; counter-reset: none; }
+.ex-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.ex-steps li:last-child { border-bottom: 0; }
+.ex-n { font: 600 12px var(--mono); color: var(--accent); padding-top: 4px; }
+.ex-steps .tex.display, .ex-whatif .tex.display { display: block; overflow-x: auto; overflow-y: hidden; margin: 2px 0; }
+.ex-answer { margin: 12px 0; padding: 10px 14px; border: 1px solid var(--rule-2); border-left: 3px solid var(--accent); border-radius: 6px; background: var(--paper); }
+.ex-answer p { font-size: 16px; }
+.ex-answer .pass, .ex-answer .fail { font-size: 12px; }
+.ex-block { margin: 14px 0; }
+.ex-mistake p { color: var(--ink-2); }
+.ex-whatif { list-style: none; margin: 0; padding: 0; }
+.ex-whatif li { padding: 8px 0 8px 12px; border-left: 2px solid var(--rule-2); margin: 6px 0; }
+.ex-q { font-style: italic; color: var(--ink-2); }
+.ex-plot { width: 100%; max-width: 640px; height: 250px; }
+details.ex-engine { margin-top: 16px; }
+details.ex-engine > summary { cursor: pointer; font: 600 13px var(--sans); color: var(--accent); padding: 6px 0; }
+.qb-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 18px; align-items: start; }
+@media (max-width: 980px) { .ex-head, .qb-body { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1320px) { .ex-body.with-fig { grid-template-columns: minmax(0, 1fr); } .ex-body.with-fig > .ex-fig { order: -1; max-width: 380px; } }
