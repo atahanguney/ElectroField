@@ -61,9 +61,8 @@ def test_catalog_has_kind():
     assert all("x" not in c and "has_explain" in c for c in cat)
 
 
-def test_old_problems_have_no_explain():
-    old = next(p for p in worked.P if p.get("x") is None)
-    assert worked.solve(old["id"])["explain"] is None
+def test_every_problem_is_explained():
+    assert [p["id"] for p in worked.P if p.get("x") is None] == []
 
 
 # ---------------------------------------------------------------- explained Maxwell pilot
@@ -140,7 +139,7 @@ def test_transformer_problems_draw_a_tilted_loop():
 
 
 # ---------------------------------------------------------------- every explained topic: 15 problems, 8 conceptual + 7 numerical
-DONE = ["maxwell", "dimensions", "coordinates", "electrostatics", "images", "magnetostatics", "waves", "reflection", "tlines"]
+DONE = list(worked.TOPICS)
 
 
 @pytest.mark.parametrize("topic", DONE)

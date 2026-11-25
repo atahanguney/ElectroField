@@ -2310,43 +2310,243 @@ px(T, "Ulaby & Ravaioli Sec. 2-11", "basic", "Why match at all?",
 
 # ---------------------------------------------------------------- waveguides & antennas
 T = "radiation"
-p(T, "Ulaby & Ravaioli Sec. 8-10", "basic", "WR-90 cut-off",
-  "Find the cut-off frequency of the TE₁₀ mode of a WR-90 guide (a = 22.86 mm, b = 10.16 mm, air).",
-  {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 22.86e-3, "b": 10.16e-3, "f": 10e9}, [("f_c", V("fc"), "GHz", 1e-9)],
-  "f₁₀ = c/(2a).", "Half a wavelength must fit across the broad wall.")
-p(T, "Ulaby & Ravaioli Sec. 8-10", "exam", "Guide wavelength",
-  "In WR-90 at 10 GHz (TE₁₀), find the guide wavelength.",
-  {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 22.86e-3, "b": 10.16e-3, "f": 10e9}, [("λg", V("lambda_g"), "cm", 100)],
-  "λg = λ/√(1 − (f_c/f)²).", "Inside a guide the wave zig-zags, so its pattern repeats over a longer distance than in free space.")
-p(T, "Ulaby & Ravaioli Sec. 8-10", "basic", "Second mode",
-  "Find the cut-off of the TE₂₀ mode of WR-90.",
-  {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 22.86e-3, "b": 10.16e-3, "f": 15e9, "mode": "TE", "m": 2, "n": 0},
-  [("f_c", V("fc"), "GHz", 1e-9)], "f₂₀ = c/a.", "Twice the cut-off of TE₁₀: the single-mode band of WR-90 lies between them.")
-p(T, "Ulaby & Ravaioli Sec. 8-10", "exam", "Dielectric-filled guide",
-  "The same guide (a = 22.86 mm) is filled with PTFE (εr = 2.1). Find the TE₁₀ cut-off.",
-  {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 22.86e-3, "b": 10.16e-3, "eps_r": 2.1, "f": 10e9}, [("f_c", V("fc"), "GHz", 1e-9)],
-  "f_c = c/(2a√εr).", "Filling slows the wave so a lower frequency already fits.")
-p(T, "Ulaby & Ravaioli Sec. 9-3", "basic", "Half-wave dipole power",
-  "A half-wave dipole is fed with a peak current of 2 A. Find the radiated power.",
-  {"type": "dipole", "L": 0.5}, "ra/dipole", {"length_lambda": 0.5, "I0": 2}, [("R_rad", V("R_rad"), "Ω", 1), ("P_rad", V("P_rad"), "W", 1)],
-  "P = ½I₀²R_rad with R_rad = 30 Cin(2π) ≈ 73 Ω.", "The antenna behaves like a 73 Ω resistor that turns power into radiation.")
-p(T, "Ulaby & Ravaioli Sec. 9-1", "basic", "Short dipole directivity",
-  "Find the directivity of a short (Hertzian) dipole.",
-  {"type": "dipole", "L": 0.05}, "ra/dipole", {"length_lambda": 0.05}, [("D", V("D"), "", 1)],
-  "F = sin²θ ⇒ D = 4π/∫sin²θ dΩ = 3/2.", "Even the simplest antenna radiates 1.5 times more broadside than an isotropic source.")
-p(T, "Ulaby & Ravaioli Sec. 10-4", "exam", "Broadside array",
-  "Eight isotropic elements spaced λ/2 are fed in phase. Find the directivity.",
-  {"type": "array", "N": 8, "d": 0.5}, "ra/array", {"N": 8, "d_lambda": 0.5, "delta_deg": 0}, [("D", V("D"), "", 1)],
-  "Integrate |AF|² over the sphere; for long arrays D ≈ 2Nd/λ.", "More elements in a row make a sharper fan-shaped beam.")
-p(T, "Ulaby & Ravaioli Sec. 10-4", "exam", "End-fire array",
-  "Ten elements spaced λ/4 have a progressive phase of −90°. In which direction does the beam point?",
-  {"type": "array", "N": 10, "d": 0.25}, "ra/array", {"N": 10, "d_lambda": 0.25, "delta_deg": -90}, [("θ₀", V("theta0"), "°", 1)],
-  "cos θ₀ = −δ/(kd) = 1 ⇒ θ₀ = 0 (along the array axis).", "The delays line up so all elements add along the row.")
-p(T, "Ulaby & Ravaioli Sec. 9-3", "exam", "Full-wave dipole",
-  "Find the directivity of a dipole one wavelength long.",
-  {"type": "dipole", "L": 1}, "ra/dipole", {"length_lambda": 1}, [("D", V("D"), "", 1)],
-  "Integrate F(θ) = [(cos(π cos θ) + 1)/sin θ]² numerically.", "A longer dipole concentrates more power broadside.")
+# Explained (engine/explain.py): 7 numerical + 8 conceptual.
+_WG = {"fc": lambda r, p: r["values"]["fc"] / 1e9, "lg": lambda r, p: r["values"]["lambda_g"] * 100, "up": EV("up"), "ug": EV("ug"), "Z": EV("Z"),
+       "nm": EV("n_modes"), "b": EV("beta")}
+_DP = {"R": EV("R_rad"), "D": EV("D"), "Ddb": EV("D_dBi"), "P": EV("P_rad"), "bw": EV("hpbw_deg")}
+_AR = {"D": EV("D"), "Ddb": EV("D_dBi"), "t0": EV("theta0")}
+_wr90 = {"a": 0.02286, "b": 0.01016, "f": 1e10}
+_modes = lambda r, p: ", ".join(f"{m['mode']} {m['fc'] / 1e9:.3g} GHz" for m in r["modes"][:4])
 
+px(T, "Ulaby & Ravaioli Sec. 8-10", "basic", "WR-90 cut-off",
+   "The standard X-band waveguide WR-90 has inside dimensions a = 22.86 mm and b = 10.16 mm and is air-filled. Find the cut-off frequency of its dominant TE₁₀ mode.",
+   {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", _wr90, [("f_c", V("fc"), "GHz", 1e-9)],
+   X(asked="The cut-off frequency of TE₁₀ in WR-90.",
+     idea="TE₁₀ has half a wavelength across the wide wall. Below the frequency at which that fits, the mode cannot propagate.",
+     steps=[S("Cut-off of mode (m, n).", r"f_{mn}=\frac{c}{2}\sqrt{\Big(\frac ma\Big)^2+\Big(\frac nb\Big)^2}"),
+            S("For TE₁₀ only a matters.", r"f_{10}=\frac{c}{2a}=«fc»\ \text{GHz}"),
+            S("WR-90 is used from about 8.2 to 12.4 GHz, safely above f₁₀ and below the next mode.")],
+     answer="f_c = «fc» GHz",
+     whatif=[W("…the guide were filled with PTFE (εr = 2.1)?", lambda p: {**p, "eps_r": 2.1}, "f_c drops by √εr: «fc» GHz.", r"f_c=\frac{c}{2a\sqrt{\varepsilon_r}}=«fc»\ \text{GHz}"),
+             W("…the guide were WR-62 (a = 15.80 mm)?", lambda p: {**p, "a": 0.0158, "b": 0.0079}, "A narrower guide cuts off higher: «fc» GHz.", r"f_c=«fc»\ \text{GHz}")],
+     mistake="Using b in the TE₁₀ cut-off, or using a instead of 2a.",
+     vals=_WG), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-10", "exam", "Guide wavelength and velocities",
+   "At 10 GHz in air-filled WR-90 (a = 22.86 mm), find the guide wavelength, the phase velocity and the group velocity of the TE₁₀ mode.",
+   {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", _wr90, [("λg", V("lambda_g"), "cm", 100)],
+   X(asked="λ_g, u_p and u_g of TE₁₀ at 10 GHz.",
+     idea="Above cut-off the phase constant is β = k√(1 − (f_c/f)²); everything else follows from β.",
+     steps=[S("Phase constant.", r"\beta=\frac{2\pi f}{c}\sqrt{1-(f_c/f)^2}=«b»\ \text{rad/m}"),
+            S("Guide wavelength, longer than the free-space 3 cm.", r"\lambda_g=\frac{2\pi}{\beta}=«lg»\ \text{cm}"),
+            S("Phase and group velocities.", r"u_p=\frac\omega\beta=«up»\ \text{m/s},\qquad u_g=«ug»\ \text{m/s}")],
+     answer="λ_g = «lg» cm, u_p = «up» m/s, u_g = «ug» m/s",
+     whatif=[W("…the frequency were 7 GHz?", lambda p: {**p, "f": 7e9}, "Close to cut-off λ_g stretches to «lg» cm and u_g falls to «ug» m/s.", r"\lambda_g=«lg»\ \text{cm}"),
+             W("…the wave impedance were asked?", lambda p: p, "Z_TE = η₀/√(1 − (f_c/f)²) = «Z» Ω.", r"Z_{TE}=«Z»\ \Omega")],
+     mistake="Expecting λ_g < λ₀. In a hollow guide the guide wavelength is always longer.",
+     vals=_WG), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-10", "basic", "Which modes propagate?",
+   "At 15 GHz, which modes can propagate in air-filled WR-90 (a = 22.86 mm, b = 10.16 mm)? Give the cut-off frequency of TE₂₀.",
+   {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 0.02286, "b": 0.01016, "f": 1.5e10, "mode": "TE", "m": 2, "n": 0}, [("f_c (TE₂₀)", V("fc"), "GHz", 1e-9)],
+   X(asked="The propagating modes at 15 GHz and the TE₂₀ cut-off.",
+     idea="A mode propagates if the operating frequency is above its cut-off. List the lowest cut-offs and compare.",
+     steps=[S("Lowest cut-offs of the guide.", r"f_{10}=\frac{c}{2a},\quad f_{20}=\frac ca,\quad f_{01}=\frac{c}{2b}"),
+            S("TE₂₀ cut-off.", r"f_{20}=«fc»\ \text{GHz}"),
+            S("At 15 GHz, above both f₁₀ and f₂₀, the engine counts «nm» propagating modes.")],
+     answer="f_c(TE₂₀) = «fc» GHz; «nm» modes propagate at 15 GHz",
+     whatif=[W("…the frequency were 10 GHz?", lambda p: {**p, "f": 1e10}, "Only «nm» mode propagates: the single-mode band.", None),
+             W("…the guide were filled with εr = 2.1?", lambda p: {**p, "eps_r": 2.1}, "All cut-offs drop and «nm» modes propagate at 15 GHz.", None)],
+     mistake="Forgetting TE₀₁, whose cut-off c/2b can come before TE₂₀ when b > a/2.",
+     vals=_WG), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 8-10", "exam", "Dielectric-filled guide",
+   "A WR-90 guide (a = 22.86 mm) is filled with PTFE (εr = 2.1) to make it work at lower frequencies. Find the new TE₁₀ cut-off frequency and the guide wavelength at 10 GHz.",
+   {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 0.02286, "b": 0.01016, "eps_r": 2.1, "f": 1e10}, [("f_c", V("fc"), "GHz", 1e-9)],
+   X(asked="f_c and λ_g of TE₁₀ in a PTFE-filled guide.",
+     idea="The filling slows the waves by √εr, so a half wavelength fits across a at a lower frequency.",
+     steps=[S("Cut-off with a dielectric filling.", r"f_c=\frac{c}{2a\sqrt{\varepsilon_r}}=«fc»\ \text{GHz}"),
+            S("Guide wavelength at 10 GHz.", r"\lambda_g=\frac{\lambda/\sqrt{\varepsilon_r}}{\sqrt{1-(f_c/f)^2}}=«lg»\ \text{cm}"),
+            S("The price is higher loss and more modes: at 10 GHz «nm» modes now propagate.")],
+     answer="f_c = «fc» GHz, λ_g = «lg» cm",
+     whatif=[W("…the filling were εr = 4?", lambda p: {**p, "eps_r": 4}, "f_c halves to «fc» GHz.", r"f_c=«fc»\ \text{GHz}"),
+             W("…the guide were empty?", lambda p: {**p, "eps_r": 1}, "f_c = «fc» GHz, λ_g = «lg» cm.", r"f_c=«fc»\ \text{GHz}")],
+     mistake="Dividing by εr instead of √εr.",
+     vals=_WG), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 9-3", "basic", "Half-wave dipole power",
+   "A half-wave dipole is fed with a peak current of 2 A at its centre. Find its radiation resistance and the power it radiates.",
+   {"type": "dipole", "L": 0.5}, "ra/dipole", {"length_lambda": 0.5, "I0": 2}, [("R_rad", V("R_rad"), "Ω", 1), ("P_rad", V("P_rad"), "W", 1)],
+   X(asked="R_rad and P_rad of a λ/2 dipole.",
+     idea="Integrate the dipole's far-field power over a sphere and write the total as ½I₀²R_rad.",
+     steps=[S("Normalised pattern of a λ/2 dipole.", r"F(\theta)=\left[\frac{\cos(\tfrac\pi2\cos\theta)}{\sin\theta}\right]^2"),
+            S("Integrating the pattern gives the radiation resistance.", r"R_{rad}=«R»\ \Omega"),
+            S("Radiated power for a peak current I₀.", r"P_{rad}=\tfrac12I_0^2R_{rad}=«P»\ \text{W}")],
+     answer="R_rad = «R» Ω, P_rad = «P» W",
+     whatif=[W("…the current were 1 A?", lambda p: {**p, "I0": 1}, "P ∝ I₀²: «P» W.", r"P_{rad}=«P»\ \text{W}"),
+             W("…the directivity were asked?", lambda p: p, "D = «D» («Ddb» dBi), half-power beamwidth «bw}°.".replace("«bw}", "«bw»"), r"D=«D»")],
+     mistake="Using I₀²R without the ½ for a peak current.",
+     vals=_DP), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 10-3", "exam", "Broadside array",
+   "Eight identical isotropic elements are spaced λ/2 apart along a line and fed in phase. Find the direction of the main beam and the directivity.",
+   {"type": "array", "N": 8, "d": 0.5}, "ra/array", {"N": 8, "d_lambda": 0.5, "delta_deg": 0}, [("D", V("D"), "", 1)],
+   X(asked="The beam direction and directivity of an 8-element broadside array.",
+     idea="Fed in phase, the elements add in phase in every direction perpendicular to the array axis, so the beam is broadside, θ₀ = 90°.",
+     steps=[S("Array factor.", r"AF(\theta)=\left|\frac{\sin(N\psi/2)}{N\sin(\psi/2)}\right|,\qquad\psi=kd\cos\theta+\delta"),
+            S("With δ = 0 the maximum is at ψ = 0, i.e. θ₀ = «t0»°."),
+            S("Directivity from the integrated pattern; for d = λ/2 it equals N.", r"D=«D»\ («Ddb»\ \text{dBi})")],
+     answer="θ₀ = «t0»°, D = «D» («Ddb» dBi)",
+     whatif=[W("…the array had 16 elements?", lambda p: {**p, "N": 16}, "D doubles to «D».", r"D=«D»"),
+             W("…the spacing were λ/4?", lambda p: {**p, "d_lambda": 0.25}, "A shorter array is less directive: D = «D».", r"D=«D»")],
+     mistake="Assuming a broadside array radiates only on one side; isotropic elements give a fan beam all around the axis.",
+     vals=_AR), "numeric")
+
+px(T, "Ulaby & Ravaioli Sec. 10-4", "exam", "End-fire array",
+   "Ten isotropic elements are spaced λ/4 apart, each fed 90° behind the previous one (δ = −90°). In which direction does the beam point, and what is the directivity?",
+   {"type": "array", "N": 10, "d": 0.25}, "ra/array", {"N": 10, "d_lambda": 0.25, "delta_deg": -90}, [("θ₀", V("theta0"), "°", 1), ("D", V("D"), "", 1)],
+   X(asked="The beam direction and directivity of an end-fire array.",
+     idea="The feed delay exactly matches the travel time between elements along the axis, so the waves add in phase along the axis.",
+     steps=[S("Beam condition.", r"\cos\theta_0=-\frac{\delta}{kd}=-\frac{-90^\circ}{90^\circ}=1"),
+            S("So the beam points along the axis.", r"\theta_0=«t0»^\circ"),
+            S("Directivity.", r"D=«D}\ («Ddb»\ \text{dBi})".replace("«D}", "«D»"))],
+     answer="θ₀ = «t0»°, D = «D»",
+     whatif=[W("…δ were +90°?", lambda p: {**p, "delta_deg": 90}, "The beam flips to the other end: θ₀ = «t0»°.", r"\theta_0=«t0»^\circ"),
+             W("…δ were −45°?", lambda p: {**p, "delta_deg": -45}, "Partly steered: θ₀ = «t0»°, D = «D».", r"\theta_0=«t0»^\circ")],
+     mistake="Getting the sign of δ backwards, which points the beam at the opposite end.",
+     vals=_AR), "numeric")
+
+# ---- conceptual
+px(T, "Ulaby & Ravaioli Sec. 8-9", "exam", "Why a hollow guide has a cut-off",
+   "A coaxial cable carries signals down to DC, but a hollow rectangular waveguide stops working below its cut-off frequency. Why?",
+   {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", {"a": 0.02286, "b": 0.01016, "f": 5e9}, [],
+   X(asked="The reason for a low-frequency cut-off in hollow guides.",
+     idea="A TEM wave needs two separate conductors to support a voltage between them. A hollow pipe has only one, so only TE and TM modes exist, and each needs room for its transverse standing wave.",
+     steps=[S("TEM fields are solutions of the 2-D Laplace equation in the cross-section; inside a single closed conductor that solution is zero."),
+            S("TE and TM modes are standing waves across the guide, and the smallest one needs half a wavelength across a."),
+            S("Below f_c = «fc» GHz β becomes imaginary and the fields decay along the guide instead of travelling.")],
+     answer_text="A coax has two conductors, so it supports a TEM wave whose transverse field is the same as the static field between the conductors; it exists at any frequency down to DC. "
+                 "A hollow guide is a single conductor: the static field inside a closed metal pipe is zero, so there is no TEM mode. "
+                 "Its TE and TM modes are standing-wave patterns across the cross-section, and the lowest one, TE₁₀, needs half a wavelength across the wide wall. "
+                 "Below that frequency β is imaginary: the field decays exponentially along the guide (an evanescent mode) and no power travels.",
+     evidence_say="Engine at 5 GHz in WR-90: f_c = «fc» GHz, so no mode propagates (n = «nm»).",
+     mistake="Thinking a waveguide works like a pipe for water, carrying any frequency.",
+     vals=_WG), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 8-10", "exam", "Faster than light in a waveguide?",
+   "In a waveguide the phase velocity is greater than c. Does that contradict relativity? What travels at the group velocity?",
+   {"type": "waveguide", "a": 22.86, "b": 10.16}, "ra/waveguide", _wr90, [],
+   X(asked="The meaning of u_p > c and u_g < c in a waveguide.",
+     idea="The guided wave is a superposition of plane waves bouncing between the walls at an angle. Phase crests slide along the guide faster than the waves themselves move forward.",
+     steps=[S("Phase and group velocities of TE₁₀.", r"u_p=«up»\ \text{m/s}>c,\qquad u_g=«ug»\ \text{m/s}<c"),
+            S("Their product is c² in an air-filled guide.", r"u_pu_g=c^2"),
+            S("Energy and information travel at u_g, which is below c.")],
+     answer_text="No. The phase velocity is the speed of a crest of the pattern, not of any energy or signal. "
+                 "The guided wave can be seen as plane waves zig-zagging between the side walls at the speed of light; where they meet the wall, the crossing point of their crests moves along the guide faster than c, "
+                 "just as the point where a wave hits a beach can race along the shore. "
+                 "Energy and information travel with the group velocity, the forward component of the zig-zag, which is below c. In an air-filled guide u_p·u_g = c².",
+     evidence_say="Engine for WR-90 at 10 GHz: u_p = «up» m/s and u_g = «ug» m/s.",
+     mistake="Concluding that a signal can be sent faster than light down a waveguide.",
+     vals=_WG), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 9-1, 9-3", "basic", "Short dipole versus half-wave dipole",
+   "A very short dipole has a directivity of 1.5 and a half-wave dipole 1.64. Why are they so similar, and why are half-wave dipoles nevertheless far more common?",
+   {"type": "dipole", "L": 0.05}, "ra/dipole", {"length_lambda": 0.05}, [],
+   X(asked="Why the patterns of short and half-wave dipoles are similar, and the practical difference.",
+     idea="Both radiate a doughnut pattern with nulls along the wire, so their directivities are close. The big difference is the radiation resistance.",
+     steps=[S("Short dipole: pattern sin²θ; half-wave dipole: a slightly narrower doughnut, so the directivities differ by only about 10 %."),
+            S("Radiation resistance grows as the square of the length for short dipoles.", r"R_{rad}=80\pi^2\Big(\frac l\lambda\Big)^2=«R»\ \Omega\ \text{for}\ l=0.05\lambda"),
+            S("A tiny R_rad means huge currents for useful power and large ohmic losses compared with the radiated power.")],
+     answer_text="Both antennas radiate a doughnut-shaped pattern with nulls along the wire, so their directivities are nearly the same: 1.5 for a short dipole and about 1.64 for a half-wave dipole. "
+                 "The practical difference is the radiation resistance. A dipole 0.05λ long has R_rad of only «R» Ω, so it needs a large current to radiate useful power, and the resistance of its wires and matching network wastes much of it. "
+                 "A half-wave dipole has about 73 Ω and is resonant, so it is easy to feed from a 50 or 75 Ω line efficiently.",
+     evidence_say="Engine runs from 0.05λ to 0.5λ: directivity changes little while R_rad grows by more than a hundred times.",
+     plot=Sweep("length_lambda", [0.05, 0.1, 0.2, 0.3, 0.4, 0.5], [("R_rad (Ω)", EV("R_rad"), "E")], "dipole length l/λ", "radiation resistance (Ω)"),
+     mistake="Judging an antenna by its directivity alone, ignoring its radiation resistance and efficiency.",
+     vals=_DP), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 9-3", "exam", "Why a full-wave dipole is hard to feed",
+   "A full-wave dipole (l = λ) is more directive than a half-wave dipole, yet it is rarely centre-fed. Why?",
+   {"type": "dipole", "L": 1}, "ra/dipole", {"length_lambda": 1}, [],
+   X(asked="The feed problem of a centre-fed full-wave dipole.",
+     idea="The current distribution on a full-wave dipole has a node at the centre. The input impedance there is very high.",
+     steps=[S("Current on a centre-fed dipole of length l.", r"I(z)=I_0\sin\big[k(l/2-|z|)\big]"),
+            S("For l = λ this is sin(π − k|z|), which is zero at z = 0: the feed point sits at a current minimum."),
+            S("The radiated power is finite, so the input resistance at the centre is very large and hard to match, although the pattern is more directive (D = «D»).")],
+     answer_text="Its pattern is narrower, with D ≈ «D» against 1.64, but the current standing wave on a full-wave dipole has a node right at the centre. "
+                 "Feeding a finite power through a point where the current is (ideally) zero requires a very high voltage: the input resistance is in the kilo-ohm range and very sensitive to the exact length. "
+                 "Matching it to a 50 Ω line is awkward and narrow-band. "
+                 "Practical designs either feed off-centre, use a half-wave dipole, or arrange several half-wave elements as an array to get more directivity.",
+     evidence_say="Engine for l = λ: D = «D» («Ddb» dBi), half-power beamwidth «bw»°.",
+     mistake="Assuming a longer dipole is always better because it is more directive.",
+     vals=_DP), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 10-4", "exam", "Grating lobes",
+   "An 8-element array with one-wavelength spacing, fed in phase, has several equally strong beams. Why, and what spacing avoids them?",
+   {"type": "array", "N": 8, "d": 1.0}, "ra/array", {"N": 8, "d_lambda": 1.0, "delta_deg": 0}, [],
+   X(asked="The origin of grating lobes and the spacing rule.",
+     idea="The array factor is periodic in ψ = kd cos θ + δ with period 2π. If the visible range of ψ covers more than one period, more than one full-strength beam appears.",
+     steps=[S("As θ runs from 0 to 180°, ψ sweeps from kd + δ to −kd + δ, a range of 2kd."),
+            S("For d = λ that range is 4π, so ψ passes through 0 and ±2π: three full-strength maxima."),
+            S("To keep a single main beam steered to θ₀, the spacing must satisfy d < λ/(1 + |cos θ₀|); for broadside, d < λ.")],
+     answer_text="The array factor depends on θ only through ψ = kd cos θ + δ, and it repeats every 2π in ψ. "
+                 "As the observation angle goes from end-fire to end-fire, ψ covers a range of 2kd. With one-wavelength spacing that is 4π, "
+                 "so besides the broadside beam at ψ = 0 the pattern also reaches ψ = ±2π, giving full-strength grating lobes along the axis. "
+                 "Keeping d below λ/(1 + |cos θ₀|) avoids them; for wide scanning, spacings near λ/2 are used.",
+     evidence_say="Engine pattern for d = λ: maxima of equal height at broadside and along the axis.",
+     plot=Series(lambda r, p: r["pattern"]["theta_deg"], [("|AF|", lambda r, p: r["pattern"]["AF"], "E")], "angle from the array axis θ (°)", "array factor |AF|"),
+     mistake="Spacing elements far apart to 'get more aperture' without checking for grating lobes.",
+     vals=_AR), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 10-3", "basic", "Directivity grows with array length",
+   "For a broadside array of isotropic elements spaced λ/2 apart, how does the directivity grow with the number of elements, and why?",
+   {"type": "array", "N": 8, "d": 0.5}, "ra/array", {"N": 8, "d_lambda": 0.5, "delta_deg": 0}, [],
+   X(asked="The scaling of directivity with N.",
+     idea="The beamwidth of an array is set by its length in wavelengths: doubling the length halves the beamwidth.",
+     steps=[S("Total length L = Nd; the main beam is about λ/L radians wide in the plane containing the axis."),
+            S("A broadside array's beam is a fan, narrow only in one plane, so D grows in proportion to L.", r"D\approx\frac{2Nd}{\lambda}"),
+            S("For d = λ/2 that gives D ≈ N: the engine finds D = «D» for N = 8.")],
+     answer_text="An array's beamwidth is set by its length in wavelengths: the longer the array, the narrower the beam in the plane containing the axis, roughly λ/(Nd) radians. "
+                 "A broadside array of isotropic elements gives a fan beam that is narrow in that plane but all around the axis in the other, so its directivity grows only linearly with length, D ≈ 2Nd/λ. "
+                 "With λ/2 spacing that is D ≈ N, and the engine gives D = «D» for 8 elements. "
+                 "Doubling the number of elements adds about 3 dB.",
+     evidence_say="Engine runs for N = 2 to 32 at λ/2 spacing: D grows in proportion to N.",
+     plot=Sweep("N", [2, 4, 8, 16, 32], [("D", EV("D"), "S")], "number of elements N", "directivity D", logx=True, logy=True),
+     mistake="Expecting D to grow as N² because the peak field grows as N.",
+     vals=_AR), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 9-1", "basic", "Why the dipole has nulls along its axis",
+   "Why does a dipole antenna radiate nothing along the direction of the wire, and most broadside to it?",
+   {"type": "dipole", "L": 0.5}, "ra/dipole", {"length_lambda": 0.5}, [],
+   X(asked="The reason for the doughnut pattern of a dipole.",
+     idea="Accelerating charges radiate perpendicular to their motion. In a dipole the charges move along the wire.",
+     steps=[S("The far field of a current element is proportional to sin θ, the component of the current perpendicular to the viewing direction.", r"E_\theta\propto I\,l\,\sin\theta"),
+            S("Looking along the wire (θ = 0) the current has no perpendicular component: no radiation."),
+            S("Broadside (θ = 90°) it is fully perpendicular: maximum radiation, with a half-power width of «bw}°.".replace("«bw}", "«bw»"))],
+     answer_text="The far field of a current element is proportional to the part of the current perpendicular to the direction of observation, hence to sin θ. "
+                 "Along the axis of the wire the charges move straight towards or away from the observer, which produces no transverse field, so there is a null. "
+                 "Broadside, the motion is entirely transverse and radiation is strongest. "
+                 "The result is a doughnut-shaped pattern, uniform around the wire; a half-wave dipole's is slightly flatter than sin²θ, with a half-power beamwidth of about «bw»°.",
+     evidence_say="Engine pattern of a half-wave dipole: zero at 0° and 180°, maximum at 90°.",
+     plot=Series(lambda r, p: r["pattern"]["theta_deg"], [("F(θ)", lambda r, p: r["pattern"]["F"], "E")], "angle from the wire θ (°)", "normalised power pattern"),
+     mistake="Pointing a dipole at the receiver end-on.",
+     vals=_DP), "concept")
+
+px(T, "Ulaby & Ravaioli Sec. 9-4", "exam", "Directivity, gain and efficiency",
+   "An antenna datasheet lists a gain of 2.0 dBi for a half-wave dipole whose directivity is 2.15 dBi. What is the difference between gain and directivity, and what does the 0.15 dB say?",
+   {"type": "dipole", "L": 0.5}, "ra/dipole", {"length_lambda": 0.5}, [],
+   X(asked="The relation between directivity, gain and radiation efficiency.",
+     idea="Directivity describes only the shape of the pattern. Gain also counts the power lost in the antenna itself.",
+     steps=[S("Directivity: maximum radiation intensity relative to an isotropic radiator of the same radiated power.", r"D=«D»\ («Ddb»\ \text{dBi})"),
+            S("Gain uses the input power instead, so it includes the radiation efficiency.", r"G=\xi D,\qquad\xi=\frac{R_{rad}}{R_{rad}+R_{loss}}"),
+            S("A 0.15 dB difference means ξ ≈ 0.97: about 3 % of the input power is lost as heat.")],
+     answer_text="Directivity, «D» («Ddb» dBi) for a half-wave dipole, describes only how the radiated power is concentrated in direction, relative to an isotropic antenna radiating the same total power. "
+                 "Gain is referred to the power accepted at the input, so it also includes the antenna's own losses: G = ξD, where the radiation efficiency ξ = R_rad/(R_rad + R_loss). "
+                 "A gain 0.15 dB below the directivity means ξ = 10^(−0.015) ≈ 0.97, i.e. about 3 % of the power is dissipated in the conductors. "
+                 "Mismatch loss at the feed is usually counted separately.",
+     evidence_say="Engine: the ideal half-wave dipole has D = «D» («Ddb» dBi) and R_rad = «R» Ω.",
+     mistake="Using 'gain' and 'directivity' interchangeably.",
+     vals=_DP), "concept")
 
 # ---------------------------------------------------------------- API
 def catalog():
